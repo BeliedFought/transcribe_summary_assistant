@@ -130,6 +130,7 @@ Markers: `[!]` error, `[i]` info, `[*]` warning.
 - Create with: `python3 -m venv --copies .venv`
 - Activate via `source .venv/bin/activate`
 - Install dependencies with: `pip install -r requirements.txt`
+- For development (run/ scripts and `python -m` execution): install the project in editable mode after dependencies - `pip install -e .`. Without it `python run/<domain>/<script>.py` fails with `ModuleNotFoundError: No module named 'src'`, because `sys.path` hacks are forbidden by the standard. `python main.py` from the project root works without it (root is on `sys.path[0]`).
 - Pin Python version in `.python-version`
 - pip mirror: pypi.org may be unavailable (TLS, network restrictions).
   Do NOT hardcode a mirror. Probe candidates and pick the fastest available:
