@@ -28,6 +28,7 @@ Before writing any code or making changes:
 | `AGENTS.md` | Инструкции для AI-агентов (Kilo Code, Cursor) |
 | `CLAUDE.md` | Зеркальная копия AGENTS.md (Claude Code) |
 | `config/config.ini` | Все настройки проекта |
+| `config/config.ini.example` | Шаблон конфигурации для первичной установки |
 | `data/` | Рабочие данные: SQLite, кеш, сессии |
 | `data/sessions/` | Папки сессий обработки |
 | `debug/` | Отладочные скрипты и временные файлы |
@@ -50,7 +51,9 @@ Before writing any code or making changes:
 | `sample/` | Примеры данных |
 | `sql/schema.sql` | DDL-схема SQLite |
 | `src/` | Библиотечные модули |
+| `src/startup.py` | Стартовая fail-fast валидация окружения для entry-point скриптов |
 | `test/` | Тесты pytest |
+| `pyproject.toml` | Метаданные пакета и установка (`pip install -e .`) |
 
 ## Configuration & Secrets
 

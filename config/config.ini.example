@@ -1,0 +1,67 @@
+[app]
+name = Transcribe & Summary Assistant
+version = 0.6.2
+language = ru
+
+[processing]
+audio_extensions = .mp3,.wav,.flac,.ogg,.m4a,.opus
+video_extensions = .mp4,.webm,.mkv,.mov,.avi
+text_extensions = .txt
+
+[whisper]
+model_size = large-v3
+device = cuda
+compute_type = float16
+language = ru
+vad_filter = true
+vad_min_speech_duration_ms = 1000
+vad_max_speech_duration_s = 30
+beam_size = 5
+
+[diarization]
+enabled = true
+min_speakers = 1
+max_speakers = 10
+hf_model = pyannote/speaker-diarization-3.1
+
+[youtube]
+audio_format = bestaudio/best
+output_template = %(id)s_%(title)s.%(ext)s
+
+[deepseek]
+api_url = https://api.deepseek.com/v1
+model = deepseek-chat
+temperature = 0.3
+max_tokens = 4096
+timeout = 60
+
+[ollama]
+enabled = false
+base_url = http://localhost:11434
+model = llama3
+timeout = 60
+
+[paths]
+data_folder = data/
+input_folder = input/
+output_folder = output/
+log_folder = log/
+
+[retry]
+count = 3
+delay = 2
+max_delay = 30
+
+[email]
+enabled = false
+smtp_host = smtp.yandex.ru
+smtp_port = 465
+smtp_security = ssl
+from = your@yandex.ru
+to = your@yandex.ru
+subject_summary = Краткий пересказ - {channel} - {title}
+subject_article = Статья - {title}
+
+[output]
+generate_summary = true
+generate_article = true
