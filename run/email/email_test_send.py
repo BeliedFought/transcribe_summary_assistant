@@ -13,17 +13,16 @@
 import os
 import sys
 from datetime import datetime
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.config import PROJECT_ROOT, config, APP_NAME, APP_VERSION
 from src.email_sender import send_summary
 from src.logger import get_logger
 from src.localization import init as i18n_init, t
+from src.startup import validate_startup
 
 logger = get_logger("email_test_send", log_dir=PROJECT_ROOT / "log")
 i18n_init(db_path=PROJECT_ROOT / "data" / "sessions.db")
+validate_startup(logger)
 
 PLACEHOLDER_ADDR = "your@yandex.ru"
 
@@ -47,14 +46,10 @@ def main() -> None:
         if not to_addr or to_addr == PLACEHOLDER_ADDR:
             config.set("email", "to", smtp_user)
 
-    test_text = (
-        "# Тестовое саммари\n\n"
-        "Проверка отправки почты из Transcribe & Summary Assistant.\n\n"
-        "Время отправки: {ts}\n".format(ts=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    )
+    test_text = t("msg.email_test_body", ts=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
     try:
-        send_summary(test_text, "Тестовое сообщение", config)
+        send_summary(test_text, t("msg.email_test_subject"), "", config)
     except Exception as e:
         logger.error(t("error.email_send_failed", detail=str(e)))
         sys.exit(1)

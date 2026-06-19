@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from src.localization import t
+
 
 @dataclass
 class SpeakerSegment:
@@ -73,28 +75,31 @@ def diarize(audio_path: Path, config: ConfigParser) -> list[SpeakerSegment]:
     :param config: ConfigParser с секциеи [diarization]
     :return: список сегментов дикторов
     """
+    import os
     import subprocess
     import tempfile
 
     min_speakers = config.getint("diarization", "min_speakers", fallback=1)
     max_speakers = config.getint("diarization", "max_speakers", fallback=10)
 
-    wav_path = Path(tempfile.mktemp(suffix=".wav"))
-    subprocess.run(
-        [
-            "ffmpeg", "-y",
-            "-i", str(audio_path),
-            "-ar", "16000",
-            "-ac", "1",
-            "-f", "wav",
-            str(wav_path),
-        ],
-        check=True,
-        capture_output=True,
-    )
-
-    pipeline = _get_pipeline(config)
+    wav_fd, wav_name = tempfile.mkstemp(suffix=".wav")
+    os.close(wav_fd)
+    wav_path = Path(wav_name)
     try:
+        subprocess.run(
+            [
+                "ffmpeg", "-y",
+                "-i", str(audio_path),
+                "-ar", "16000",
+                "-ac", "1",
+                "-f", "wav",
+                str(wav_path),
+            ],
+            check=True,
+            capture_output=True,
+        )
+
+        pipeline = _get_pipeline(config)
         output = pipeline(
             str(wav_path),
             min_speakers=min_speakers,
@@ -120,9 +125,9 @@ def diarize(audio_path: Path, config: ConfigParser) -> list[SpeakerSegment]:
     speaker_names: dict[str, str] = {}
     for i, speaker_id in enumerate(unique_speakers, 1):
         if width:
-            speaker_names[speaker_id] = f"Спикер_{i:0{width}d}"
+            speaker_names[speaker_id] = t("label.speaker", number=f"{i:0{width}d}")
         else:
-            speaker_names[speaker_id] = f"Спикер_{i}"
+            speaker_names[speaker_id] = t("label.speaker", number=str(i))
 
     for seg in segments:
         seg.speaker_id = speaker_names[seg.speaker_id]
@@ -153,7 +158,7 @@ def align_segments(
     aligned: list[AlignedSegment] = []
 
     for tseg in transcription_segments:
-        best_speaker = "[неизвестно]"
+        best_speaker = t("label.unknown_speaker")
         best_overlap = 0.0
 
         for sseg in speaker_segments:

@@ -201,7 +201,7 @@ def _generate_deepseek(
     total_usage: dict[str, int] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
     for i, chunk in enumerate(chunks):
         logger.info(t("msg.summarizing_chunk", current=i + 1, total=len(chunks)))
-        chunk_prompt = system_prompt + "\n\nЭто часть {0}/{1} текста.".format(i + 1, len(chunks))
+        chunk_prompt = system_prompt + "\n\n" + t("msg.summarizer_chunk_prefix", current=i + 1, total=len(chunks))
         messages = _build_messages(chunk_prompt, chunk)
         result, usage = _call_deepseek_api(messages, config)
         chunk_results.append(result)

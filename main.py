@@ -200,9 +200,9 @@ def _format_subscribers(count_str: str) -> str:
     except ValueError:
         return t("label.not_available")
     if count >= 1_000_000:
-        return f"{count / 1_000_000:.1f} млн".replace(".", ",")
+        return f"{count / 1_000_000:.1f} {t('label.million')}".replace(".", ",")
     if count >= 1_000:
-        return f"{count / 1_000:.0f} тыс"
+        return f"{count / 1_000:.0f} {t('label.thousand')}"
     return str(count)
 
 
@@ -341,6 +341,7 @@ def _process_file(file_info: "FileInfo", conn: sqlite3.Connection) -> None:
     create_session(conn, session_data)
 
     wav_path: Path | None = None
+    duration_sec = 0.0
 
     try:
         if file_info.file_type == "video":
@@ -612,7 +613,7 @@ def _process_file(file_info: "FileInfo", conn: sqlite3.Connection) -> None:
         "source_filename": source_filename,
         "source_type": file_info.file_type,
         "file_hash": file_hash,
-        "duration_seconds": duration_sec if "duration_sec" in dir() else 0.0,
+        "duration_seconds": duration_sec,
         "word_count": trans_result.word_count,
         "whisper_model": config.get("whisper", "model_size", fallback="large-v3"),
         "whisper_language": trans_result.language,

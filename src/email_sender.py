@@ -11,6 +11,7 @@
     SMTP_USER, SMTP_PASSWORD
 """
 
+import logging
 import os
 import re
 import smtplib
@@ -24,7 +25,15 @@ from src.localization import t
 from src.logger import get_logger
 from src.config import PROJECT_ROOT
 
-logger = get_logger("email_sender", log_dir=PROJECT_ROOT / "log")
+_logger: logging.Logger | None = None
+
+
+def _get_logger() -> logging.Logger:
+    """Создать логгер при первом использовании (lazy)."""
+    global _logger
+    if _logger is None:
+        _logger = get_logger("email_sender", log_dir=PROJECT_ROOT / "log")
+    return _logger
 
 
 def is_email_enabled(config: ConfigParser) -> bool:
@@ -143,7 +152,7 @@ def send_summary(summary_text: str, title: str, channel: str, config: ConfigPars
     :raises RuntimeError: при ошибке подключения или отправки
     """
     subject_template = config.get("email", "subject_summary", fallback="Краткий пересказ - {channel} - {title}")
-    logger.info(t("msg.email_sending", to=config.get("email", "to", fallback="")))
+    _get_logger().info(t("msg.email_sending", to=config.get("email", "to", fallback="")))
     _send_document(summary_text, subject_template, title, channel, config)
 
 
@@ -158,7 +167,7 @@ def send_article(article_text: str, title: str, channel: str, config: ConfigPars
     :raises RuntimeError: при ошибке подключения или отправки
     """
     subject_template = config.get("email", "subject_article", fallback="Статья: {title}")
-    logger.info(t("msg.email_sending_article", to=config.get("email", "to", fallback="")))
+    _get_logger().info(t("msg.email_sending_article", to=config.get("email", "to", fallback="")))
     _send_document(article_text, subject_template, title, channel, config)
 
 
@@ -199,13 +208,13 @@ def _send_document(
     recipient = os.environ.get("SMTP_TO", "").strip() or config.get("email", "to", fallback="").strip()
 
     if not sender:
-        raise RuntimeError("email.from не указан в config.ini")
+        raise RuntimeError(t("error.email_from_missing"))
     if not recipient:
-        raise RuntimeError("email.to не указан в config.ini")
+        raise RuntimeError(t("error.email_to_missing"))
 
     user, password = _read_credentials(config)
     if not user or not password:
-        raise RuntimeError("SMTP_USER и/или SMTP_PASSWORD не заданы в .env")
+        raise RuntimeError(t("error.email_credentials_missing"))
 
     subject = _format_subject(subject_template, title, channel)
 
@@ -225,11 +234,9 @@ def _send_document(
     elif smtp_security == "none":
         _send_plain(message, smtp_host, smtp_port, user, password)
     else:
-        raise RuntimeError(
-            "Неизвестное значение email.smtp_security: {value}".format(value=smtp_security)
-        )
+        raise RuntimeError(t("error.unknown_smtp_security", value=smtp_security))
 
-    logger.info(t("msg.email_sent", to=recipient))
+    _get_logger().info(t("msg.email_sent", to=recipient))
 
 
 def _send_ssl(

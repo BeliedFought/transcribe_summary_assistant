@@ -17,6 +17,41 @@ from typing import Any
 from src.config import PROJECT_ROOT
 
 
+_SESSION_COLUMNS: frozenset[str] = frozenset({
+    "id",
+    "source_filename",
+    "source_type",
+    "source_url",
+    "original_path",
+    "session_dir",
+    "file_size_bytes",
+    "duration_seconds",
+    "file_hash",
+    "whisper_model",
+    "whisper_language",
+    "whisper_confidence",
+    "word_count",
+    "speaker_count",
+    "speakers_list",
+    "transcription_path",
+    "summary_path",
+    "article_path",
+    "summarizer_engine",
+    "status",
+    "error_message",
+    "email_status",
+    "article_email_status",
+    "created_at",
+    "completed_at",
+    "processing_time_seconds",
+})
+
+
+def _filter_session_columns(data: dict[str, Any]) -> dict[str, Any]:
+    """Оставить только разрешенные колонки таблицы sessions (защита от инъекций)."""
+    return {k: v for k, v in data.items() if k in _SESSION_COLUMNS}
+
+
 def _read_schema() -> str:
     """Прочитать DDL из sql/schema.sql."""
     schema_path = PROJECT_ROOT / "sql" / "schema.sql"
@@ -108,17 +143,19 @@ def _migrate_sessions_columns(conn: sqlite3.Connection) -> None:
 
 def create_session(conn: sqlite3.Connection, data: dict[str, Any]) -> None:
     """Создать запись о сессии."""
-    columns = ", ".join(data.keys())
-    placeholders = ", ".join("?" for _ in data)
+    filtered = _filter_session_columns(data)
+    columns = ", ".join(filtered.keys())
+    placeholders = ", ".join("?" for _ in filtered)
     sql = f"INSERT INTO sessions ({columns}) VALUES ({placeholders})"
-    conn.execute(sql, list(data.values()))
+    conn.execute(sql, list(filtered.values()))
     conn.commit()
 
 
 def update_session(conn: sqlite3.Connection, session_id: str, data: dict[str, Any]) -> None:
     """Обновить запись сессии."""
-    set_clause = ", ".join(f"{k} = ?" for k in data)
-    values = list(data.values()) + [session_id]
+    filtered = _filter_session_columns(data)
+    set_clause = ", ".join(f"{k} = ?" for k in filtered)
+    values = list(filtered.values()) + [session_id]
     sql = f"UPDATE sessions SET {set_clause} WHERE id = ?"
     conn.execute(sql, values)
     conn.commit()
@@ -847,6 +884,58 @@ def insert_initial_translations(conn: sqlite3.Connection) -> None:
         "error.email_not_enabled": {
             "ru": "Отправка email отключена в конфигурации (enabled=false)",
             "en": "Email sending disabled in config (enabled=false)",
+        },
+        "label.speaker": {
+            "ru": "Спикер_{number}",
+            "en": "Speaker_{number}",
+        },
+        "label.unknown_speaker": {
+            "ru": "[неизвестно]",
+            "en": "[unknown]",
+        },
+        "label.million": {
+            "ru": "млн",
+            "en": "M",
+        },
+        "label.thousand": {
+            "ru": "тыс",
+            "en": "K",
+        },
+        "error.unknown_smtp_security": {
+            "ru": "Неизвестное значение email.smtp_security: {value}",
+            "en": "Unknown email.smtp_security value: {value}",
+        },
+        "error.email_from_missing": {
+            "ru": "email.from не указан в config.ini",
+            "en": "email.from not set in config.ini",
+        },
+        "error.email_to_missing": {
+            "ru": "email.to не указан в config.ini",
+            "en": "email.to not set in config.ini",
+        },
+        "error.email_credentials_missing": {
+            "ru": "SMTP_USER и/или SMTP_PASSWORD не заданы в .env",
+            "en": "SMTP_USER and/or SMTP_PASSWORD not set in .env",
+        },
+        "error.timeout_exceeded": {
+            "ru": "превышен таймаут {timeout} сек",
+            "en": "timeout exceeded {timeout} sec",
+        },
+        "error.config_not_found": {
+            "ru": "Файл конфигурации не найден: {path}",
+            "en": "Config file not found: {path}",
+        },
+        "msg.summarizer_chunk_prefix": {
+            "ru": "Это часть {current}/{total} текста.",
+            "en": "This is part {current}/{total} of the text.",
+        },
+        "msg.email_test_subject": {
+            "ru": "Тестовое сообщение",
+            "en": "Test message",
+        },
+        "msg.email_test_body": {
+            "ru": "# Тестовое саммари\n\nПроверка отправки почты из Transcribe & Summary Assistant.\n\nВремя отправки: {ts}\n",
+            "en": "# Test summary\n\nMail sending check from Transcribe & Summary Assistant.\n\nSent at: {ts}\n",
         },
     }
 

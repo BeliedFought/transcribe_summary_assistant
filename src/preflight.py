@@ -20,6 +20,7 @@ import urllib.request
 from configparser import ConfigParser
 from typing import Any, Callable
 
+from src.config import PROJECT_ROOT
 from src.localization import t
 
 
@@ -35,19 +36,18 @@ _WHISPER_REQUIRED_FILES: tuple[str, ...] = (
 )
 
 
-def _log(msg: str) -> None:
+def _get_logger() -> Any:
+    """Вернуть единый логгер preflight (создается один раз)."""
     from src.logger import get_logger
-    get_logger("preflight", log_dir=_log_dir()).info(msg)
+    return get_logger("preflight", log_dir=PROJECT_ROOT / "log")
+
+
+def _log(msg: str) -> None:
+    _get_logger().info(msg)
 
 
 def _log_err(msg: str) -> None:
-    from src.logger import get_logger
-    get_logger("preflight", log_dir=_log_dir()).error(msg)
-
-
-def _log_dir() -> Any:
-    from src.config import PROJECT_ROOT
-    return PROJECT_ROOT / "log"
+    _get_logger().error(msg)
 
 
 def check_all(config: ConfigParser) -> list[str]:
@@ -55,7 +55,7 @@ def check_all(config: ConfigParser) -> list[str]:
     Выполнить все pre-flight проверки и вернуть список ошибок.
 
     :param config: ConfigParser проекта
-    :return: список строк-ошибок (пустой список = всё в порядке)
+    :return: список строк-ошибок (пустой список = все в порядке)
     """
     _log(t("msg.preflight_start"))
 
@@ -128,7 +128,7 @@ def _call_with_timeout(func: Callable[[], Any], timeout: int) -> Any:
     thread.join(timeout=timeout)
 
     if thread.is_alive():
-        raise TimeoutError(f"call exceeded {timeout} sec")
+        raise TimeoutError(t("error.timeout_exceeded", timeout=timeout))
     if "error" in result:
         raise result["error"]
     return result.get("value")
