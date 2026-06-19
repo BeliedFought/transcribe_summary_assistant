@@ -5,16 +5,15 @@
 """
 
 import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.config import PROJECT_ROOT, config, APP_NAME, APP_VERSION
 from src.logger import get_logger
 from src.localization import init as i18n_init, t
+from src.startup import validate_startup
 
 logger = get_logger("ai_ollama_check", log_dir=PROJECT_ROOT / "log")
 i18n_init(db_path=PROJECT_ROOT / "data" / "sessions.db")
+validate_startup(logger)
 
 
 def main() -> None:

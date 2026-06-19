@@ -2,7 +2,6 @@
 .venv/
 data/*
 !data/.gitkeep
-data/sessions/
 log/*
 !log/.gitkeep
 debug/*
@@ -24,9 +23,12 @@ input/yt/*
 !input/yt/.gitkeep
 __pycache__/
 .pytest_cache/
+*.egg-info/
+build/
+dist/
 .vscode/
 .claude/
-.kilo/
+.kilo
 doc/agent_questions/*
 !doc/agent_questions/.gitkeep
 doc/change_requests/*
