@@ -150,6 +150,27 @@ def _markdown_to_html(markdown_text: str) -> str:
 </html>""".format(body=html_body)
 
 
+def _resolve_recipients(config: ConfigParser) -> list[str]:
+    """
+    Разрешить список получателей: env SMTP_TO имеет приоритет над [email] to.
+
+    Поддерживается перечисление через запятую (с пробелами или без).
+    Дубликаты удаляются с сохранением порядка, пустые элементы отбрасываются.
+
+    :param config: ConfigParser с секцией [email]
+    :return: список адресов получателей (пустой если не задан ни один)
+    """
+    raw = os.environ.get("SMTP_TO", "").strip() or config.get("email", "to", fallback="").strip()
+    seen: set[str] = set()
+    recipients: list[str] = []
+    for part in raw.split(","):
+        addr = part.strip()
+        if addr and addr not in seen:
+            seen.add(addr)
+            recipients.append(addr)
+    return recipients
+
+
 def send_summary(summary_text: str, title: str, channel: str, config: ConfigParser) -> None:
     """
     Отправить саммари на email в формате multipart: plain text (markdown) и HTML.
@@ -167,7 +188,7 @@ def send_summary(summary_text: str, title: str, channel: str, config: ConfigPars
     :raises RuntimeError: при ошибке подключения или отправки
     """
     subject_template = config.get("email", "subject_summary", fallback="Краткий пересказ - {channel} - {title}")
-    _get_logger().info(t("msg.email_sending", to=config.get("email", "to", fallback="")))
+    _get_logger().info(t("msg.email_sending", to=", ".join(_resolve_recipients(config))))
     _send_document(summary_text, subject_template, title, channel, config)
 
 
@@ -184,7 +205,7 @@ def send_article(article_text: str, title: str, channel: str, config: ConfigPars
     :raises RuntimeError: при ошибке подключения или отправки
     """
     subject_template = config.get("email", "subject_article", fallback="Статья: {title}")
-    _get_logger().info(t("msg.email_sending_article", to=config.get("email", "to", fallback="")))
+    _get_logger().info(t("msg.email_sending_article", to=", ".join(_resolve_recipients(config))))
     _send_document(article_text, subject_template, title, channel, config)
 
 
@@ -222,11 +243,11 @@ def _send_document(
     smtp_port = config.getint("email", "smtp_port", fallback=465)
     smtp_security = config.get("email", "smtp_security", fallback="ssl").strip().lower()
     sender = os.environ.get("SMTP_FROM", "").strip() or config.get("email", "from", fallback="").strip()
-    recipient = os.environ.get("SMTP_TO", "").strip() or config.get("email", "to", fallback="").strip()
+    recipients = _resolve_recipients(config)
 
     if not sender:
         raise RuntimeError(t("error.email_from_missing"))
-    if not recipient:
+    if not recipients:
         raise RuntimeError(t("error.email_to_missing"))
 
     user, password = _read_credentials(config)
@@ -239,7 +260,7 @@ def _send_document(
 
     message = EmailMessage()
     message["From"] = sender
-    message["To"] = recipient
+    message["To"] = ", ".join(recipients)
     message["Subject"] = subject
     message.set_content(text)
     message.add_alternative(html_body, subtype="html")
@@ -262,7 +283,7 @@ def _send_document(
     else:
         raise RuntimeError(t("error.unknown_smtp_security", value=smtp_security))
 
-    _get_logger().info(t("msg.email_sent", to=recipient))
+    _get_logger().info(t("msg.email_sent", to=", ".join(recipients)))
 
 
 def _send_ssl(
