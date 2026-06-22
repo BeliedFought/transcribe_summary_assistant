@@ -61,6 +61,7 @@ from = your@yandex.ru
 to = your@yandex.ru
 subject_summary = Краткий пересказ - {channel} - {title}
 subject_article = Статья - {title}
+attach_markdown = true
 
 [output]
 generate_summary = true

@@ -25,6 +25,19 @@ from src.localization import t
 from src.logger import get_logger
 from src.config import PROJECT_ROOT
 
+_UNSAFE_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|\r\n\t]+')
+
+
+def _sanitize_filename(name: str, max_len: int = 80) -> str:
+    """Привести произвольную строку к безопасному имени файла."""
+    cleaned = _UNSAFE_FILENAME_CHARS.sub(" ", name).strip()
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    if not cleaned:
+        cleaned = "summary"
+    if len(cleaned) > max_len:
+        cleaned = cleaned[:max_len].rstrip()
+    return cleaned
+
 _logger: logging.Logger | None = None
 
 
@@ -140,6 +153,8 @@ def _markdown_to_html(markdown_text: str) -> str:
 def send_summary(summary_text: str, title: str, channel: str, config: ConfigParser) -> None:
     """
     Отправить саммари на email в формате multipart: plain text (markdown) и HTML.
+    При включенном [email] attach_markdown (по умолчанию true) саммари также
+    вкладывается во вложение в виде файла .md.
 
     Тема формируется из шаблона [email] subject_summary с плейсхолдерами
     {title} (название ролика/файла) и {channel} (имя канала). Если канал
@@ -159,6 +174,8 @@ def send_summary(summary_text: str, title: str, channel: str, config: ConfigPars
 def send_article(article_text: str, title: str, channel: str, config: ConfigParser) -> None:
     """
     Отправить статью отдельным письмом в формате multipart: plain text (markdown) и HTML.
+    При включенном [email] attach_markdown (по умолчанию true) статья также
+    вкладывается во вложение в виде файла .md.
 
     :param article_text: текст статьи (markdown)
     :param title: название ролика или имя файла для подстановки в тему
@@ -226,6 +243,15 @@ def _send_document(
     message["Subject"] = subject
     message.set_content(text)
     message.add_alternative(html_body, subtype="html")
+
+    if config.getboolean("email", "attach_markdown", fallback=True):
+        filename = _sanitize_filename(subject) + ".md"
+        message.add_attachment(
+            text.encode("utf-8"),
+            maintype="text",
+            subtype="markdown",
+            filename=filename,
+        )
 
     if smtp_security == "ssl":
         _send_ssl(message, smtp_host, smtp_port, user, password)
