@@ -136,7 +136,7 @@ def download_audio(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
                     bar_w = 30
                     filled = int(pct / 100 * bar_w)
                     bar = "\u2588" * filled + "\u2591" * (bar_w - filled)
-                    sys.stdout.write(f"\r  \u23ec {bar} {pct:.1f}% {speed} ETA {eta}")
+                    sys.stdout.write(f"\r  {bar} {pct:.1f}% {speed} ETA {eta}")
                     sys.stdout.flush()
                 except ValueError:
                     pass
@@ -228,7 +228,7 @@ def download_video(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
                     bar_w = 30
                     filled = int(pct / 100 * bar_w)
                     bar = "\u2588" * filled + "\u2591" * (bar_w - filled)
-                    sys.stdout.write(f"\r  \u23ec {bar} {pct:.1f}% {speed} ETA {eta}")
+                    sys.stdout.write(f"\r  {bar} {pct:.1f}% {speed} ETA {eta}")
                     sys.stdout.flush()
                 except ValueError:
                     pass
