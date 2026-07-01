@@ -119,13 +119,35 @@ def download_audio(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
         "-o", url_output_template,
         "--no-playlist",
         "--extract-audio",
+        "--progress-template", "progress:%(progress.percentage)s:%(progress._speed_str)s:%(progress._eta_str)s",
+        "--newline",
         youtube_url,
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    stderr_lines: list[str] = []
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) as process:
+        assert process.stdout is not None
+        for line in process.stdout:
+            line_stripped = line.strip()
+            if line_stripped.startswith("progress:") and line_stripped.count(":") >= 3:
+                _, pct_str, speed, eta = line_stripped.split(":", 3)
+                try:
+                    pct = float(pct_str)
+                    bar_w = 30
+                    filled = int(pct / 100 * bar_w)
+                    bar = "\u2588" * filled + "\u2591" * (bar_w - filled)
+                    sys.stdout.write(f"\r  \u23ec {bar} {pct:.1f}% {speed} ETA {eta}")
+                    sys.stdout.flush()
+                except ValueError:
+                    pass
+        returncode = process.wait()
+        sys.stdout.write("\r\033[K")
+        sys.stdout.flush()
+        if process.stderr is not None:
+            stderr_lines = process.stderr.read().strip().splitlines()
 
-    if result.returncode != 0:
-        raise RuntimeError(f"yt-dlp failed: {result.stderr.strip()}")
+    if returncode != 0:
+        raise RuntimeError(f"yt-dlp failed: {'; '.join(stderr_lines) if stderr_lines else 'unknown error'}")
 
     audio_files = sorted(
         output_dir.iterdir(),
@@ -188,14 +210,36 @@ def download_video(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
         "--no-playlist",
         "--merge-output-format", "mp4",
         "--download-archive", str(archive_path),
+        "--progress-template", "progress:%(progress.percentage)s:%(progress._speed_str)s:%(progress._eta_str)s",
+        "--newline",
         youtube_url,
     ]
 
     before = {p for p in channel_dir.iterdir() if p.is_file()}
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    stderr_lines: list[str] = []
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) as process:
+        assert process.stdout is not None
+        for line in process.stdout:
+            line_stripped = line.strip()
+            if line_stripped.startswith("progress:") and line_stripped.count(":") >= 3:
+                _, pct_str, speed, eta = line_stripped.split(":", 3)
+                try:
+                    pct = float(pct_str)
+                    bar_w = 30
+                    filled = int(pct / 100 * bar_w)
+                    bar = "\u2588" * filled + "\u2591" * (bar_w - filled)
+                    sys.stdout.write(f"\r  \u23ec {bar} {pct:.1f}% {speed} ETA {eta}")
+                    sys.stdout.flush()
+                except ValueError:
+                    pass
+        returncode = process.wait()
+        sys.stdout.write("\r\033[K")
+        sys.stdout.flush()
+        if process.stderr is not None:
+            stderr_lines = process.stderr.read().strip().splitlines()
 
-    if result.returncode != 0:
-        raise RuntimeError(f"yt-dlp failed: {result.stderr.strip()}")
+    if returncode != 0:
+        raise RuntimeError(f"yt-dlp failed: {'; '.join(stderr_lines) if stderr_lines else 'unknown error'}")
 
     new_files = sorted(
         (p for p in channel_dir.iterdir() if p.is_file() and p not in before),
