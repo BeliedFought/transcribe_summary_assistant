@@ -119,7 +119,7 @@ def download_audio(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
         "-o", url_output_template,
         "--no-playlist",
         "--extract-audio",
-        "--progress-template", "progress:%(progress.percentage)s:%(progress._speed_str)s:%(progress._eta_str)s",
+        "--progress-template", "progress:%(progress._percent_str)s:%(progress._speed_str)s:%(progress._eta_str)s",
         "--newline",
         youtube_url,
     ]
@@ -132,7 +132,7 @@ def download_audio(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
             if line_stripped.startswith("progress:") and line_stripped.count(":") >= 3:
                 _, pct_str, speed, eta = line_stripped.split(":", 3)
                 try:
-                    pct = float(pct_str)
+                    pct = float(pct_str.strip().rstrip("%"))
                     bar_w = 30
                     filled = int(pct / 100 * bar_w)
                     bar = "\u2588" * filled + "\u2591" * (bar_w - filled)
@@ -210,7 +210,7 @@ def download_video(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
         "--no-playlist",
         "--merge-output-format", "mp4",
         "--download-archive", str(archive_path),
-        "--progress-template", "progress:%(progress.percentage)s:%(progress._speed_str)s:%(progress._eta_str)s",
+        "--progress-template", "progress:%(progress._percent_str)s:%(progress._speed_str)s:%(progress._eta_str)s",
         "--newline",
         youtube_url,
     ]
@@ -224,7 +224,7 @@ def download_video(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
             if line_stripped.startswith("progress:") and line_stripped.count(":") >= 3:
                 _, pct_str, speed, eta = line_stripped.split(":", 3)
                 try:
-                    pct = float(pct_str)
+                    pct = float(pct_str.strip().rstrip("%"))
                     bar_w = 30
                     filled = int(pct / 100 * bar_w)
                     bar = "\u2588" * filled + "\u2591" * (bar_w - filled)
