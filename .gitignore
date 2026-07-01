@@ -21,6 +21,7 @@ input/video/*
 !input/video/.gitkeep
 input/yt/*
 !input/yt/.gitkeep
+!input/yt/*.txt
 __pycache__/
 .pytest_cache/
 *.egg-info/
