@@ -6,9 +6,25 @@
     audio_path, video_title = download_audio("https://youtube.com/watch?v=...", output_dir, config)
 """
 
+import re
 import subprocess
 from configparser import ConfigParser
 from pathlib import Path
+
+_INVALID_NAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+_VIDEO_EXTS: tuple[str, ...] = (".mp4", ".webm", ".mkv", ".mov", ".avi")
+
+
+def _sanitize_name(name: str) -> str:
+    """Заменить недопустимые в имени файла/папки символы и убрать крайние точки/пробелы."""
+    cleaned = _INVALID_NAME_CHARS.sub("_", name).strip().rstrip(".")
+    return cleaned or "unknown"
+
+
+def _extract_video_id(url: str) -> str:
+    """Извлечь video ID из ссылки YouTube (или вернуть исходную ссылку)."""
+    match = re.search(r"(?:v=|youtu\.be/|embed/)([\w-]{6,})", url)
+    return match.group(1) if match else url
 
 
 def get_video_title(youtube_url: str) -> str:
@@ -107,3 +123,71 @@ def download_audio(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
     video_title = get_video_title(youtube_url)
 
     return audio_files[0], video_title
+
+
+def download_video(youtube_url: str, output_dir: Path, config: ConfigParser) -> tuple[str, Path | None]:
+    """
+    Скачать видео из YouTube целиком (видео + аудио), качество не выше 720p.
+
+    Файл сохраняется в подпапку по названию канала:
+    ``output_dir/<канал>/<канал> - <название>.<ext>``. Имя файла берется из
+    параметра ``[youtube] download_template`` конфига.
+
+    Идемпотентность: отслеживание скачанных ссылок по video ID через
+    archive-файл yt-dlp (``output_dir/.ytdl_archive``). При повторном запуске
+    уже скачанная ссылка пропускается без повторного обращения к сети.
+
+    :param youtube_url: ссылка на видео YouTube
+    :param output_dir: корневая папка-приемник (создается подпапка канала)
+    :param config: ConfigParser с секцией ``[youtube]``
+    :return: кортеж ``(статус, путь)``. Статус ``"downloaded"`` - файл скачан,
+             ``"skipped"`` - ссылка уже была скачана ранее (путь None)
+    :raises RuntimeError: при ошибке загрузки
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    archive_path = output_dir / ".ytdl_archive"
+    video_id = _extract_video_id(youtube_url)
+    if archive_path.exists() and video_id in archive_path.read_text(encoding="utf-8").splitlines():
+        return "skipped", None
+
+    channel = ""
+    try:
+        channel = (get_channel_info(youtube_url).get("channel") or "").strip()
+    except Exception:
+        channel = ""
+    channel_dir = output_dir / _sanitize_name(channel or "unknown")
+    channel_dir.mkdir(parents=True, exist_ok=True)
+
+    download_template = config.get(
+        "youtube", "download_template", fallback="%(channel)s - %(title)s.%(ext)s"
+    )
+    output_template = str(channel_dir / download_template)
+
+    cmd = [
+        "yt-dlp",
+        "-f", "bestvideo[height<=720]+bestaudio/best[height<=720]",
+        "-o", output_template,
+        "--no-playlist",
+        "--merge-output-format", "mp4",
+        "--download-archive", str(archive_path),
+        youtube_url,
+    ]
+
+    before = {p for p in channel_dir.iterdir() if p.is_file()}
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        raise RuntimeError(f"yt-dlp failed: {result.stderr.strip()}")
+
+    new_files = sorted(
+        (p for p in channel_dir.iterdir() if p.is_file() and p not in before),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    new_files = [p for p in new_files if p.suffix.lower() in _VIDEO_EXTS]
+
+    if not new_files:
+        return "skipped", None
+
+    return "downloaded", new_files[0]

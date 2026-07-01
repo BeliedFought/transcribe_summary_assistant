@@ -425,6 +425,26 @@ def insert_initial_translations(conn: sqlite3.Connection) -> None:
             "ru": "YouTube уже загружен ранее, переиспользование: {filename} ({url})",
             "en": "YouTube already downloaded, reusing: {filename} ({url})",
         },
+        "msg.mode_download_only": {
+            "ru": "Режим: только загрузка YouTube (без транскрибации и саммаризации)",
+            "en": "Mode: YouTube download only (no transcription or summarization)",
+        },
+        "msg.yt_video_downloading": {
+            "ru": "Скачивание видео: {url}",
+            "en": "Downloading video: {url}",
+        },
+        "msg.yt_video_downloaded": {
+            "ru": "Видео скачано: {path}",
+            "en": "Video downloaded: {path}",
+        },
+        "msg.yt_video_skipped": {
+            "ru": "Видео уже скачано ранее, пропуск: {url}",
+            "en": "Video already downloaded, skipping: {url}",
+        },
+        "error.yt_video_download_failed": {
+            "ru": "Ошибка загрузки видео {url}: {detail}",
+            "en": "Video download failed {url}: {detail}",
+        },
         "msg.session_created": {
             "ru": "Сессия создана: {session_id}",
             "en": "Session created: {session_id}",

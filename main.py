@@ -36,8 +36,13 @@ def _signal_handler(sig: int, frame: object) -> None:
 signal.signal(signal.SIGINT, _signal_handler)
 
 
-def _validate_environment() -> None:
-    """Проверка окружения перед запуском (fail fast)."""
+def _validate_environment(require_ai: bool = True) -> None:
+    """Проверка окружения перед запуском (fail fast).
+
+    :param require_ai: требовать ли компоненты AI-пайплайна (DeepSeek API key,
+                       HF_TOKEN, preflight моделей). Ложно для режима
+                       ``download_only`` без локальных файлов к обработке.
+    """
     logger.info(t("msg.validating"))
 
     errors: list[str] = []
@@ -73,24 +78,26 @@ def _validate_environment() -> None:
     except FileNotFoundError:
         errors.append(t("error.ytdlp_not_found"))
 
-    import os
-    deepseek_key = os.environ.get("DEEPSEEK_API_KEY", "")
-    if not deepseek_key:
-        errors.append(t("error.api_key_missing", key="DEEPSEEK_API_KEY"))
+    if require_ai:
+        import os
+        deepseek_key = os.environ.get("DEEPSEEK_API_KEY", "")
+        if not deepseek_key:
+            errors.append(t("error.api_key_missing", key="DEEPSEEK_API_KEY"))
 
-    hf_token = os.environ.get("HF_TOKEN", "")
-    if not hf_token:
-        errors.append(t("error.api_key_missing", key="HF_TOKEN"))
+        hf_token = os.environ.get("HF_TOKEN", "")
+        if not hf_token:
+            errors.append(t("error.api_key_missing", key="HF_TOKEN"))
 
     if errors:
         for err in errors:
             logger.error(err)
         sys.exit(1)
 
-    from src.preflight import check_all
-    preflight_errors = check_all(config)
-    if preflight_errors:
-        sys.exit(1)
+    if require_ai:
+        from src.preflight import check_all
+        preflight_errors = check_all(config)
+        if preflight_errors:
+            sys.exit(1)
 
     logger.info(t("msg.validation_passed"))
 
@@ -114,9 +121,20 @@ def main() -> None:
     """Основная логика пайплайна."""
     logger.info(t("msg.app_started", name=APP_NAME, version=APP_VERSION))
 
-    _validate_environment()
-
     from src.file_scanner import scan_input_dirs, FileInfo
+
+    files = scan_input_dirs(config)
+
+    mode = config.get("processing", "mode", fallback="full").strip().lower()
+    download_only = mode == "download_only"
+    if download_only:
+        logger.info(t("msg.mode_download_only"))
+
+    yt_to_download = [f for f in files if download_only and f.file_type == "youtube_link"]
+    pipeline_files = [f for f in files if not (download_only and f.file_type == "youtube_link")]
+
+    _validate_environment(require_ai=bool(pipeline_files))
+
     from src.db_manager import init_db, create_session, update_session, enqueue_stage
 
     db_path = PROJECT_ROOT / "data" / "sessions.db"
@@ -140,7 +158,6 @@ def main() -> None:
         conn.close()
         sys.exit(1)
 
-    files = scan_input_dirs(config)
     if not files:
         logger.info(t("msg.nothing_to_process"))
         conn.close()
@@ -151,7 +168,13 @@ def main() -> None:
     success_count = 0
     failed_count = 0
 
-    for file_info in files:
+    for file_info in yt_to_download:
+        if _download_youtube_video(file_info):
+            success_count += 1
+        else:
+            failed_count += 1
+
+    for file_info in pipeline_files:
         try:
             _process_file(file_info, conn)
             success_count += 1
@@ -161,6 +184,36 @@ def main() -> None:
 
     logger.info(t("msg.all_done", total=success_count + failed_count, success=success_count, failed=failed_count))
     conn.close()
+
+
+def _download_youtube_video(file_info: "FileInfo") -> bool:
+    """Скачать видео YouTube как есть в <download_folder>/<канал>/ (режим download_only).
+
+    Папка назначения берется из параметра [youtube] download_folder. Абсолютный
+    путь (с раскрытием ~) либо относительный от корня проекта.
+
+    :return: True при успехе (скачано или пропущено как уже готовое), False при ошибке
+    """
+    from src.youtube_downloader import download_video
+
+    raw_folder = config.get("youtube", "download_folder", fallback="~/Downloads")
+    output_root = Path(raw_folder).expanduser()
+    if not output_root.is_absolute():
+        output_root = PROJECT_ROOT / output_root
+    output_root.mkdir(parents=True, exist_ok=True)
+
+    logger.info(t("msg.yt_video_downloading", url=file_info.youtube_url))
+    try:
+        status, video_path = download_video(file_info.youtube_url, output_root, config)
+    except Exception as e:
+        logger.error(t("error.yt_video_download_failed", url=file_info.youtube_url, detail=str(e)))
+        return False
+
+    if status == "skipped":
+        logger.info(t("msg.yt_video_skipped", url=file_info.youtube_url))
+    else:
+        logger.info(t("msg.yt_video_downloaded", path=str(video_path)))
+    return True
 
 
 def _speaker_sort_key(name: str) -> int:
