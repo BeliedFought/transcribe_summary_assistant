@@ -29,6 +29,14 @@ def _find_ytdlp() -> str:
     return ytdlp_path
 
 
+def _term_width() -> int:
+    """Вернуть ширину терминала (минимум 80)."""
+    try:
+        return max(shutil.get_terminal_size().columns, 80)
+    except Exception:
+        return 80
+
+
 _YTDLP = _find_ytdlp()
 
 
@@ -119,6 +127,7 @@ def download_audio(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
         "-o", url_output_template,
         "--no-playlist",
         "--extract-audio",
+        "--remote-components", "ejs:github",
         "--progress-template", "progress:%(progress._percent_str)s:%(progress._speed_str)s:%(progress._eta_str)s",
         "--newline",
         youtube_url,
@@ -136,12 +145,14 @@ def download_audio(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
                     bar_w = 30
                     filled = int(pct / 100 * bar_w)
                     bar = "\u2588" * filled + "\u2591" * (bar_w - filled)
-                    sys.stdout.write(f"\r{bar} {pct:.1f}% {speed} ETA {eta}")
+                    line = f"\r{bar} {pct:.1f}% {speed} ETA {eta}"
+                    line = line.ljust(_term_width())
+                    sys.stdout.write(line)
                     sys.stdout.flush()
                 except ValueError:
                     pass
         returncode = process.wait()
-        sys.stdout.write("\r\033[K")
+        sys.stdout.write("\r" + " " * _term_width() + "\r")
         sys.stdout.flush()
         if process.stderr is not None:
             stderr_lines = process.stderr.read().strip().splitlines()
@@ -210,6 +221,7 @@ def download_video(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
         "--no-playlist",
         "--merge-output-format", "mp4",
         "--download-archive", str(archive_path),
+        "--remote-components", "ejs:github",
         "--progress-template", "progress:%(progress._percent_str)s:%(progress._speed_str)s:%(progress._eta_str)s",
         "--newline",
         youtube_url,
@@ -228,12 +240,14 @@ def download_video(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
                     bar_w = 30
                     filled = int(pct / 100 * bar_w)
                     bar = "\u2588" * filled + "\u2591" * (bar_w - filled)
-                    sys.stdout.write(f"\r{bar} {pct:.1f}% {speed} ETA {eta}")
+                    line = f"\r{bar} {pct:.1f}% {speed} ETA {eta}"
+                    line = line.ljust(_term_width())
+                    sys.stdout.write(line)
                     sys.stdout.flush()
                 except ValueError:
                     pass
         returncode = process.wait()
-        sys.stdout.write("\r\033[K")
+        sys.stdout.write("\r" + " " * _term_width() + "\r")
         sys.stdout.flush()
         if process.stderr is not None:
             stderr_lines = process.stderr.read().strip().splitlines()
