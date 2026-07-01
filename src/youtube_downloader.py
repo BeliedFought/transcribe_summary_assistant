@@ -7,12 +7,29 @@
 """
 
 import re
+import shutil
 import subprocess
+import sys
 from configparser import ConfigParser
 from pathlib import Path
 
 _INVALID_NAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 _VIDEO_EXTS: tuple[str, ...] = (".mp4", ".webm", ".mkv", ".mov", ".avi")
+
+
+def _find_ytdlp() -> str:
+    """Найти исполняемый файл yt-dlp."""
+    ytdlp_path = shutil.which("yt-dlp")
+    if not ytdlp_path:
+        venv_path = Path(sys.executable).parent / "yt-dlp"
+        if venv_path.exists():
+            ytdlp_path = str(venv_path)
+    if not ytdlp_path:
+        raise RuntimeError("yt-dlp not found")
+    return ytdlp_path
+
+
+_YTDLP = _find_ytdlp()
 
 
 def _sanitize_name(name: str) -> str:
@@ -36,7 +53,7 @@ def get_video_title(youtube_url: str) -> str:
     :raises RuntimeError: при ошибке получения названия
     """
     cmd = [
-        "yt-dlp",
+        _YTDLP,
         "--print", "title",
         "--no-playlist",
         youtube_url,
@@ -57,7 +74,7 @@ def get_channel_info(youtube_url: str) -> dict[str, str]:
     :raises RuntimeError: при ошибке получения данных
     """
     cmd = [
-        "yt-dlp",
+        _YTDLP,
         "--print", "channel",
         "--print", "channel_url",
         "--print", "channel_follower_count",
@@ -97,7 +114,7 @@ def download_audio(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
     url_output_template = str(output_dir / "%(id)s_%(title)s.%(ext)s")
 
     cmd = [
-        "yt-dlp",
+        _YTDLP,
         "-f", audio_format,
         "-o", url_output_template,
         "--no-playlist",
@@ -165,7 +182,7 @@ def download_video(youtube_url: str, output_dir: Path, config: ConfigParser) -> 
     output_template = str(channel_dir / download_template)
 
     cmd = [
-        "yt-dlp",
+        _YTDLP,
         "-f", "bestvideo[height<=720]+bestaudio/best[height<=720]",
         "-o", output_template,
         "--no-playlist",

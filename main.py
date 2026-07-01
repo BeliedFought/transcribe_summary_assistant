@@ -8,6 +8,7 @@
 Каждый запуск создает новые сессии для всех файлов в input/.
 """
 
+import shutil
 import signal
 import sqlite3
 import subprocess
@@ -67,15 +68,23 @@ def _validate_environment(require_ai: bool = True) -> None:
     except FileNotFoundError:
         errors.append(t("error.ffmpeg_not_found"))
 
-    try:
-        result = subprocess.run(
-            ["yt-dlp", "--version"],
-            capture_output=True,
-            timeout=10,
-        )
-        if result.returncode != 0:
+    ytdlp_path = shutil.which("yt-dlp")
+    if not ytdlp_path:
+        ytdlp_venv = Path(sys.executable).parent / "yt-dlp"
+        if ytdlp_venv.exists():
+            ytdlp_path = str(ytdlp_venv)
+    if ytdlp_path:
+        try:
+            result = subprocess.run(
+                [ytdlp_path, "--version"],
+                capture_output=True,
+                timeout=10,
+            )
+            if result.returncode != 0:
+                errors.append(t("error.ytdlp_not_found"))
+        except FileNotFoundError:
             errors.append(t("error.ytdlp_not_found"))
-    except FileNotFoundError:
+    else:
         errors.append(t("error.ytdlp_not_found"))
 
     if require_ai:
