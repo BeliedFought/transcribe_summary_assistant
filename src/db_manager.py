@@ -497,6 +497,10 @@ def insert_initial_translations(conn: sqlite3.Connection) -> None:
             "ru": "yt-dlp не найден. Установите: pip install yt-dlp",
             "en": "yt-dlp not found. Install: pip install yt-dlp",
         },
+        "error.js_runtime_not_found": {
+            "ru": "JS-рантайм не найден (deno/node/bun). yt-dlp требует JS-рантайм для загрузки YouTube. Установите deno: curl -fsSL https://deno.land/install.sh | sh",
+            "en": "JS runtime not found (deno/node/bun). yt-dlp requires a JS runtime for YouTube downloads. Install deno: curl -fsSL https://deno.land/install.sh | sh",
+        },
         "error.folder_not_found": {
             "ru": "Папка не найдена: {path}",
             "en": "Folder not found: {path}",

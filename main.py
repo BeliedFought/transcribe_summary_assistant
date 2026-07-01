@@ -87,6 +87,11 @@ def _validate_environment(require_ai: bool = True) -> None:
     else:
         errors.append(t("error.ytdlp_not_found"))
 
+    js_runtimes = ["deno", "node", "bun"]
+    js_found = any(shutil.which(rt) for rt in js_runtimes)
+    if not js_found:
+        errors.append(t("error.js_runtime_not_found"))
+
     if require_ai:
         import os
         deepseek_key = os.environ.get("DEEPSEEK_API_KEY", "")
