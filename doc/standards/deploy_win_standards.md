@@ -23,7 +23,7 @@ OS-overlay к `deploy_standards.md` (общее ядро). Применяетс�
 
 **4. Установочные скрипты:** 4.01 Скрипты run/deploy - 4.02 Блок диагностики для ИИ-агента - 4.03 package.py - 4.04 install.py - 4.05 update.py - 4.06 Логика package.py - 4.07 Логика install.py - 4.08 Логика update.py
 
-**5. Платформа:** 5.01 uv - 5.02 Shell completion - 5.03 Дополнения к .gitignore - 5.04 Итоговая структура - 5.05 Синхронизация параметров - 5.06 Чек-лист OS-специфичных пунктов
+**5. Платформа:** 5.01 uv - 5.02 Shell completion - 5.03 Дополнения к .gitignore - 5.04 Итоговая структура - 5.05 Синхронизация версии, конфига и .env - 5.06 Чек-лист OS-специфичных пунктов
 
 ---
 
@@ -233,7 +233,8 @@ tool-name-1.0.0-install/
 ├── dist/
 │   └── tool_name-1.0.0-py3-none-any.whl
 ├── config/
-│   └── config.ini.example
+│   ├── config.ini.example
+│   └── translations.json
 ├── .env.example
 └── README.txt               # Инструкции (раздел 1)
 ```
@@ -244,6 +245,7 @@ tool-name-1.0.0-install/
 | `update.py` | `run/deploy/update.py` | Обновление из архива (Windows) |
 | `dist/*.whl` | Собирается `uv build` | Готовый пакет |
 | `config/config.ini.example` | `config/config.ini.example` | Шаблон конфигурации |
+| `config/translations.json` | `config/translations.json` | Локализация (копируется в prod при install/update) |
 | `.env.example` | `.env.example` | Шаблон секретов |
 | `README.txt` | Генерируется скриптом | Инструкции для администратора и пользователя |
 
@@ -274,7 +276,7 @@ python run/deploy/package.py
 1. Проверяет наличие `pyproject.toml` и `uv`
 2. Выполняет `uv build` для сборки wheel
 3. Создает временную директорию с содержимым архива
-4. Копирует: wheel из `dist/`, `config/config.ini.example`, `.env.example`, `install.py`, `update.py`
+4. Копирует: wheel из `dist/`, `config/config.ini.example`, `config/translations.json`, `.env.example`, `install.py`, `update.py`
 5. Генерирует `README.txt` на основе шаблона (с подстановкой имени и версии проекта)
 6. Упаковывает в ZIP-архив: `tool-name-1.0.0-install.zip`
 7. Размещает архив в корне проекта
@@ -369,9 +371,17 @@ python run/deploy/package.py
 #    - Пересобрать архив: python run/deploy/package.py
 #    - Передать архив на Windows, пользователь распаковывает и выполняет:
 # python update.py
+#    После обновления сообщить о синхронизации name/version
+#    и факте миграции config.ini / .env (если была).
 #
 # 4. Если пакет установлен и исходники совпадают:
 #    - Сообщить пользователю: пакет установлен и актуален
+#
+# Миграция конфига/.env (при отличии структуры от example в архиве):
+# - резервная копия: <имя>.bak_YYYY-MM-DD_HH-MM
+# - новый файл по шаблону example + значения пользователя по совпадающим ключам
+# - ключи только из старого файла - не переносить (остаются в .bak)
+# - app.name / app.version всегда из архива/репозитория
 ```
 
 ---
@@ -514,6 +524,9 @@ def main() -> None:
     src = REPO_ROOT / "config" / "config.ini.example"
     if src.exists():
         shutil.copy2(src, config_dst / "config.ini.example")
+    translations = REPO_ROOT / "config" / "translations.json"
+    if translations.exists():
+        shutil.copy2(translations, config_dst / "translations.json")
 
     env_src = REPO_ROOT / ".env.example"
     if env_src.exists():
@@ -591,6 +604,14 @@ def _copy_if_missing(src: Path, dst: Path) -> None:
     shutil.copy2(src, dst)
 
 
+def _copy_translations() -> None:
+    src = SCRIPT_DIR / "config" / "translations.json"
+    if not src.exists():
+        print(f"Шаблон не найден: {src}")
+        return
+    shutil.copy2(src, APP_DIR / "config" / "translations.json")
+
+
 def main() -> None:
     _check_uv()
     if shutil.which(TOOL_NAME):
@@ -617,6 +638,7 @@ def main() -> None:
         SCRIPT_DIR / ".env.example",
         APP_DIR / ".env",
     )
+    _copy_translations()
     cmd_path = shutil.which(TOOL_NAME)
     if cmd_path:
         print(f"Команда '{TOOL_NAME}' доступна: {cmd_path}")
@@ -634,98 +656,42 @@ if __name__ == "__main__":
 
 ## 4.05. update.py
 
-Файл `run/deploy/update.py`. Запускается на Windows из архива. В начале разместить блок диагностики из раздела 4.02, затем код:
+Файл `run/deploy/update.py`. Запускается на Windows из архива. В начале разместить блок диагностики из раздела 4.02.
+
+Скрипт изолирован (`deploy_standards.md` 3.01): не импортирует из `src/`, вывод через `print(..., flush=True)`.
+
+Обязательный порядок действий - раздел 4.08. Алгоритм миграции `config.ini` и `.env` - раздел 5.05. Источник шаблонов - файлы архива (`SCRIPT_DIR`), не репозиторий.
+
+Каркас (имена helpers ориентировочные; полная реализация должна покрывать раздел 4.08):
 
 ```python
 #!/usr/bin/env python3
 # ... блок комментариев из раздела 4.02 ...
 
-import configparser
-import os
-import shutil
-import subprocess
-import sys
-from pathlib import Path
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-TOOL_NAME = "tool-name"
-APP_DIR = Path(
-    os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming")
-) / TOOL_NAME
-
-
-def _find_wheel() -> Path | None:
-    wheels = list((SCRIPT_DIR / "dist").glob("*.whl"))
-    return wheels[0] if wheels else None
-
-
-def _check_uv() -> None:
-    if not shutil.which("uv"):
-        print(
-            "uv не найден. Установите: "
-            'powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"'
-        )
-        sys.exit(1)
-
-
-def _sync_app_info() -> None:
-    dev_config = None
-    for name in ("config.ini", "config.ini.example"):
-        candidate = SCRIPT_DIR / "config" / name
-        if candidate.exists():
-            dev_config = candidate
-            break
-    if not dev_config:
-        return
-    prod_config = APP_DIR / "config" / "config.ini"
-    if not prod_config.exists():
-        return
-    dev_cfg = configparser.ConfigParser()
-    dev_cfg.read(dev_config, encoding="utf-8")
-    prod_cfg = configparser.ConfigParser()
-    prod_cfg.read(prod_config, encoding="utf-8")
-    if not dev_cfg.has_section("app"):
-        return
-    if not prod_cfg.has_section("app"):
-        prod_cfg.add_section("app")
-    changed = False
-    for key in ("name", "version"):
-        dev_val = dev_cfg.get("app", key, fallback=None)
-        prod_val = prod_cfg.get("app", key, fallback=None)
-        if dev_val and dev_val != prod_val:
-            prod_cfg.set("app", key, dev_val)
-            print(f"{key}: {prod_val or 'не задан'} -> {dev_val}")
-            changed = True
-    if changed:
-        with open(prod_config, "w", encoding="utf-8") as f:
-            prod_cfg.write(f)
-
+# SCRIPT_DIR = корень архива; TOOL_NAME; APP_DIR = %APPDATA%\tool-name
 
 def main() -> None:
+    name, version = _read_app_info()
+    print(f"{name} v{version}", flush=True)
     _check_uv()
-    if not shutil.which(TOOL_NAME):
-        print(f"Пакет '{TOOL_NAME}' не установлен. Для установки: python install.py")
+    if not _is_tool_installed():
+        print(f"Пакет {TOOL_NAME} не установлен. Для установки: python install.py", flush=True)
         return
     wheel = _find_wheel()
     if not wheel:
-        print("wheel-файл не найден в dist/")
+        print("wheel-файл не найден в dist/", flush=True)
         sys.exit(1)
     subprocess.run(["uv", "cache", "clean", TOOL_NAME], check=False)
-    try:
-        subprocess.run(
-            ["uv", "tool", "install", str(wheel), "--force"],
-            check=True,
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Ошибка обновления пакета: {e}")
-        sys.exit(1)
-    _sync_app_info()
-    print("Обновление завершено")
-
-
-if __name__ == "__main__":
-    main()
+    subprocess.run(["uv", "tool", "install", str(wheel), "--force"], check=True)
+    _ensure_data_dirs()
+    _copy_translations()          # из архива config/translations.json
+    _migrate_config()             # структура vs example архива; .bak_YYYY-MM-DD_HH-MM
+    _migrate_env()                # ключи vs .env.example архива; .bak_YYYY-MM-DD_HH-MM
+    _verify_install()
+    print("Обновление завершено", flush=True)
 ```
+
+Новый ini/`.env` собирать по тексту example с подстановкой значений (сохранять порядок и комментарии шаблона). Не полагаться на `ConfigParser.write()` как на единственный способ записи нового файла.
 
 ---
 
@@ -734,7 +700,7 @@ if __name__ == "__main__":
 1. Проверить наличие `pyproject.toml` и `uv`.
 2. Выполнить `uv build` - собрать wheel в `dist/`.
 3. Создать временную директорию `tool-name-1.0.0-install/`.
-4. Скопировать в нее: `install.py`, `update.py`, wheel из `dist/`, `config/config.ini.example`, `.env.example`.
+4. Скопировать в нее: `install.py`, `update.py`, wheel из `dist/`, `config/config.ini.example`, `config/translations.json`, `.env.example`.
 5. Сгенерировать `README.txt` с инструкциями (текст из раздела 1).
 6. Упаковать в ZIP-архив `tool-name-1.0.0-install.zip`.
 7. Удалить временную директорию.
@@ -751,7 +717,8 @@ if __name__ == "__main__":
 5. Создать каталог данных (`$env:APPDATA\tool-name\`) с подкаталогами `config\` и `log\`.
 6. Скопировать шаблон конфига - только если файл отсутствует.
 7. Скопировать `.env` - только если файл отсутствует.
-8. Проверить, что команда доступна в PATH.
+8. Скопировать `translations.json` в каталог данных (всегда из архива).
+9. Проверить, что команда доступна в PATH.
 
 ---
 
@@ -759,9 +726,17 @@ if __name__ == "__main__":
 
 1. Проверить наличие `uv`.
 2. Проверить, что пакет установлен. Если не установлен - сообщить и завершить (для установки использовать `install.py`).
-3. Очистить кэш: `uv cache clean tool-name`.
-4. Найти wheel-файл в `dist/` и переустановить: `uv tool install <wheel> --force`.
-5. Синхронизировать параметры приложения: прочитать `name` и `version` из секции `[app]` dev-конфига (из архива) и prod-конфига; если отличаются - обновить в prod и вывести в консоль старое и новое значение для каждого измененного параметра. Другие параметры конфига не затрагиваются.
+3. Найти wheel-файл в `dist/` рядом со скриптом.
+4. Очистить кэш: `uv cache clean tool-name`.
+5. Переустановить пакет: `uv tool install <wheel> --force`.
+6. Обновить `translations.json` в каталоге данных (всегда копировать из архива).
+7. Мигрировать prod-конфиг относительно `config/config.ini.example` архива (раздел 5.05): сравнение по структуре (секции и ключи); при отличии - резервная копия и новый файл; при совпадении - только `app.name` / `app.version`.
+8. Мигрировать prod-`.env` относительно `.env.example` архива (раздел 5.05): сравнение по набору ключей; при отличии - резервная копия и новый файл; при совпадении - ничего не делать.
+9. Кратко проверить установку (`uv tool list`, команда в PATH) и сообщить итог.
+
+Вывод баннера и сообщений - через `print(..., flush=True)`, чтобы строки не перемешивались с выводом `uv`.
+
+На Windows нет этапа синхронизации `pyproject.toml` <-> `config.ini` репозитория: архив собран на Linux, версия пакета уже зафиксирована в wheel.
 
 ---
 
@@ -831,23 +806,51 @@ build/
 
 ---
 
-## 5.05. Синхронизация параметров приложения при обновлении
+## 5.05. Синхронизация версии, конфига и .env при обновлении
 
-Скрипт `update.py` автоматически синхронизирует параметры приложения при обновлении (раздел 4.08). Остальные параметры конфига не затрагиваются.
+Скрипт `update.py` выполняет миграцию пользовательских файлов относительно шаблонов архива (раздел 4.08). Источник структуры - `config/config.ini.example` и `.env.example` в корне архива (`SCRIPT_DIR`). Prod - `$env:APPDATA\tool-name\`.
 
-**Алгоритм:**
+**Этап 1 - миграция prod-конфига (после установки wheel).** Источник новой структуры - `config/config.ini.example` архива.
 
-1. Прочитать `name` и `version` из dev-конфига (секция `[app]`, файл `config/config.ini` или `config/config.ini.example` в архиве/репозитории)
-2. Прочитать `name` и `version` из prod-конфига (секция `[app]`, файл `$env:APPDATA\tool-name\config\config.ini`)
-3. Для каждого параметра: если значения отличаются - обновить в prod и вывести в консоль старое и новое значение
-4. Если все значения совпадают - ничего не делать
+Сравнение: только набор секций и ключей (значения пользователя на решение о миграции не влияют).
+
+Если структуры совпадают:
+- без переименования обновить только `app.name` и `app.version` из архива (example / вложенные метаданные), если отличаются
+
+Если структуры отличаются:
+1. Переименовать текущий файл в `config.ini.bak_YYYY-MM-DD_HH-MM` (история накапливается; при коллизии имени - суффикс с секундами)
+2. Создать новый `config.ini` по тексту example (порядок секций/ключей и комментарии шаблона сохраняются)
+3. Для совпадающих ключей подставить значения из старого боевого конфига
+4. Для новых ключей (есть в example, нет в старом) - значение из example
+5. `app.name` и `app.version` всегда из архива, не из старого боевого
+6. Ключи, которые были только в старом конфиге и отсутствуют в example - не переносить (остаются в `.bak`)
+7. В консоль: имя резервной копии, перенесенные и добавленные ключи (без секретов)
+
+Если prod-конфига еще нет - скопировать example и проставить `name`/`version` из архива.
+
+**Этап 2 - миграция prod-`.env` (после установки).** Источник новой структуры - `.env.example` архива.
+
+Сравнение: только набор ключей (значения/секреты не сравниваются и не печатаются).
+
+Если наборы ключей совпадают - файл не трогать.
+
+Если отличаются:
+1. Переименовать текущий файл в `.env.bak_YYYY-MM-DD_HH-MM`
+2. Создать новый `.env` по ключам example
+3. Для совпадающих ключей перенести старые значения
+4. Для новых ключей - значение из example (часто пустое)
+5. Ключи, которые были только в старом `.env` - не переносить (остаются в `.bak`); сообщить список имен ключей без значений
+6. В консоль: факт миграции и списки ключей (без значений)
+
+Если prod-`.env` еще нет - скопировать example.
 
 **Правила:**
 
-- Синхронизируются параметры `name` и `version` в секции `[app]` - никаких других изменений в конфиге
-- Пользовательские настройки никогда не перезаписываются
-- Для добавления новых секций и параметров пользователь обновляет prod-конфиг вручную или через агента
-- Для `.env` изменений не производится - новые переменные пользователь добавляет вручную
+- Пользовательские значения совпадающих ключей при миграции сохраняются
+- Новая структура всегда берется из example архива
+- Резервные копии не удаляются скриптом
+- Запись нового файла - по шаблону example с подстановкой значений, без «голого» `ConfigParser.write()` как единственного способа сборки
+- Сравнение только по множеству ключей: переименование ключа = старый остается в `.bak`, новый берется из example; правка только комментариев в example миграцию не запускает
 
 ---
 

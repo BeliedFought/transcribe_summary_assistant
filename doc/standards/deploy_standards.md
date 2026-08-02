@@ -287,7 +287,14 @@ env_path = PROJECT_ROOT / ".env"
 from src.config import APP_NAME, APP_VERSION
 ```
 
-Установочный скрипт `update.py` автоматически синхронизирует `name` и `version` из репо-конфига в прод-конфиг при обновлении (см. overlay-документ под ОС).
+Установочный скрипт `update.py` при обновлении (детали и алгоритм - в overlay-документе под ОС):
+
+1. Синхронизирует версию между `pyproject.toml` и репо-`config.ini` (SemVer; нечисловые - пропуск).
+2. Мигрирует prod-`config.ini` относительно `config/config.ini.example`: сравнение по набору секций и ключей; при отличии - `.bak_YYYY-MM-DD_HH-MM` и новый файл по шаблону example с подстановкой пользовательских значений; при совпадении структуры - только `app.name` / `app.version` из репозитория.
+3. Мигрирует prod-`.env` относительно `.env.example` по набору ключей (значения/секреты в консоль не печатаются).
+4. Обновляет `translations.json` в каталоге данных (всегда копировать из источника установки).
+
+Пользовательские значения совпадающих ключей сохраняются; ключи, исчезнувшие из example, остаются только в `.bak`. Новая структура всегда из example.
 
 ---
 
@@ -298,9 +305,13 @@ from src.config import APP_NAME, APP_VERSION
 Функция `main()` не должна содержать логику напрямую. Ее задача - разобрать аргументы, инициализировать конфигурацию и делегировать выполнение:
 
 ```python
+from src.config import PROJECT_ROOT, APP_NAME, APP_VERSION
+from src.localization import t
+from src.logger import get_logger
+
 def main() -> None:
     logger = get_logger(__name__, log_dir=PROJECT_ROOT / "log")
-    logger.info(f"{APP_NAME} v{APP_VERSION}")
+    logger.info(t("msg.app_started", name=APP_NAME, version=APP_VERSION))
     args = parse_args()
     init_config()
     run(args)
