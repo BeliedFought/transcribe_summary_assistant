@@ -49,12 +49,13 @@
 | Логирование, вывод, i18n, меню, GUI | `project_standards.md` (04); меню/rich UI - `console_ui_standards.md` |
 | Dual-channel (`log_file_only`), rich-handler, интерактивный контекст (TTY / `CI` / `TERM=dumb`) | `project_standards.md` (04.04.02, 04.04.05, 04.06, 04.07); batch - `console_ui_standards.md` (§16) |
 | `--dry-run` для мутирующих CLI / `run/` | `project_standards.md` (03.04) |
-| UI-эталон, макеты консоли и лога (`ui_spec.html`), кадр, клавиши, роли, сообщения сессии | `console_ui_standards.md` (§3 API кадра, §15); якоря в `project_standards.md` (01.01, 04.04, 04.07, 07.03, 07.04) |
+| UI-эталон, макеты консоли и лога (`ui_spec.html`), кадр, клавиши, стабильность сквозных клавиш, роли, сообщения сессии | `console_ui_standards.md` (§3 API кадра, §5 клавиши, §15); якоря в `project_standards.md` (01.01, 04.04, 04.07, 07.03, 07.04) |
 | Требования к тексту, оформление сообщений, стиль | `project_standards.md` (04.02, 04.03, 04.04); роли menu/rich - `console_ui_standards.md` |
 | Именование в коде (английский, без транслита) | `project_standards.md` (03.01, 04.03); навыки - `skill_standards.md` §3 |
 | Режим планирования, план-файлы | `project_standards.md` (04.03) |
 | Безопасность, обработка ошибок, завершение | `project_standards.md` (05) |
 | Git, README, AGENTS (обяз.), CLAUDE (опц., зеркало), тесты | `project_standards.md` (06.02); формат версии пакета - 07.04; политика AGENTS/CLAUDE - 06.02; язык - русский (английский по запросу) |
+| Явные ссылки AGENTS/CLAUDE на индексы стандартов и навыков | `project_standards.md` (06.02) |
 | Общение с пользователем, вопросы, спецификации | `project_standards.md` (07.02, 07.03) |
 | Редактирование стандарта, актуализация индекса | `project_standards.md` (07.05) |
 | Деплой как CLI-инструмент (общие правила) | `deploy_standards.md` |
