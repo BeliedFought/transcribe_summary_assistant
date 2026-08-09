@@ -46,6 +46,7 @@
 | Инициализация нового проекта, структура папок | `project_standards.md` (01, 07) |
 | Бэкапы данных, папка `data/backup/` | `project_standards.md` (01.01) |
 | Сессионные структуры, файл `SESSION.md`, оверрайды и жизненный цикл сессии | `project_standards.md` (01.01.01) |
+| Проектные оверрайды стандарта, `doc/specs/overrides.md` | `project_standards.md` (01.01.02) |
 | Конфигурация, config.ini, .env, пути | `project_standards.md` (01.02, 01.04) |
 | Логирование, вывод, i18n, меню, GUI | `project_standards.md` (04); меню/rich UI - `console_ui_standards.md` |
 | Dual-channel (`log_file_only`), rich-handler, интерактивный контекст (TTY / `CI` / `TERM=dumb`) | `project_standards.md` (04.04.02, 04.04.05, 04.06, 04.07); batch - `console_ui_standards.md` (§16) |
