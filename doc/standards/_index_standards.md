@@ -1,4 +1,4 @@
-# Индекс пакета стандартов. Версия 4.9.0. 2026-07-21
+# Индекс пакета стандартов. Версия 4.9.0. 2026-08-10
 
 Точка входа в пакет стандартов. Этот файл тегают AI-агенту, чтобы он определил, какие документы пакета релевантны текущей задаче. Пакет состоит из основного стандарта и дополнений: каждое дополнение применяется поверх `project_standards.md` для своего класса проектов. Агент выбирает только те документы, которые относятся к задаче, и не загружает пакет целиком без необходимости.
 
@@ -47,6 +47,7 @@
 | Бэкапы данных, папка `data/backup/` | `project_standards.md` (01.01) |
 | Сессионные структуры, файл `SESSION.md`, оверрайды и жизненный цикл сессии | `project_standards.md` (01.01.01) |
 | Проектные оверрайды стандарта, `doc/specs/overrides.md` | `project_standards.md` (01.01.02) |
+| Локальная витрина данных (SQLite): SQL-наборы `src_`/`report_`, режимы `local`/`refresh` | `project_standards.md` (01.01.03) |
 | Конфигурация, config.ini, .env, пути | `project_standards.md` (01.02, 01.04) |
 | Логирование, вывод, i18n, меню, GUI | `project_standards.md` (04); меню/rich UI - `console_ui_standards.md` |
 | Dual-channel (`log_file_only`), rich-handler, интерактивный контекст (TTY / `CI` / `TERM=dumb`) | `project_standards.md` (04.04.02, 04.04.05, 04.06, 04.07); batch - `console_ui_standards.md` (§16) |
@@ -67,7 +68,9 @@
 | Миграция prod config.ini / .env при update.py | overlay ОС (`deploy_lin_standards.md` 3.05 / `deploy_win_standards.md` 5.05) + ядро 4.01 |
 | Batch CLI, двухстрочный rich-progress, status_col | `console_ui_standards.md` (§9, §16); якорь 04.07.03 |
 | Развертывание Docker-сервиса | `deploy_docker_standards.md` |
+| Адресное пространство Docker (`daemon.json`, `bip`, `default-address-pools`) | `deploy_docker_standards.md` (1.6) |
 | Машинные оверрайды документации Docker (`override/<hostname>/`) | `deploy_docker_standards.md` (§7) |
+| Веб-адреса сервисов в summary профиле машины (`<hostname>_services_summary.md`) | `deploy_docker_standards.md` (§7.3) |
 | Создание или правка навыка агента | `skill_standards.md` |
 | Документ установки приложения в репо документации | `software_doc_standards.md` |
 
