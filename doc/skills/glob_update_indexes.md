@@ -38,7 +38,6 @@ version: 1.0.0
 ```python
 #!/usr/bin/env python3
 import re
-from datetime import date
 from pathlib import Path
 
 SKILLS_DIR = Path("doc/skills")
@@ -70,9 +69,9 @@ def main() -> None:
     skills = [p for p in sorted(SKILLS_DIR.glob("*.md")) if not p.name.startswith("_index")]
 
     lines = [
-        f"# Индекс навыков репозитория {root.name}. {date.today().isoformat()}",
+        f"# Индекс навыков репозитория {root.name}",
         "",
-        "Локальный индекс навыков этого репозитория. Формируется автоматически навыком `glob_update_indexes` из состава `doc/skills/`. Перечисляет общие (`glob_*`) и проектные навыки репо.",
+        "Локальный индекс навыков этого репозитория. Формируется автоматически навыком `glob_update_indexes` из состава `doc/skills/`. Перечисляет общие (`glob_*`) и проектные навыки репо. Порядок принятия решений агента при отсутствии нормы - `project_standards.md`, раздел 07.06.",
         "",
         "| Навык | Класс | Автоприменение | Версия | Назначение |",
         "|-------|-------|----------------|--------|-----------|",
