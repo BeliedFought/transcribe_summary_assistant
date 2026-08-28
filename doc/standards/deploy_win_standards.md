@@ -1,4 +1,4 @@
-# Деплой Python-проекта на Windows (overlay). Версия 4.9.0. 2026-07-21
+# Деплой Python-проекта на Windows (overlay). Версия 4.9.1
 
 OS-overlay к `deploy_standards.md` (общее ядро). Применяется вместе с ядром и `project_standards.md` для установки проекта как системного инструмента на Windows. Документ содержит только Windows-специфику; общие правила деплоя - в ядре.
 
@@ -64,7 +64,8 @@ OS-overlay к `deploy_standards.md` (общее ядро). Применяетс�
 >
 > Или из командной строки (тихая установка для всех пользователей):
 > ```powershell
-> Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.14.0/python-3.14.0-amd64.exe" -OutFile "$env:TEMP\python-installer.exe"
+> $pyVer = "3.14.0"  # заменить на актуальный патч 3.14.x перед отправкой
+> Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$pyVer/python-$pyVer-amd64.exe" -OutFile "$env:TEMP\python-installer.exe"
 > Start-Process -Wait -FilePath "$env:TEMP\python-installer.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_pip=1"
 > Remove-Item "$env:TEMP\python-installer.exe"
 > ```
@@ -377,280 +378,73 @@ python run/deploy/package.py
 # 4. Если пакет установлен и исходники совпадают:
 #    - Сообщить пользователю: пакет установлен и актуален
 #
-# Миграция конфига/.env (при отличии структуры от example в архиве):
-# - резервная копия: <имя>.bak_YYYY-MM-DD_HH-MM
-# - новый файл по шаблону example + значения пользователя по совпадающим ключам
-# - ключи только из старого файла - не переносить (остаются в .bak)
-# - app.name / app.version всегда из архива/репозитория
+# Миграция конфига/.env при отличии структуры от example в архиве -
+# алгоритм: ядро deploy_standards.md 4.01
 ```
 
 ---
 
 ## 4.03. package.py
 
-Файл `run/deploy/package.py`. Запускается на Linux из репозитория. В начале разместить блок диагностики из раздела 4.02, затем код:
+Файл `run/deploy/package.py`. Запускается на Linux из репозитория. В начале файла - блок диагностики из раздела 4.02.
 
-```python
-#!/usr/bin/env python3
-# ... блок комментариев из раздела 4.02 ...
+**Контракт:**
 
-import shutil
-import subprocess
-import sys
-import zipfile
-from pathlib import Path
+- Вход: репозиторий проекта (`pyproject.toml` в корне), установленный `uv`
+- Выход: архив `<tool-name>-<version>-install.zip` в корне репозитория (структура - раздел 3.02); в консоль - путь к архиву
+- Коды завершения: 0 - архив создан; 1 - не найден `uv` или `pyproject.toml`, ошибка `uv build`
+- Скрипт изолирован (`deploy_standards.md` 3.01): без импортов из `src/`, вывод через `print()`
+- Константы: `TOOL_NAME`, `TOOL_VERSION` (синхронизированы с проектом), `REPO_ROOT = Path(__file__).resolve().parents[2]`
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-TOOL_NAME = "tool-name"
-TOOL_VERSION = "1.0.0"
-DEPLOY_DIR = Path(__file__).resolve().parent
+**Псевдокод:**
 
-_README_TEMPLATE = """\
-Установка {tool_name} v{tool_version}
-{separator}
-
-ШАГ 1. Обратиться к администратору (если Python и Git еще не установлены)
-{sub_separator}
-
-Отправить администратору следующий текст:
-
----
-
-Тема: Запрос на установку ПО для работы с Python-проектом
-
-Для работы нужен Python-проект ({tool_name}).
-Сам проект я установлю самостоятельно.
-Прошу установить на мою машину два компонента:
-
-1. Python 3.14 или новее
-   Скачать: https://www.python.org/downloads/
-   При установке обязательно отметить галочку "Add Python to PATH".
-
-2. Git 2.30 или новее
-   Скачать: https://git-scm.com/download/win
-
-После установки прошу подтвердить, что команды работают:
-   python --version
-   git --version
-Обе команды должны вывести версию без ошибок.
-
-Больше ничего устанавливать не нужно - остальное я сделаю сам.
-
----
-
-ШАГ 2. Установить uv
-{sub_separator}
-
-Открыть PowerShell и выполнить:
-
-   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-
-Проверить:
-
-   uv --version
-
-Если команда не найдена - перезапустить PowerShell.
-
-ШАГ 3. Установить {tool_name}
-{sub_separator}
-
-Распаковать этот архив в любую папку.
-Открыть PowerShell в папке архива и выполнить:
-
-   python install.py
-
-Скрипт установит {tool_name} и подготовит конфигурацию.
-
-ШАГ 4. Настроить конфигурацию
-{sub_separator}
-
-Заполнить настройки в файлах:
-   - config.ini - в папке, которую укажет скрипт после установки
-   - .env - секреты (токены, пароли)
-
-Проверка установки
-{sub_separator}
-
-Выполнить: {tool_name} --help
-
-Для обновления: распаковать новый архив и выполнить:
-   python update.py
-"""
-
-
-def _check_uv() -> None:
-    if not shutil.which("uv"):
-        print("uv не найден. Установите: sudo pacman -S uv")
-        sys.exit(1)
-
-
-def _check_pyproject() -> None:
-    if not (REPO_ROOT / "pyproject.toml").exists():
-        print("pyproject.toml не найден. Скрипт package.py запускается из репозитория.")
-        sys.exit(1)
-
-
-def _generate_readme() -> str:
-    return _README_TEMPLATE.format(
-        tool_name=TOOL_NAME,
-        tool_version=TOOL_VERSION,
-        separator="=" * 40,
-        sub_separator="-" * 40,
-    )
-
-
-def main() -> None:
-    _check_pyproject()
-    _check_uv()
-    subprocess.run(["uv", "build"], cwd=REPO_ROOT, check=True)
-
-    archive_name = f"{TOOL_NAME}-{TOOL_VERSION}-install"
-    archive_dir = REPO_ROOT / archive_name
-
-    if archive_dir.exists():
-        shutil.rmtree(archive_dir)
-    archive_dir.mkdir()
-
-    shutil.copy2(DEPLOY_DIR / "install.py", archive_dir / "install.py")
-    shutil.copy2(DEPLOY_DIR / "update.py", archive_dir / "update.py")
-
-    dist_dst = archive_dir / "dist"
-    dist_dst.mkdir()
-    for whl in (REPO_ROOT / "dist").glob("*.whl"):
-        shutil.copy2(whl, dist_dst / whl.name)
-
-    config_dst = archive_dir / "config"
-    config_dst.mkdir()
-    src = REPO_ROOT / "config" / "config.ini.example"
-    if src.exists():
-        shutil.copy2(src, config_dst / "config.ini.example")
-    translations = REPO_ROOT / "config" / "translations.json"
-    if translations.exists():
-        shutil.copy2(translations, config_dst / "translations.json")
-
-    env_src = REPO_ROOT / ".env.example"
-    if env_src.exists():
-        shutil.copy2(env_src, archive_dir / ".env.example")
-
-    (archive_dir / "README.txt").write_text(
-        _generate_readme(), encoding="utf-8"
-    )
-
-    zip_path = REPO_ROOT / f"{archive_name}.zip"
-    if zip_path.exists():
-        zip_path.unlink()
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        for fp in archive_dir.rglob("*"):
-            if fp.is_file():
-                zf.write(fp, fp.relative_to(REPO_ROOT))
-
-    shutil.rmtree(archive_dir)
-    print(f"Архив создан: {zip_path}")
-
-
-if __name__ == "__main__":
-    main()
 ```
+main():
+    проверить pyproject.toml и uv (иначе сообщение и exit 1)
+    uv build                                  # wheel в dist/
+    создать временную директорию <tool>-<version>-install/
+    скопировать: install.py, update.py, dist/*.whl,
+                 config/config.ini.example, config/translations.json, .env.example
+    сгенерировать README.txt                  # текст - разделы 1.02, 1.03, 3.03
+    упаковать в zip (все файлы, пути относительно корня репозитория)
+    удалить временную директорию
+    вывести путь к архиву
+```
+
+Пошаговая логика - раздел 4.06. Состав `README.txt`: обращение к администратору (раздел 1.02, дословно), установка uv и запуск (разделы 1.03, 3.03), с подстановкой имени и версии проекта.
 
 ---
 
 ## 4.04. install.py
 
-Файл `run/deploy/install.py`. Запускается на Windows из архива. В начале разместить блок диагностики из раздела 4.02, затем код:
+Файл `run/deploy/install.py`. Запускается на Windows из распакованного архива. В начале файла - блок диагностики из раздела 4.02.
 
-```python
-#!/usr/bin/env python3
-# ... блок комментариев из раздела 4.02 ...
+**Контракт:**
 
-import os
-import shutil
-import subprocess
-import sys
-from pathlib import Path
+- Вход: распакованный архив (wheel в `dist/`, шаблоны `config/config.ini.example`, `.env.example`, `config/translations.json`), установленный `uv`
+- Выход: установленный пакет (`uv tool install <wheel>`), каталог данных `%APPDATA%\tool-name\` с `config\`, `log\` и скопированными шаблонами; в консоль - путь к команде и конфигурации
+- Коды завершения: 0 - установка завершена (включая кейс «уже установлен» с подсказкой `update.py`); 1 - не найден `uv` или wheel
+- Скрипт изолирован (`deploy_standards.md` 3.01)
+- Константы: `TOOL_NAME`, `SCRIPT_DIR = Path(__file__).resolve().parent`, `APP_DIR = %APPDATA%\tool-name`
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-TOOL_NAME = "tool-name"
-APP_DIR = Path(
-    os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming")
-) / TOOL_NAME
+**Псевдокод:**
 
-
-def _find_wheel() -> Path | None:
-    wheels = list((SCRIPT_DIR / "dist").glob("*.whl"))
-    return wheels[0] if wheels else None
-
-
-def _check_uv() -> None:
-    if not shutil.which("uv"):
-        print(
-            "uv не найден. Установите: "
-            'powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"'
-        )
-        sys.exit(1)
-
-
-def _ensure_data_dirs() -> None:
-    APP_DIR.mkdir(parents=True, exist_ok=True)
-    (APP_DIR / "config").mkdir(exist_ok=True)
-    (APP_DIR / "log").mkdir(exist_ok=True)
-
-
-def _copy_if_missing(src: Path, dst: Path) -> None:
-    if dst.exists():
-        return
-    if not src.exists():
-        print(f"Шаблон не найден: {src}")
-        return
-    shutil.copy2(src, dst)
-
-
-def _copy_translations() -> None:
-    src = SCRIPT_DIR / "config" / "translations.json"
-    if not src.exists():
-        print(f"Шаблон не найден: {src}")
-        return
-    shutil.copy2(src, APP_DIR / "config" / "translations.json")
-
-
-def main() -> None:
-    _check_uv()
-    if shutil.which(TOOL_NAME):
-        print(
-            f"Пакет '{TOOL_NAME}' уже установлен. "
-            "Для обновления: python update.py"
-        )
-        return
-    wheel = _find_wheel()
-    if not wheel:
-        print("wheel-файл не найден в dist/")
-        sys.exit(1)
-    try:
-        subprocess.run(["uv", "tool", "install", str(wheel)], check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Ошибка установки пакета: {e}")
-        sys.exit(1)
-    _ensure_data_dirs()
-    _copy_if_missing(
-        SCRIPT_DIR / "config" / "config.ini.example",
-        APP_DIR / "config" / "config.ini",
-    )
-    _copy_if_missing(
-        SCRIPT_DIR / ".env.example",
-        APP_DIR / ".env",
-    )
-    _copy_translations()
-    cmd_path = shutil.which(TOOL_NAME)
-    if cmd_path:
-        print(f"Команда '{TOOL_NAME}' доступна: {cmd_path}")
-        print(f"Конфигурация: {APP_DIR}")
-    else:
-        print("Команда установлена, но не найдена в PATH.")
-        print("Перезапустите PowerShell или проверьте PATH.")
-
-
-if __name__ == "__main__":
-    main()
 ```
+main():
+    проверить uv (иначе сообщение с командой установки и exit 1)
+    если tool-name уже в PATH:
+        сообщить «уже установлен, для обновления python update.py»; выход 0
+    найти wheel в SCRIPT_DIR/dist (иначе exit 1)
+    uv tool install <wheel>          # при ошибке вызова - сообщение с причиной и exit 1
+    создать APP_DIR/{config,log}
+    скопировать config.ini.example -> config/config.ini (только если отсутствует)
+    скопировать .env.example -> .env (только если отсутствует)
+    скопировать translations.json -> config/translations.json (всегда)
+    при отсутствии файла-шаблона для копирования - предупреждение и пропуск шага
+    проверить доступность команды в PATH, сообщить пути (при отсутствии - подсказка перезапустить PowerShell)
+```
+
+Пошаговая логика - раздел 4.07.
 
 ---
 
@@ -660,7 +454,7 @@ if __name__ == "__main__":
 
 Скрипт изолирован (`deploy_standards.md` 3.01): не импортирует из `src/`, вывод через `print(..., flush=True)`.
 
-Обязательный порядок действий - раздел 4.08. Алгоритм миграции `config.ini` и `.env` - раздел 5.05. Источник шаблонов - файлы архива (`SCRIPT_DIR`), не репозиторий.
+Обязательный порядок действий - раздел 4.08. Алгоритм миграции `config.ini` и `.env` - ядро `deploy_standards.md` 4.01 (платформенная специфика - раздел 5.05). Источник шаблонов - файлы архива (`SCRIPT_DIR`), не репозиторий.
 
 Каркас (имена helpers ориентировочные; полная реализация должна покрывать раздел 4.08):
 
@@ -808,49 +602,13 @@ build/
 
 ## 5.05. Синхронизация версии, конфига и .env при обновлении
 
-Скрипт `update.py` выполняет миграцию пользовательских файлов относительно шаблонов архива (раздел 4.08). Источник структуры - `config/config.ini.example` и `.env.example` в корне архива (`SCRIPT_DIR`). Prod - `$env:APPDATA\tool-name\`.
+Канон алгоритма миграции (сравнение структур, резервные копии, перенос значений, правила) - ядро `deploy_standards.md`, раздел 4.01; здесь только платформенная специфика Windows:
 
-**Этап 1 - миграция prod-конфига (после установки wheel).** Источник новой структуры - `config/config.ini.example` архива.
-
-Сравнение: только набор секций и ключей (значения пользователя на решение о миграции не влияют).
-
-Если структуры совпадают:
-- без переименования обновить только `app.name` и `app.version` из архива (example / вложенные метаданные), если отличаются
-
-Если структуры отличаются:
-1. Переименовать текущий файл в `config.ini.bak_YYYY-MM-DD_HH-MM` (история накапливается; при коллизии имени - суффикс с секундами)
-2. Создать новый `config.ini` по тексту example (порядок секций/ключей и комментарии шаблона сохраняются)
-3. Для совпадающих ключей подставить значения из старого боевого конфига
-4. Для новых ключей (есть в example, нет в старом) - значение из example
-5. `app.name` и `app.version` всегда из архива, не из старого боевого
-6. Ключи, которые были только в старом конфиге и отсутствуют в example - не переносить (остаются в `.bak`)
-7. В консоль: имя резервной копии, перенесенные и добавленные ключи (без секретов)
-
-Если prod-конфига еще нет - скопировать example и проставить `name`/`version` из архива.
-
-**Этап 2 - миграция prod-`.env` (после установки).** Источник новой структуры - `.env.example` архива.
-
-Сравнение: только набор ключей (значения/секреты не сравниваются и не печатаются).
-
-Если наборы ключей совпадают - файл не трогать.
-
-Если отличаются:
-1. Переименовать текущий файл в `.env.bak_YYYY-MM-DD_HH-MM`
-2. Создать новый `.env` по ключам example
-3. Для совпадающих ключей перенести старые значения
-4. Для новых ключей - значение из example (часто пустое)
-5. Ключи, которые были только в старом `.env` - не переносить (остаются в `.bak`); сообщить список имен ключей без значений
-6. В консоль: факт миграции и списки ключей (без значений)
-
-Если prod-`.env` еще нет - скопировать example.
-
-**Правила:**
-
-- Пользовательские значения совпадающих ключей при миграции сохраняются
-- Новая структура всегда берется из example архива
-- Резервные копии не удаляются скриптом
-- Запись нового файла - по шаблону example с подстановкой значений, без «голого» `ConfigParser.write()` как единственного способа сборки
-- Сравнение только по множеству ключей: переименование ключа = старый остается в `.bak`, новый берется из example; правка только комментариев в example миграцию не запускает
+- Скрипт - `update.py` в корне архива (раздел 4.08)
+- Этап 0 (синхронизация версии репозитория) отсутствует: архив собран на Linux, версия пакета зафиксирована в wheel
+- Источник структуры example - архив (`SCRIPT_DIR`): `config/config.ini.example`, `.env.example`; `app.name` / `app.version` - из архива
+- Prod-файлы - `$env:APPDATA\tool-name\`: `config\config.ini`, `.env`
+- Резервные копии и перезапись - по канону ядра (4.01)
 
 ---
 
