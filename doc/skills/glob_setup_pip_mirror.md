@@ -28,7 +28,7 @@ version: 1.0.0
 ```bash
 mkdir -p ~/.config/pip && cat > ~/.config/pip/pip.conf << 'EOF'
 [global]
-index-url = <выбранное_зеркало>
+index-url = <mirror_url>
 EOF
 ```
 
