@@ -129,7 +129,7 @@ auto_apply: true
 
 ### 4.2. Заголовок H1
 
-Формат: `# Навык: <краткое название>`
+Формат: `# Навык: <title>`
 
 Пример: `# Навык: Синхронизация стандартов проекта`
 
@@ -248,7 +248,7 @@ auto_apply: true
 | `doc/skills/hub_sync_standards.md` | Синхронизация standards в соседние проекты |
 | `doc/skills/hub_sync_skills.md` | Агрегация навыков из всех репо в каталог project_standards |
 | `doc/skills/hub_sync_indexes.md` | Актуализация сводного индекса хаба и реестра стандартов (только в хабе) |
-| `doc/skills/glob_update_indexes.md` | Актуализация локального индекса навыков репозитория (общий, во всех репо) |
+| `doc/skills/glob_update_indexes.md` | Актуализация локальных индексов репозитория: навыков и спецификаций (общий, во всех репо) |
 | `doc/skills/_index_skills_hub.md` | Сводный индекс навыков хаба (только в хабе, ведет `hub_sync_indexes`) |
 | `doc/skills/_index_skills_repo.md` | Локальный индекс навыков репозитория (в каждом не-хаб репо, генерирует `glob_update_indexes`) |
 | `doc/skills/<repo-name>/*.md` | Проект-специфичные навыки |
@@ -285,27 +285,27 @@ auto_apply: true
 ```markdown
 ---
 id: example_skill
-description: <WHAT + WHEN в третьем лице, с ключевыми словами>
+description: <what_and_when>
 auto_apply: true
 ---
 
-# Навык: <название>
+# Навык: <title>
 
 ## Описание
-<один абзац>
+<paragraph>
 
 ## Когда использовать
-- <условие 1>
-- <условие 2>
-- <условие 3>
+- <condition_1>
+- <condition_2>
+- <condition_3>
 
 ## Инструкция
-1. <шаг 1>
-2. <шаг 2>
+1. <step_1>
+2. <step_2>
 
 ## Критерии завершения
-- <признак 1>
-- <признак 2>
+- <criterion_1>
+- <criterion_2>
 ```
 
 ---
