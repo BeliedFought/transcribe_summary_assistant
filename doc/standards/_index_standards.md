@@ -35,6 +35,7 @@
 | `deploy_win_standards.md` | OS-overlay: деплой на Windows; update.py - та же миграция относительно шаблонов архива | Опционально - при установке на Windows | Установка на Windows: сборка wheel и ZIP на Linux, установка на Windows, update/миграция |
 | `deploy_docker_standards.md` | Развертывание сервисов в Docker; публикация портов и привязка к интерфейсу хоста, reverse proxy для доступа из интернета (ufw на опубликованные порты не действует); машинные оверрайды документации (`override/<hostname>/`) | Опционально - для Docker-инфраструктуры | Настройка Docker-сервисов, compose, тома, сеть, публикация портов, бэкап; кастомизации под хост |
 | `skill_standards.md` | Правила создания и оформления навыков AI-агента (в т.ч. английские имена файлов без транслита, лимит объема до 800 строк) | Опционально - при наличии навыков | Создание или редактирование файлов в `doc/skills/` |
+| `skill_anthropic_standards.md` | Правила создания навыков по спецификации Anthropic Agent Skills: каталог `<name>/SKILL.md`, строгий frontmatter, progressive disclosure, вложенные файлы и скрипты; основной целевой инструмент - opencode | Опционально - при создании навыков формата SKILL.md (прежде всего для opencode; также Claude Code, Kilo Code) | Создание или редактирование навыков формата SKILL.md (подпапки `doc/skills/<name>/`) |
 | `software_doc_standards.md` | Шаблон документов установки ПО | Опционально - для документационных репозиториев | Написание документов установки приложений в репо документации |
 
 ---
@@ -83,7 +84,9 @@
 | Адресное пространство Docker (`daemon.json`, `bip`, `default-address-pools`) | `deploy_docker_standards.md` (1.6) |
 | Машинные оверрайды документации Docker (`override/<hostname>/`) | `deploy_docker_standards.md` (§7) |
 | Веб-адреса сервисов в summary профиле машины (`<hostname>_services_summary.md`) | `deploy_docker_standards.md` (§7.3) |
-| Создание или правка навыка агента | `skill_standards.md` |
+| Создание или правка навыка агента (внутренний формат `doc/skills/`) | `skill_standards.md` |
+| Навык формата Anthropic Agent Skills (каталог SKILL.md, frontmatter, bundled scripts; целевой инструмент - opencode) | `skill_anthropic_standards.md` |
+| Дубли навыка в двух форматах (плоский + SKILL.md), канон пары | `skill_anthropic_standards.md` (раздел 3) |
 | Документ установки приложения в репо документации | `software_doc_standards.md` |
 
 ---
