@@ -33,7 +33,7 @@
 | `deploy_standards.md` | Общее OS-agnostic ядро деплоя Python-проекта как системного инструмента (в т.ч. миграция config/.env при update) | Опционально - для проектов, устанавливаемых как CLI-инструмент | Подготовка проекта к установке; правила pyproject.toml, package-data, PROJECT_ROOT, политика update |
 | `deploy_lin_standards.md` | OS-overlay: деплой на Linux; update.py - миграция config.ini/.env по example | Опционально - при установке на Linux | Установка на Linux: прямая установка через uv, пути XDG, update/миграция |
 | `deploy_win_standards.md` | OS-overlay: деплой на Windows; update.py - та же миграция относительно шаблонов архива | Опционально - при установке на Windows | Установка на Windows: сборка wheel и ZIP на Linux, установка на Windows, update/миграция |
-| `deploy_docker_standards.md` | Развертывание сервисов в Docker; машинные оверрайды документации (`override/<hostname>/`) | Опционально - для Docker-инфраструктуры | Настройка Docker-сервисов, compose, тома, сеть, бэкап; кастомизации под хост |
+| `deploy_docker_standards.md` | Развертывание сервисов в Docker; публикация портов и привязка к интерфейсу хоста, reverse proxy для доступа из интернета (ufw на опубликованные порты не действует); машинные оверрайды документации (`override/<hostname>/`) | Опционально - для Docker-инфраструктуры | Настройка Docker-сервисов, compose, тома, сеть, публикация портов, бэкап; кастомизации под хост |
 | `skill_standards.md` | Правила создания и оформления навыков AI-агента (в т.ч. английские имена файлов без транслита, лимит объема до 800 строк) | Опционально - при наличии навыков | Создание или редактирование файлов в `doc/skills/` |
 | `software_doc_standards.md` | Шаблон документов установки ПО | Опционально - для документационных репозиториев | Написание документов установки приложений в репо документации |
 
@@ -79,6 +79,7 @@
 | Миграция prod config.ini / .env при update.py - единый алгоритм | `deploy_standards.md` (4.01 - канон); платформенная специфика: `deploy_lin_standards.md` (3.05) / `deploy_win_standards.md` (5.05) |
 | Batch CLI, двухстрочный rich-progress, status_col | `console_ui_standards.md` (§9, §16); якорь 04.07.03 |
 | Развертывание Docker-сервиса | `deploy_docker_standards.md` |
+| Публикация портов Docker, привязка к интерфейсу (`127.0.0.1` / LAN-IP / интернет через reverse proxy), обход ufw демоном Docker, фильтрация через ufw-docker | `deploy_docker_standards.md` (2.6, 2.7, 3.1) |
 | Адресное пространство Docker (`daemon.json`, `bip`, `default-address-pools`) | `deploy_docker_standards.md` (1.6) |
 | Машинные оверрайды документации Docker (`override/<hostname>/`) | `deploy_docker_standards.md` (§7) |
 | Веб-адреса сервисов в summary профиле машины (`<hostname>_services_summary.md`) | `deploy_docker_standards.md` (§7.3) |
