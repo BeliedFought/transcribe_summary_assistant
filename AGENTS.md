@@ -1,232 +1,118 @@
-# Инструкции для AI-агентов
+<!-- START static -->
+# AGENTS.md
 
-Этот файл содержит инструкции для AI-агентов при работе с данным проектом.
+Соответствует стандарту: 4.9.1
 
-Соответствует стандарту: 3.9.0
+Руководство для AI-агента при работе в **этом** репозитории.
 
-## Repository Purpose
+## Обзор проекта
 
-Transcribe & Summary Assistant - CLI-инструмент для транскрибации (speech-to-text), диаризации (разделение по голосам), саммаризации аудио- и видеофайлов и опциональной рассылки саммари на email (SMTP).
+Конкретика о проекте - в разделе «Специфика репозитория».
 
-## Communication Language
+- Точки входа сессии (читать первыми):
+  - @doc/standards/_index_standards.md - индекс пакета стандартов (реестр, карта маршрутизации, версия пакета)
+  - @doc/skills/_index_skills_repo.md - индекс навыков репозитория
+  - @doc/specs/_index_specs.md - индекс спецификаций
+- Тег `@doc/standards/_index_standards.md` без конкретной задачи - команда автоактуализации индекса (перечитать все документы, обновить реестр и карту, вывести отчет о версиях), а не просто «ознакомься»
 
-All communication with the user, comments in code, documentation, and log messages must be in **Russian**. Replace ё/Ё with е/Е everywhere (including code comments and docs).
+## Настройка окружения
 
-## Clarification Workflow
+Окружение описано в разделе «Специфика репозитория» (блок «Сгенерированные команды»).
 
-Before writing any code or making changes:
-1. Collect all clarifying questions and write them to `doc/agent_questions/questions_[timestamp].md` (not in chat). Use `doc/agent_questions/questions_YYYY-MM-DD_HH-MM.md` as a structural reference for file format.
-2. Notify the user in chat with the file path.
-3. Wait for answers before proceeding.
-4. Do not change any project files without explicit user confirmation.
+## Стиль кода
 
-## Repository Structure
+- Общение, комментарии в коде, документация, сообщения лога: русский; ё/Ё заменять на е/Е
+- Без эмодзи, без восклицательных знаков, без em/en-тире (использовать -), без многоточия
+- В конце сообщений лога/консоли точка не ставится
 
-| Path | Purpose |
-|------|---------|
-| `README.md` | Документация проекта для пользователей (русский) |
-| `AGENTS.md` | Инструкции для AI-агентов (Kilo Code, Cursor) |
-| `CLAUDE.md` | Зеркальная копия AGENTS.md (Claude Code) |
-| `config/config.ini` | Все настройки проекта |
-| `config/config.ini.example` | Шаблон конфигурации для первичной установки |
-| `data/` | Рабочие данные: SQLite, кеш, сессии |
-| `data/sessions/` | Папки сессий обработки |
-| `debug/` | Отладочные скрипты и временные файлы |
-| `diag/` | Диагностические данные (preflight-дампы, тесты моделей) |
-| `doc/specs/` | Спецификации: init_spec.txt, final_spec.md |
-| `doc/agent_questions/` | Уточняющие вопросы агента |
-| `doc/change_requests/` | Запросы на изменения |
-| `doc/skills/` | Навыки агента |
-| `doc/standards/project_standards.md` | Эталонный стандарт (read-only) |
-| `input/audio/` | Аудиофайлы для обработки |
-| `input/video/` | Видеофайлы для обработки |
-| `input/yt/` | .txt файлы со ссылками YouTube (можно несколько ссылок на файл) |
-| `log/` | Лог-файлы |
-| `main.py` | Оркестратор полного пайплайна |
-| `output/` | Результаты обработки |
-| `run/db/` | Скрипты работы с БД |
-| `run/api/` | Скрипты проверки API |
-| `run/ai/` | Скрипты проверки Ollama |
-| `run/email/` | Скрипты проверки отправки email |
-| `sample/` | Примеры данных |
-| `sql/schema.sql` | DDL-схема SQLite |
-| `src/` | Библиотечные модули |
-| `src/startup.py` | Стартовая fail-fast валидация окружения для entry-point скриптов |
-| `test/` | Тесты pytest |
-| `pyproject.toml` | Метаданные пакета и установка (`pip install -e .`) |
+## Инструкции по тестированию
 
-## Configuration & Secrets
+Проверки описаны в разделе «Специфика репозитория» (блок «Сгенерированные команды»).
 
-- All configurable parameters -> `config/config.ini`
-- Secrets (tokens, passwords, API keys) -> `.env` only
-- Load via `python-dotenv`
+## Git и коммиты
 
-## File Paths
+- Одна ветка `master`; Conventional Commits: `<type>(<scope>): ...`, инфинитив, с маленькой буквы, без точки в конце
+- Типы: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `style`
+- Авторство коммита от хоста, не хардкодить: `git config --local user.name "$(whoami)"` и `git config --local user.email "$(whoami)@$(hostname)"`
 
-Determine `PROJECT_ROOT` from `__file__` or location of `config/config.ini`. Build all paths as absolute relative to `PROJECT_ROOT`. Never rely on `cwd`.
+## Политика AGENTS.md и CLAUDE.md
 
-## SQL
+- Инструкции для агентов ведет только `AGENTS.md`; `CLAUDE.md` не ведется
+- `CLAUDE.md` в репо - удалить при синхронизации; ценное содержание перенести в `AGENTS.md` до удаления
+- Язык `AGENTS.md` - русский; английский - по явному запросу пользователя
 
-- All SQL queries and DDL in `.sql` files under `sql/`; never embed in code
-- Use parameterized queries; never concatenate user input into query strings
+## Навыки: общие соглашения
 
-## Localization (i18n)
+- Хаб-навыки - префиксы `hub_` (файлы) и `hub-` (каталоги); в производные репо не распространяются
+- Глобальные навыки - префиксы `glob_` (файлы) и `glob-` (каталоги); распространяются во все репо
+- Форматы: плоские `*.md` (внутренний формат, `doc/standards/skill_standards.md`) и каталоги `doc/skills/<name>/SKILL.md` (формат Anthropic, `doc/standards/skill_anthropic_standards.md`); основной целевой инструмент - opencode
+- Индексы навыков: `_index_skills_hub.md` (весь хаб, ведет `hub_sync_indexes`) и `_index_skills_repo.md` (порепозиторный, ведет `glob_update_indexes`)
 
-- All output text (logs, console, menus, errors, prompts) must use `t(key, **kwargs)` from `src/localization.py`
-- No natural language string literals in code - only in translation files and comments
-- Translation storage: DB table `translations` (key + lang composite PK)
-- Key naming: hierarchical with dot separator - `msg.*`, `error.*`, `prompt.*`, `label.*`
-- Fallback: current lang -> default lang -> `!KEY!`
-- Pluralization via `count` parameter: `.zero`, `.one`, `.few`, `.many` suffixes
-- Language detection priority: config.ini `[app] language` -> env `LANGUAGE` -> system locale -> `en`
+Список навыков репозитория - в разделе «Специфика репозитория».
 
-## Logging
+## Безопасность
 
-- Shared logger module: `src/logger.py`; config/env loading in `src/config.py`
-- Every `run/` script and `main.py` gets its own log file by default
-- Log location: `log/log_[script_name]_[timestamp].log`; one run = one log file
-- Log everything that is output to console, always and without exception; output is identical in both
-- Never use `print()`; no colour, no emoji
-- **Exception:** interactive menu modules may use `print()` for menu display
-- Format: `YYYY-MM-DD HH:MM:SS [marker] message`
-- Markers: `[!]` error, `[i]` info, `[*]` warning
+- Не хардкодить секреты и ключи в код и конфигурацию
+- Не использовать `sudo` / `su` / `pkexec`. Если нужны права - дать пользователю точную команду
 
-## Startup Validation
+## Границы
 
-- Every script validates its environment before main logic: required config params, paths, files, external connections
-- Fail fast: output all problems at once, then exit with clear messages via `t()`
-- Validation order: config -> required params -> paths/files -> external connections
+- Спросить сначала: крупные рефакторинги, новые зависимости, деструктивные операции (перезапись данных, миграции БД)
+- Никогда: коммитить секреты, править генерируемые файлы руками при наличии генератора, деструктивный git без явного запроса
+- Не бампить версию пакета стандартов без явного запроса пользователя
+<!-- END static -->
 
-## Retry for External Connections
+<!-- START repo-specific -->
+## Специфика репозитория: transcribe_summary_assistant
 
-- Use exponential backoff for DB, API connections: configurable `retry_count` and `retry_delay` in config
-- Max delay: 30 seconds. Log each retry attempt
-- Do NOT retry auth errors (401/403) or validation errors (400/422) - only timeouts and 5xx
+## Назначение
 
-## Idempotency and Atomicity
+CLI-инструмент: транскрибация (faster-whisper, CUDA), диаризация (pyannote.audio), саммаризация (DeepSeek API) аудио, видео и YouTube-ссылок, опциональная отправка саммари на email (SMTP). Каждая обработка - отдельная сессия с метаданными в SQLite. Пользовательская документация и описание пайплайна - README.md.
 
-- Scripts must be safe to re-run: no duplicates, use UPSERT or existence checks
-- Atomic file writes: write to `.tmp` then `replace()` - never write directly to target
-- DB operations: use transactions, rollback on error, batch commits
+## Сгенерированные команды
 
-## Graceful Shutdown
+<!-- START generated-commands -->
+Python 3.14 (`.python-version`), виртуальное окружение `.venv/` в корне проекта:
 
-- Handle SIGINT (Ctrl+C) via `signal` or `try/except KeyboardInterrupt`
-- Release resources: close DB connections, open files, delete temp files
-- Rollback incomplete transactions on interruption
-- Use context managers (`with`) for files and connections
+- Создание и активация: `python3 -m venv --copies .venv` и `source .venv/bin/activate`
+- Зависимости: `pip install -r requirements.txt` (версии зафиксированы через `==`)
+- Редактируемая установка (обязательна для `run/`-скриптов): `pip install -e .`
+- Полный пайплайн: `python main.py`
+- Тесты: `pytest` (тесты в `test/`, коммитятся)
+- Проверка инфраструктуры: `python run/db/db_init.py`, `python run/db/db_check_schema.py`, `python run/api/api_check_connection.py`, `python run/email/email_test_send.py`
+- Зеркало pip не хардкодить: подобрать доступное, навык `doc/skills/glob_setup_pip_mirror.md`
+<!-- END generated-commands -->
 
-## Log/Console Format
+## Структура репозитория
 
-```
-YYYY-MM-DD HH:MM:SS [marker] message
-```
+Полная таблица папок и файлов - в README.md. Поведенческие правила:
 
-Markers: `[!]` error, `[i]` info, `[*]` warning.
+- `config/config.ini` - настройки (секции `[app]`, `[processing]`, `[whisper]`, `[diarization]`, `[youtube]`, `[deepseek]`, `[email]`, `[output]`, `[paths]`, `[retry]`); секреты - только в `.env` (`.env.example` - шаблон), загрузка через python-dotenv
+- Входные данные: `input/audio/`, `input/video/`, `input/yt/` (`.txt` со ссылками YouTube); результаты - `output/`; отладка и диагностика - `debug/`, `diag/` (не коммитятся)
+- SQL и DDL - только в файлах `sql/`; параметризованные запросы
+- `doc/standards/` - только чтение; `doc/change_requests/` - транзитная
 
-## Virtual Environment & Python Version
+## Навыки репозитория
 
-- Store the virtual environment inside the project: `.venv/` folder in the project root
-- Create with: `python3 -m venv --copies .venv`
-- Activate via `source .venv/bin/activate`
-- Install dependencies with: `pip install -r requirements.txt`
-- For development (run/ scripts and `python -m` execution): install the project in editable mode after dependencies - `pip install -e .`. Without it `python run/<domain>/<script>.py` fails with `ModuleNotFoundError: No module named 'src'`, because `sys.path` hacks are forbidden by the standard. `python main.py` from the project root works without it (root is on `sys.path[0]`).
-- Pin Python version in `.python-version`
-- pip mirror: pypi.org may be unavailable (TLS, network restrictions).
-  Do NOT hardcode a mirror. Probe candidates and pick the fastest available:
-  https://pypi.ru/simple/, https://mirror.yandex.ru/pypi/simple/, https://mirrors.aliyun.com/pypi/simple/
-  If current `~/.config/pip/pip.conf` works fine - leave it unchanged.
-  Otherwise write the selected mirror to `~/.config/pip/pip.conf`
-- `.gitignore` excludes: `.env`, `.venv/`, `log/`, `debug/`, `diag/`, `input/`, `output/`, `data/`, `__pycache__/`, `.pytest_cache/`, `.vscode/`, `.claude/`, `.kilo`, `doc/agent_questions/`, `doc/change_requests/`
+Полный реестр - в `doc/skills/_index_skills_repo.md`; специфичных проектных навыков нет, используются только общие (`glob_*`).
 
-## Git
+## Типичные scope коммитов
 
-- Single branch: `master`
-- Commit message format - Conventional Commits, language: Russian
-- Types: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `style`
-- One logical change per commit; do not mix unrelated changes
-- AI-agent commit authorship: determine dynamically at each commit
-  - `user.name` = output of `whoami`
-  - `user.email` = `$(whoami)@$(hostname)`
-  - First commit: save to local repo config:
-    `git config --local user.name "$(whoami)" && git config --local user.email "$(whoami)@$(hostname)"`
-  - Subsequent commits: verify saved values; auto-update if whoami/hostname changed
-  - Do NOT use `-c` flags in git commit; rely on local repo config
-- On explicit commit request: include ALL changed and untracked files not in `.gitignore`.
-  Run `git status`, verify no `.gitignore` files are staged, then `git add` and commit
+`standard`, `skills`, `specs`; продуктовые изменения - `feat`/`fix` без scope (по ранней истории).
 
-## Dependencies
+## Особенности
 
-- Pin all versions with `==` in `requirements.txt`
-- Prefer the standard library; justify any new dependency
+- i18n: весь пользовательский текст через `t(key, **kwargs)` из `src/localization.py`, литералы естественного языка в коде запрещены; переводы - в таблице БД `translations`, язык: config.ini -> env `LANGUAGE` -> локаль -> `en`
+- Логирование: `src/logger.py`, формат `YYYY-MM-DD HH:MM:SS [маркер] сообщение`, маркеры `[!]` ошибка, `[i]` информация, `[*]` предупреждение; все, что выводится в консоль, дублируется в лог; `print()` - только в интерактивных меню
+- Версия приложения: `APP_NAME`/`APP_VERSION` в `src/config.py` из config.ini `[app]`; каждый entry-point при старте выводит имя и версию, агент предлагает бамп по типу коммита (SemVer)
+- Запуск `python run/<домен>/<скрипт>.py` без `pip install -e .` падает с `ModuleNotFoundError: No module named 'src'`
+- Кеш по `file_hash` (транскрибация, диаризация, YouTube-аудио): повторная обработка того же материала без GPU и загрузки аудио - README.md
+<!-- END repo-specific -->
 
-## Error Handling
+## Ссылки
 
-- Log errors with context (script name, execution stage, relevant inputs)
-- Exit with `sys.exit(1)` on critical failure
-
-## Text Requirements
-
-- All output text uses `t()` from `src/localization.py` - no natural language string literals in code
-- Language: Russian for comments, documentation, user messages
-- No emotional language, no ALL-CAPS emphasis, no exclamation marks
-- Use hyphen `-` (U+002D) instead of em-dash `---` and en-dash `--` everywhere
-- No ellipsis (`...` or `...`) anywhere
-- Always specify `encoding="utf-8"` when opening files
-- No leading spaces at the start of new text lines
-- No period at the end of log/console messages
-
-## Typing
-
-- Use type annotations for all functions: parameters and return values
-- For complex types use `typing` or `from __future__ import annotations`
-
-## Testing
-
-- Place tests in `tests/` at project root
-- Use pytest; naming: `test_[module_name].py`
-- `tests/` is not excluded from git; tests are committed
-
-## Cross-platform Paths
-
-- Use `pathlib.Path` for all paths - auto OS-specific separators
-- Do not concatenate paths via strings or use hardcoded separators
-- Paths from config/env wrap in `Path()` when reading
-- Paths in `config.ini` use forward slashes - pathlib handles both OS
-- For directory creation: `path.mkdir(parents=True, exist_ok=True)`
-
-## GitHub
-
-- SSH key: scan `~/.ssh/*github*.pub` (do not hardcode key name)
-- Key creation pattern: `id_ed25519_{hostname}_github`
-- Test connection: `ssh -i "$KEY_PATH" -T -p 443 git@ssh.github.com`
-- Network git commands: set `GIT_SSH_COMMAND="ssh -i $KEY_PATH -o BatchMode=yes -o StrictHostKeyChecking=no"`
-
-## Editing README.md, AGENTS.md and CLAUDE.md
-
-When editing `README.md`, `AGENTS.md` or `CLAUDE.md`: determine the original language of the document and write new content in that same language. Preferred language: `AGENTS.md` and `CLAUDE.md` - English; `README.md` - Russian.
-
-`AGENTS.md` is the primary AI agent instructions file. `CLAUDE.md` is its mirror copy (except for the main H1 header and the purpose description). Any change in one must be synchronously applied to the other. The content of both files is always identical.
-
-## Maintaining doc/standards/project_standards.md
-
-- In this repo: read-only. Do not edit.
-
-## Privileged Operations (root, sudo)
-
-- NEVER execute commands with `sudo`, `su`, `pkexec`, or any other privilege-elevation mechanism
-- If a task requires root/sudo: tell the user, ask to run manually, wait for confirmation
-
-## Application Versioning
-
-- `config.ini [app]`: name (human-readable) and version (SemVer)
-- `src/config.py` exports `APP_NAME` (str) and `APP_VERSION` (str)
-- Initial version: `0.1.0`
-- Every entry-point script outputs `APP_NAME v{APP_VERSION}` as one of the first actions
-- Agent proposes version bump at each commit based on commit type
-
-## Naming Conventions
-
-- All identifiers, filenames, modules: Latin characters, `snake_case`
-- Numbered identifiers use leading zeros for alignment: `step_01`, `batch_003`
-- No emotional language, no ALL-CAPS emphasis, no exclamation marks, no ellipsis in any generated text
+- doc/standards/_index_standards.md - индекс пакета стандартов и политика версионирования
+- doc/skills/_index_skills_repo.md - индекс навыков репозитория
+- doc/specs/_index_specs.md - индекс спецификаций
+- README.md - пользовательская документация, пайплайн, кеширование
+- https://agents.md - канонический формат
