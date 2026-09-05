@@ -1,14 +1,15 @@
 ---
 name: glob-skill-deploy
 description: Деплоит навык формата Anthropic Agent Skills из doc/skills/<name>/ в боевые каталоги инструментов - opencode, Kilo Code, Cursor (проектные или персональные). Применять при запросах задеплоить, развернуть или установить навык в opencode / Kilo / Cursor, сделать навык доступным агенту
+allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/deploy.sh *)
 metadata:
-  version: 1.0.0
+  version: 1.1.0
   status: stable
 ---
 
 # Деплой навыка в инструменты
 
-Копирует каталог навыка из источника репозитория (`doc/skills/<name>/`) в боевые каталоги целевых инструментов: opencode, Kilo Code, Cursor. Источник и репозиторий не изменяются; деплой - отдельный процесс от создания и миграции навыка.
+Копирует каталог навыка из источника репозитория (`doc/skills/<name>/`) в боевые каталоги целевых инструментов: opencode, Kilo Code, Cursor. Каталог копируется целиком - SKILL.md, скрипты, шаблоны и ресурсы; навыки формата Anthropic самодостаточны, развернутая копия работает без репозитория-источника. Источник и репозиторий не изменяются; деплой - отдельный процесс от создания и миграции навыка.
 
 ## Когда использовать
 
@@ -43,15 +44,13 @@ metadata:
 
 ### 3. Выполнить деплой
 
-1. Создать целевой каталог при отсутствии.
-2. Скопировать каталог навыка целиком, с ресурсами:
+1. Для каждой выбранной точки вызвать скрипт деплоя (создает целевой каталог при отсутствии, копирует навык целиком с ресурсами, существующую копию заменяет полностью - без смеси старых и новых файлов):
 
 ```bash
-cp -r doc/skills/<name> <target-dir>/<name>
+${CLAUDE_SKILL_DIR}/scripts/deploy.sh doc/skills/<name> <target-dir>/<name>
 ```
 
-3. Существующая копия в цели - заменить: удалить старый каталог, скопировать заново; не оставлять смесь старых и новых файлов.
-4. В репозитории ничего не менять (кроме строк `.gitignore` из шага 2, по согласованию).
+2. В репозитории ничего не менять (кроме строк `.gitignore` из шага 2, по согласованию).
 
 ### 4. Обновление и проверка по инструментам
 
@@ -76,13 +75,14 @@ cp -r doc/skills/<name> <target-dir>/<name>
 
 ## Примеры
 
-1. «задеплой glob-skill-migrate-anthropic в opencode» -> проверить пакет; `cp -r doc/skills/glob-skill-migrate-anthropic .opencode/skills/`; предложить перезапуск и `opencode debug skill`; отчет.
-2. «установи parse-report во все инструменты» -> копии в `.opencode/skills/`, `.kilo/skills/`, `.cursor/skills/`; Kilo - `/reload`, opencode и Cursor - перезапуск; отчет с таблицей проверок.
-3. «разверни навык в kilo персонально» -> `~/.kilo/skills/<name>/`; напомнить про доверенный статус (работают шелл-команды) и `/reload`.
+1. «задеплой glob-skill-migrate-anthropic в opencode» -> проверить пакет; `deploy.sh` в `.opencode/skills/glob-skill-migrate-anthropic`; предложить перезапуск и `opencode debug skill`; отчет.
+2. «установи parse-report во все инструменты» -> `deploy.sh` в `.opencode/skills/`, `.kilo/skills/`, `.cursor/skills/`; Kilo - `/reload`, opencode и Cursor - перезапуск; отчет с таблицей проверок.
+3. «разверни навык в kilo персонально» -> `deploy.sh` в `~/.kilo/skills/<name>/`; напомнить про доверенный статус (работают шелл-команды) и `/reload`.
 
 ## Ссылки
 
 - `doc/standards/skill_anthropic_standards.md` - формат пакета навыка, справочник целей деплоя
+- `scripts/deploy.sh` - копирование каталога навыка в боевой каталог с заменой существующей копии
 - Официальная документация: `opencode.ai/docs/skills`, `docs.kilocode.ai/docs/customize/skills`, `cursor.com/docs/skills`
 
 ## Ограничения
