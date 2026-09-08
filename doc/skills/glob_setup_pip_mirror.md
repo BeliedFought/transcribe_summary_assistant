@@ -1,5 +1,6 @@
 ---
 id: glob_setup_pip_mirror
+type: hub_glob
 description: Подбирает и настраивает зеркало PyPI в pip.conf при недоступности pypi.org. Применять при установке зависимостей, ошибках скачивания пакетов, запросах настроить pip или зеркало
 auto_apply: true
 version: 1.0.0

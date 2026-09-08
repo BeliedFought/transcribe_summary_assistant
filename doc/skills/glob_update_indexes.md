@@ -1,5 +1,6 @@
 ---
 id: glob_update_indexes
+type: hub_glob
 description: Актуализирует локальные индексы репозитория - индекс навыков _index_skills_repo.md из состава doc/skills/ и индекс спецификаций doc/specs/_index_specs.md из состава doc/specs/. Применять при запросах обновить локальные индексы, актуализировать список навыков или спецификаций
 auto_apply: true
 version: 1.1.1

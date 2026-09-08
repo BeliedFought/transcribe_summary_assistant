@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Проверка пакета навыка формата Anthropic после сборки или миграции.
 
-Проверяет структуру пакета, поле name в frontmatter, исполнимость и shebang
-скриптов, компилирует scripts/*.py (артефакты __pycache__ удаляет) и
-предупреждает об исполняемых fenced-блоках в теле SKILL.md без вызова
+Проверяет структуру пакета, поле name в frontmatter, тип навыка
+(metadata.type - валидный слаг, соответствие префиксу имени), исполнимость
+и shebang скриптов, компилирует scripts/*.py (артефакты __pycache__ удаляет)
+и предупреждает об исполняемых fenced-блоках в теле SKILL.md без вызова
 скриптов пакета. Кроме удаления __pycache__ ничего не меняет.
 
 Использование:
@@ -19,6 +20,7 @@ from pathlib import Path
 
 EXECUTABLE_LANGS = {"bash", "sh", "shell", "python", "python3", "py"}
 SCRIPT_SUFFIXES = {".py", ".sh", ".bash"}
+DIR_PREFIX_TO_SLUG = {"hub-": "hub_loc", "glob-": "hub_glob", "pg-": "pr_glob", "pl-": "pr_loc"}
 
 EXIT_OK = 0
 EXIT_FAIL = 1
@@ -34,8 +36,42 @@ def fail(message: str) -> None:
     print(f"{stamp()} [!] {message}")
 
 
+def frontmatter_block(text: str) -> str:
+    """Вернуть текст frontmatter (между двумя --- в начале файла) или пустую строку."""
+    parts = text.split("---")
+    return parts[1] if len(parts) >= 3 else ""
+
+
+def check_type(fm: str, skill_dir: Path) -> int:
+    """Проверить тип навыка: metadata.type - валидный слаг, соответствует префиксу."""
+    errors = 0
+    if re.search(r"^type:\s*\S", fm, re.MULTILINE):
+        fail("frontmatter: верхнеуровневое поле type недопустимо - тип в metadata.type")
+        errors += 1
+    match_type = re.search(r"^\s+type:\s*(\S+)", fm, re.MULTILINE)
+    if not match_type:
+        fail("frontmatter: metadata.type не найден - поле типа обязательно (hub_loc, hub_glob, pr_glob, pr_loc)")
+        return errors + 1
+    mtype = match_type.group(1)
+    valid = ", ".join(DIR_PREFIX_TO_SLUG.values())
+    if mtype not in DIR_PREFIX_TO_SLUG.values():
+        fail(f"metadata.type ({mtype}) невалиден - допустимы: {valid}")
+        return errors + 1
+    prefix_slug = next(
+        (slug for prefix, slug in DIR_PREFIX_TO_SLUG.items() if skill_dir.name.startswith(prefix)),
+        "",
+    )
+    if not prefix_slug:
+        fail(f"имя каталога без типового префикса ({', '.join(DIR_PREFIX_TO_SLUG)})")
+        errors += 1
+    elif prefix_slug != mtype:
+        fail(f"префикс имени ({prefix_slug}) не соответствует metadata.type ({mtype})")
+        errors += 1
+    return errors
+
+
 def check_name(skill_dir: Path) -> tuple[int, str]:
-    """Проверить SKILL.md и совпадение name с именем каталога; вернуть ошибки и текст."""
+    """Проверить SKILL.md: name, тип; вернуть ошибки и текст."""
     errors = 0
     skill_md = skill_dir / "SKILL.md"
     if not skill_md.is_file():
@@ -49,6 +85,7 @@ def check_name(skill_dir: Path) -> tuple[int, str]:
     elif match.group(1) != skill_dir.name:
         fail(f"frontmatter name ({match.group(1)}) не совпадает с именем каталога ({skill_dir.name})")
         errors += 1
+    errors += check_type(frontmatter_block(text), skill_dir)
     return errors, text
 
 

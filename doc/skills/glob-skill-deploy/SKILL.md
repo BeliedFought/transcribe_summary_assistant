@@ -5,6 +5,7 @@ allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/deploy.sh *)
 metadata:
   version: 1.1.0
   status: stable
+  type: hub_glob
 ---
 
 # Деплой навыка в инструменты
