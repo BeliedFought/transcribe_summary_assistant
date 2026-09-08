@@ -8,3 +8,13 @@
 | `glob_setup_pip_mirror` | общий | true | 1.0.0 | Подбирает и настраивает зеркало PyPI в pip.conf при недоступности pypi.org |
 | `glob_update_indexes` | общий | true | 1.1.1 | Актуализирует локальные индексы репозитория - индекс навыков _index_skills_repo.md из состава doc/skills/ и индекс спецификаций doc/specs/_index_specs.md из состава doc/specs/ |
 | `glob_update_kilo_rules` | общий | true | 1.1.2 | Проверяет MCP-серверы и правила, загружаемые агенту в начале сессии |
+
+---
+
+
+## Навыки формата Anthropic Agent Skills (SKILL.md)
+
+| Навык (каталог) | Класс | Версия | Назначение |
+|-----------------|-------|--------|-----------|
+| `glob-skill-deploy` | общий | 1.1.0 | Деплоит навык формата Anthropic Agent Skills из doc/skills/<name>/ в боевые каталоги инструментов - opencode, Kilo Code, Cursor (проектные или персональные). |
+| `glob-skill-migrate-anthropic` | общий | 1.6.0 | Переносит навык внутреннего формата (doc/skills/<name>.md) в самодостаточный пакет Anthropic Agent Skills - каталог <name>/SKILL.md, весь код и внешние скрипты навыка в <name>/scripts/, исходники (... |
