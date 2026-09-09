@@ -122,7 +122,7 @@ data/skills/
 - Оба формата: каталог `SKILL.md` - формат Anthropic (этот документ); плоский `*.md` - plain-формат (`skill_plain_standards.md`).
 - Имя - с префиксом `pl-` (каталог `pl-<name>/SKILL.md`) или `pl_` (плоский `pl_<name>.md`) либо без префикса; правила именования - раздел 01.04; принадлежность к `data/skills/` означает «вне синхронизации».
 - Каталог коммитится в git: в `.gitignore` к игнорируемой папке `data/` добавляется исключение `!data/skills/` (`project_standards.md`, раздел 06.01).
-- В индексы навыков (`_index_skills_hub.md`, `_index_skills_repo.md`) не входит - индексы строятся только по `doc/skills/`.
+- В сводные индексы навыков (`_index_skills_hub.md`, `_index_skills_repo.md`) не входит - они строятся только по `doc/skills/`; локальные навыки отражаются в собственном индексе `data/skills/_index_skills_pl.md` (генерирует `glob-update-indexes`; `index_nav_standards.md`, раздел 06.02).
 
 **Пары форматов.** Один навык может существовать в двух форматах как единый каталог `doc/skills/<kebab-name>/`: `SKILL.md` (формат Anthropic) и исходник внутреннего формата `templates/<name>.md`, перемещенный в каталог миграцией (навык `glob-skill-migrate-anthropic`). Правила пары:
 
@@ -494,7 +494,7 @@ Maps keys from a JSON or CSV file to fields of a PDF form and writes the filled 
 
 - [ ] Один сценарий - один каталог с единственным `SKILL.md`
 - [ ] Источник лежит в `doc/skills/<name>/SKILL.md`, а не в боевом каталоге инструмента
-- [ ] Локальный навык (`pr_loc`) вне синхронизации - в `data/skills/`: каталог `pl-<name>/SKILL.md` (или без префикса) либо plain-файл `pl_<name>.md` / `<name>.md`; коммитится (`!data/skills/` в `.gitignore`), в индексы навыков не входит (раздел 01.03)
+- [ ] Локальный навык (`pr_loc`) вне синхронизации - в `data/skills/`: каталог `pl-<name>/SKILL.md` (или без префикса) либо plain-файл `pl_<name>.md` / `<name>.md`; коммитится (`!data/skills/` в `.gitignore`), отражен в `data/skills/_index_skills_pl.md` (раздел 01.03)
 - [ ] `name`: строчные латинские буквы и цифры, дефисы, до 64 символов, совпадает с именем каталога, отражает задачу
 - [ ] `description`: WHAT + WHEN, конкретные триггеры, до 1024 символов
 - [ ] Frontmatter - только allowlist-ключи; `version` / `status` / `type` - внутри `metadata`; `metadata.type` - слаг типа из таксономии (`skill_plain_standards.md`, раздел 01.03), проставлен при создании, актуален при обновлении, перенесен из исходника при миграции

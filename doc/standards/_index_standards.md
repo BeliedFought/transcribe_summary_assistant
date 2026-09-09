@@ -106,7 +106,8 @@
 | Типы навыков (таксономия): хаб-навык `hub_`/`hub-` (слаг `hub_loc`), общий `glob_`/`glob-` (слаг `hub_glob`), проектный `pg_`/`pg-` (слаг `pr_glob`), локальный `pl_`/`pl-` или без префикса (слаг `pr_loc`, оба формата, `data/skills/`); фиксация типа в заголовке навыка (`type` / `metadata.type`) при создании, обновлении и миграции | `skill_plain_standards.md` (разделы 01.03, 02.01.01); `skill_anthropic_standards.md` (раздел 02.01) |
 | Навык формата Anthropic Agent Skills (каталог SKILL.md, frontmatter, bundled scripts, весь код в `scripts/`, самодостаточный пакет; целевой инструмент - opencode) | `skill_anthropic_standards.md` |
 | Пара форматов навыка (SKILL.md + исходник в `templates/` каталога), канон пары, перенос кода и внешних скриптов при миграции | `skill_anthropic_standards.md` (разделы 01.03, 03.03) |
-| Локальный навык (`pr_loc`, `data/skills/`, оба формата - plain-файл и каталог SKILL.md, префикс опционален, коммитится, в индексы навыков не входит) | `skill_plain_standards.md` (разделы 01.02, 01.03), `skill_anthropic_standards.md` (раздел 01.03) |
+| Локальный навык (`pr_loc`, `data/skills/`, оба формата - plain-файл и каталог SKILL.md, префикс опционален, коммитится, индекс - `data/skills/_index_skills_pl.md`) | `skill_plain_standards.md` (разделы 01.02, 01.03), `skill_anthropic_standards.md` (раздел 01.03) |
+| Индексация навыков (сводный, порепозиторный, индекс локальных навыков `data/skills/_index_skills_pl.md`; кто ведет) | `index_nav_standards.md` (раздел 06.02) |
 | Создание или правка кастомного tool opencode (`.opencode/tools/`, `~/.config/opencode/tools/`): контракт `tool()`, схема аргументов, `description`, вывод и ошибки, права | `opencode_tool_standards.md` |
 | Выбор между кастомным tool и навыком для операции агента | `opencode_tool_standards.md` (раздел 01.02); навыки - `skill_anthropic_standards.md` |
 | Документ установки приложения в репо документации | `software_doc_standards.md` |
