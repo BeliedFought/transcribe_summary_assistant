@@ -2,9 +2,10 @@
 """Проверка полноты: все навыки репозитория на соответствие требованиям стандартов.
 
 Сверяет навыки обоих форматов во всех канонических местах хранения с
-требованиями skill_standards.md и skill_anthropic_standards.md:
+требованиями skill_plain_standards.md и skill_anthropic_standards.md:
 обязательные поля frontmatter, валидный слаг типа, соответствие префикса
-имени типу и расположению, запрет ссылок на конкретные навыки чужих
+имени типу и расположению (для локальных навыков data/skills/ - оба формата,
+префикс опционален), запрет ссылок на конкретные навыки чужих
 репозиториев (пути ext/<repo-name>/ вместо плейсхолдеров). Ничего не меняет -
 только отчет.
 
@@ -22,7 +23,7 @@ EXIT_FAIL = 1
 EXIT_USAGE = 2
 
 VALID_SLUGS = ("hub_loc", "hub_glob", "pr_glob", "pr_loc")
-FLAT_PREFIX_TO_SLUG = {"hub_": "hub_loc", "glob_": "hub_glob", "pg_": "pr_glob"}
+FLAT_PREFIX_TO_SLUG = {"hub_": "hub_loc", "glob_": "hub_glob", "pg_": "pr_glob", "pl_": "pr_loc"}
 DIR_PREFIX_TO_SLUG = {"hub-": "hub_loc", "glob-": "hub_glob", "pg-": "pr_glob", "pl-": "pr_loc"}
 FLAT_SLUG_TO_LOCATION = {
     "hub_loc": "корень doc/skills/",
@@ -86,8 +87,8 @@ def check_concrete_ext_refs(path: Path, rel: Path) -> int:
     return errors
 
 
-def check_internal(path: Path, root: Path, in_repo_subfolder: bool) -> int:
-    """Проверить плоский навык внутреннего формата; вернуть число ошибок."""
+def check_internal(path: Path, root: Path, in_repo_subfolder: bool, place: str = "doc/skills") -> int:
+    """Проверить плоский навык plain-формата; вернуть число ошибок."""
     rel = path.relative_to(root)
     errors = 0
     errors += check_concrete_ext_refs(path, rel)
@@ -121,12 +122,22 @@ def check_internal(path: Path, root: Path, in_repo_subfolder: bool) -> int:
         errors += 1
         return errors
 
-    prefix_slug = next((slug for prefix, slug in FLAT_PREFIX_TO_SLUG.items() if path.name.startswith(prefix)), "")
-    if not prefix_slug:
-        fail(f"{rel}: нет типового префикса (hub_, glob_, pg_) - переименовать в pg_{path.stem}")
+    if ftype == "pr_loc" and place != "data/skills":
+        fail(f"{rel}: локальный навык (pr_loc) должен лежать в data/skills/")
         errors += 1
         return errors
-    if prefix_slug != ftype:
+    if ftype != "pr_loc" and place == "data/skills":
+        fail(f"{rel}: в data/skills/ допустимы только локальные навыки (pr_loc)")
+        errors += 1
+        return errors
+
+    prefix_slug = next((slug for prefix, slug in FLAT_PREFIX_TO_SLUG.items() if path.name.startswith(prefix)), "")
+    if not prefix_slug:
+        if place != "data/skills":  # для локальных навыков data/skills префикс опционален
+            fail(f"{rel}: нет типового префикса (hub_, glob_, pg_, pl_) - переименовать в pg_{path.stem}")
+            errors += 1
+            return errors
+    elif prefix_slug != ftype:
         fail(f"{rel}: префикс имени ({prefix_slug}) не соответствует type ({ftype})")
         errors += 1
 
@@ -176,11 +187,11 @@ def check_anthropic(skill_dir: Path, root: Path, place: str) -> int:
 
     prefix_slug = next((slug for prefix, slug in DIR_PREFIX_TO_SLUG.items() if skill_dir.name.startswith(prefix)), "")
     if not prefix_slug:
-        target = "pl-" if place == "data/skills" else "pg-"
-        fail(f"{rel}: нет типового префикса ({', '.join(DIR_PREFIX_TO_SLUG)}) - переименовать в {target}{skill_dir.name}/")
-        errors += 1
-        return errors
-    if prefix_slug != mtype:
+        if place != "data/skills":  # для локальных навыков data/skills префикс опционален
+            fail(f"{rel}: нет типового префикса ({', '.join(DIR_PREFIX_TO_SLUG)}) - переименовать в pg-{skill_dir.name}/")
+            errors += 1
+            return errors
+    elif prefix_slug != mtype:
         fail(f"{rel}: префикс имени ({prefix_slug}) не соответствует metadata.type ({mtype})")
         errors += 1
 
@@ -229,8 +240,8 @@ def walk_skills(root: Path) -> tuple[int, int]:
                 checked += 1
                 errors += check_anthropic(entry, root, place="data/skills")
             elif entry.is_file() and entry.suffix == ".md":
-                fail(f"{entry.relative_to(root)}: внутренний формат в data/skills не используется - только pl-<name>/SKILL.md")
-                errors += 1
+                checked += 1
+                errors += check_internal(entry, root, in_repo_subfolder=False, place="data/skills")
     return checked, errors
 
 
