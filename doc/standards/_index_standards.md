@@ -57,8 +57,8 @@
 | Проектные оверрайды стандарта, `doc/specs/overrides.md` | `project_standards.md` (01.01.02) |
 | Индекс спецификаций `doc/specs/_index_specs.md` (обязателен), реестр файлов `doc/specs/` и сводка подпапок | `project_standards.md` (01.01); канон индексов - `index_nav_standards.md` (06.03) |
 | Локальная витрина данных (SQLite): SQL-наборы `src_`/`report_`, режимы `local`/`refresh` | `project_standards.md` (01.01.03) |
-| Диагностические скрипты `diag/` (маска `<domain>_<type>_<action>`, индекс `_index_diag.md`), разовые артефакты `tmp/` (скриншоты, выгрузки, уборка после коммита) | `project_standards.md` (01.01.04) |
-| Эталонные тесты агентов `test/` (индекс `_index_test.md`, согласование набора с заказчиком, граница с `diag/`), тестирование | `project_standards.md` (01.01.05, 06.04) |
+| Диагностические скрипты `diag/` (подпапки по домену `diag/<domain>/`, маска `<domain>_<type>_<action>`, индекс `_index_diag.md`), разовые артефакты `tmp/` (подпапки `tmp/<domain>/`, скриншоты, выгрузки, уборка после коммита) | `project_standards.md` (01.01.04) |
+| Эталонные тесты агентов `test/` (подпапки по домену `test/<domain>/`, индекс `_index_test.md`, согласование набора с заказчиком, граница с `diag/`), тестирование | `project_standards.md` (01.01.05, 06.04) |
 | Конфигурация, config.ini, .env, пути | `project_standards.md` (01.02, 01.04) |
 | Логирование, вывод, i18n, меню, GUI | `project_standards.md` (04); меню/rich UI - `console_ui_standards.md` |
 | Dual-channel (`log_file_only`), rich-handler, интерактивный контекст (TTY / `CI` / `TERM=dumb`) | `project_standards.md` (04.04.02, 04.04.05, 04.06, 04.07); batch - `console_ui_standards.md` (04.04) |
