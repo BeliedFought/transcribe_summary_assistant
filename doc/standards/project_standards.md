@@ -1928,11 +1928,11 @@ logger.info(t("msg.files_processed", count=total))
 - Незавершенные транзакции - откатить (rollback) при прерывании, не оставлять partial state
 
 **Обработка сигналов:**
-- SIGINT (Ctrl+C): перехватить через signal или try/except KeyboardInterrupt; выполнить очистку; вывести сообщение о завершении; выйти с кодом 130 (`sys.exit(130)`)
+- SIGINT (Ctrl+C): перехватить через signal или try/except KeyboardInterrupt; выполнить очистку; при необходимости вывести сообщение о завершении; выйти с кодом 130 (`sys.exit(130)`)
 - SIGTERM: для долгоживущих процессов и сервисов (контейнеры, systemd, supervisor) - перехватывать так же, как SIGINT, с очисткой. Контейнерные оркестраторы и менеджеры служб завершают процессы через SIGTERM, не SIGINT; без обработчика процесс обрывается без cleanup. Код завершения: CLI - `128 + sig` (SIGTERM - 143), сервис при штатной остановке - 0
 - Платформенная оговорка: SIGTERM как внешний сигнал - Linux и контейнеры. На Windows SIGTERM от внешних процессов не доставляется (перехват signal.SIGTERM срабатывает только на os.kill внутри самого процесса); штатное завершение консольных процессов идет через console events (CTRL_C_EVENT, CTRL_BREAK_EVENT) и закрытие окна - основной контракт завершения на Windows - KeyboardInterrupt и обработчик закрытия окна (GUI - раздел 04.08)
-- Не подавлять KeyboardInterrupt молча - пользователь должен видеть что скрипт остановлен
-- Сообщение о прерывании: в режиме `plain` - `logger.info(t("msg.interrupted"))`; при menu frame - `console_ui_standards.md` (раздел 04.03) (`emit_session_notice` / `print` + `log_file_only`, не info-логгер в консоль кадра)
+- Сообщение о прерывании (`msg.interrupted`) опционально: допустимы оба варианта - короткое сообщение или завершение без него. Недопустимо одно - подавлять прерывание и продолжать работу: процесс обязан завершиться
+- Если сообщение выводится: в режиме `plain` - `logger.info(t("msg.interrupted"))`; при menu frame - `console_ui_standards.md` (раздел 04.03) (`emit_session_notice` / `print` + `log_file_only`, не info-логгер в консоль кадра)
 
 **Коды завершения (единая конвенция для всех точек входа - run/, main.py, оркестраторы):**
 
@@ -1954,7 +1954,7 @@ import signal
 import sys
 
 def _signal_handler(sig, frame):
-    logger.info(t("msg.interrupted"))
+    logger.info(t("msg.interrupted"))  # сообщение опционально
     # cleanup
     sys.exit(128 + sig)  # SIGINT -> 130, SIGTERM -> 143; сервис при штатной остановке - sys.exit(0)
 
