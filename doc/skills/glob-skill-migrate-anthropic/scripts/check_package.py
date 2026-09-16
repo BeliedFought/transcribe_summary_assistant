@@ -17,58 +17,36 @@ import compileall
 import re
 import shutil
 import sys
-from datetime import datetime
 from pathlib import Path
+
+sys.dont_write_bytecode = True  # не создавать __pycache__ в пакете: проверка ничего не меняет
+
+from skill_common import (
+    CATEGORY_NAMES,
+    DIR_PREFIX_TO_SLUG,
+    EXIT_FAIL,
+    EXIT_OK,
+    EXIT_USAGE,
+    body_text,
+    fail,
+    frontmatter_block,
+    is_prefix_optional,
+    metadata_value,
+    name_category,
+    stamp,
+)
 
 EXECUTABLE_LANGS = {"bash", "sh", "shell", "python", "python3", "py"}
 SCRIPT_SUFFIXES = {".py", ".sh", ".bash"}
-DIR_PREFIX_TO_SLUG = {"hub-": "hub_loc", "glob-": "hub_glob", "pg-": "pr_glob", "pl-": "pr_loc"}
-CATEGORY_NAMES = {
-    "sync": "Синхронизация",
-    "update": "Актуализация",
-    "audit": "Аудит",
-    "skill": "Навыки",
-    "cfg": "Конфигурация",
-    "rules": "Правила агентов",
-    "agent": "Правила работы с агентом",
-}
-
-EXIT_OK = 0
-EXIT_FAIL = 1
-EXIT_USAGE = 2
-
-
-def stamp() -> str:
-    """Метка времени в формате строгого режима логгера (04.04.01)."""
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
-def fail(message: str) -> None:
-    print(f"{stamp()} [!] {message}")
-
-
-def frontmatter_block(text: str) -> str:
-    """Вернуть текст frontmatter (между двумя --- в начале файла) или пустую строку."""
-    parts = text.split("---")
-    return parts[1] if len(parts) >= 3 else ""
-
-
-def metadata_field(fm: str, key: str) -> str:
-    """Значение ключа вложенного словаря metadata."""
-    m = re.search(rf"^\s+{key}:\s*(\S.*)$", fm, re.MULTILINE)
-    return m.group(1).strip() if m else ""
-
-
-def name_category(name: str, prefix: str) -> str:
-    """Второй сегмент имени каталога после типового префикса."""
-    return name[len(prefix):].split("-", 1)[0]
+FENCE_OPEN_RE = re.compile(r"^\s*(`{3,}|~{3,})\s*(\S*)")
+FENCE_CLOSE_RE = re.compile(r"^\s*(`{3,}|~{3,})\s*$")
 
 
 def check_category(fm: str, skill_dir: Path) -> int:
     """Проверить категорию: metadata.category / category_name по справочнику и имени каталога."""
     errors = 0
-    category = metadata_field(fm, "category")
-    category_name = metadata_field(fm, "category_name")
+    category = metadata_value(fm, "category")
+    category_name = metadata_value(fm, "category_name")
     if not category and not category_name:
         return 0
     if not category or not category_name:
@@ -109,8 +87,9 @@ def check_type(fm: str, skill_dir: Path) -> int:
         "",
     )
     if not prefix_slug:
-        fail(f"имя каталога без типового префикса ({', '.join(DIR_PREFIX_TO_SLUG)})")
-        errors += 1
+        if not is_prefix_optional(mtype):  # для локальных навыков (pr_loc) префикс опционален
+            fail(f"имя каталога без типового префикса ({', '.join(DIR_PREFIX_TO_SLUG)})")
+            errors += 1
     elif prefix_slug != mtype:
         fail(f"префикс имени ({prefix_slug}) не соответствует metadata.type ({mtype})")
         errors += 1
@@ -139,19 +118,30 @@ def check_name(skill_dir: Path) -> tuple[int, str]:
 
 
 def check_fenced_blocks(text: str) -> int:
-    """Предупредить об исполняемых fenced-блоках в теле без вызова скриптов пакета."""
-    parts = text.split("---")
-    body = parts[-1] if len(parts) >= 3 else text
+    """Предупредить об исполняемых fenced-блоках в теле без вызова скриптов пакета.
+
+    Тело берется после frontmatter; ограждение отслеживается построчно по литере
+    и длине (``` или ~~~), закрытием считается только строка из той же литеры
+    длиной не меньше открывающей. Дефисы в таблицах и ASCII-разделителях на
+    разбор не влияют.
+    """
     warnings = 0
+    fence = ""
+    fence_len = 0
     lang = None
     lines: list[str] = []
-    for line in body.splitlines():
-        stripped = line.strip()
-        if lang is None and stripped.startswith("```"):
-            lang = stripped[3:].strip().lower() or "text"
+    for line in body_text(text).splitlines():
+        if lang is None:
+            match = FENCE_OPEN_RE.match(line)
+            if not match:
+                continue
+            fence = match.group(1)[0]
+            fence_len = len(match.group(1))
+            lang = match.group(2).lower() or "text"
             lines = []
             continue
-        if lang is not None and stripped == "```":
+        match = FENCE_CLOSE_RE.match(line)
+        if match and match.group(1)[0] == fence and len(match.group(1)) >= fence_len:
             content = "\n".join(lines)
             if lang in EXECUTABLE_LANGS and content.strip() and "${CLAUDE_SKILL_DIR}" not in content:
                 preview = next((item for item in lines if item.strip()), "")
@@ -159,8 +149,7 @@ def check_fenced_blocks(text: str) -> int:
                 warnings += 1
             lang = None
             continue
-        if lang is not None:
-            lines.append(line)
+        lines.append(line)
     return warnings
 
 

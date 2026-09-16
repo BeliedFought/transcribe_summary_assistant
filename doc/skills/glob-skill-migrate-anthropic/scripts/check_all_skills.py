@@ -17,25 +17,30 @@
 
 import re
 import sys
-from datetime import datetime
 from pathlib import Path
 
-EXIT_OK = 0
-EXIT_FAIL = 1
-EXIT_USAGE = 2
+sys.dont_write_bytecode = True  # не создавать __pycache__ в пакете: проверка ничего не меняет
 
-VALID_SLUGS = ("hub_loc", "hub_glob", "pr_glob", "pr_loc")
-FLAT_PREFIX_TO_SLUG = {"hub_": "hub_loc", "glob_": "hub_glob", "pg_": "pr_glob", "pl_": "pr_loc"}
-DIR_PREFIX_TO_SLUG = {"hub-": "hub_loc", "glob-": "hub_glob", "pg-": "pr_glob", "pl-": "pr_loc"}
-CATEGORY_NAMES = {
-    "sync": "Синхронизация",
-    "update": "Актуализация",
-    "audit": "Аудит",
-    "skill": "Навыки",
-    "cfg": "Конфигурация",
-    "rules": "Правила агентов",
-    "agent": "Правила работы с агентом",
-}
+from skill_common import (
+    CATEGORY_NAMES,
+    DIR_PREFIX_TO_SLUG,
+    EXIT_FAIL,
+    EXIT_OK,
+    EXIT_USAGE,
+    FLAT_PREFIX_TO_SLUG,
+    VALID_SLUGS,
+    fail,
+    file_text,
+    flat_value,
+    frontmatter_block,
+    has_top_level_type,
+    info,
+    is_index_name,
+    is_prefix_optional,
+    metadata_value,
+    name_category,
+)
+
 FLAT_SLUG_TO_LOCATION = {
     "hub_loc": "корень doc/skills/",
     "hub_glob": "корень doc/skills/",
@@ -43,48 +48,6 @@ FLAT_SLUG_TO_LOCATION = {
 }
 CONCRETE_EXT_RE = re.compile(r"ext/(?!<)(?!\{)[A-Za-z0-9_][A-Za-z0-9_-]*")
 CYRILLIC_PLACEHOLDER_RE = re.compile(r"<[^>]*[А-Яа-яЁё][^>]*>")
-
-
-def stamp() -> str:
-    """Метка времени в формате строгого режима логгера (04.04.01)."""
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
-def fail(message: str) -> None:
-    print(f"{stamp()} [!] {message}")
-
-
-def info(message: str) -> None:
-    print(f"{stamp()} [i] {message}")
-
-
-def frontmatter_block(path: Path) -> str:
-    """Вернуть текст frontmatter (между двумя --- в начале файла) или пустую строку."""
-    try:
-        text = path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return ""
-    parts = text.split("---")
-    return parts[1] if len(parts) >= 3 else ""
-
-
-def flat_value(fm: str, key: str) -> str:
-    match = re.search(rf"^{key}:\s*(\S.*)$", fm, re.MULTILINE)
-    return match.group(1).strip() if match else ""
-
-
-def metadata_value(fm: str, key: str) -> str:
-    match = re.search(rf"^\s+{key}:\s*(\S.*)$", fm, re.MULTILINE)
-    return match.group(1).strip() if match else ""
-
-
-def has_top_level_type(fm: str) -> bool:
-    return bool(re.search(r"^type:\s*\S", fm, re.MULTILINE))
-
-
-def name_category(name: str, prefix: str) -> str:
-    """Второй сегмент имени после типового префикса (без расширения)."""
-    return re.split(r"[_\-]", name[len(prefix):], maxsplit=1)[0]
 
 
 def check_category(fm: str, name: str, prefix: str, anthropic: bool, rel: Path) -> int:
@@ -146,7 +109,7 @@ def check_internal(path: Path, root: Path, in_repo_subfolder: bool, place: str =
     rel = path.relative_to(root)
     errors = 0
     errors += check_concrete_ext_refs(path, rel)
-    fm = frontmatter_block(path)
+    fm = frontmatter_block(file_text(path))
     if not fm:
         fail(f"{rel}: frontmatter отсутствует")
         return 1
@@ -188,7 +151,7 @@ def check_internal(path: Path, root: Path, in_repo_subfolder: bool, place: str =
     prefix = next((p for p in FLAT_PREFIX_TO_SLUG if path.name.startswith(p)), "")
     prefix_slug = FLAT_PREFIX_TO_SLUG.get(prefix, "")
     if not prefix_slug:
-        if place != "data/skills":  # для локальных навыков data/skills префикс опционален
+        if not is_prefix_optional(ftype):  # для локальных навыков (pr_loc) префикс опционален
             fail(f"{rel}: нет типового префикса (hub_, glob_, pg_, pl_) - переименовать в pg_{path.stem}")
             errors += 1
             return errors
@@ -213,7 +176,7 @@ def check_anthropic(skill_dir: Path, root: Path, place: str) -> int:
     errors = 0
     errors += check_concrete_ext_refs(skill_dir / "SKILL.md", rel)
     skill_md = skill_dir / "SKILL.md"
-    fm = frontmatter_block(skill_md)
+    fm = frontmatter_block(file_text(skill_md))
     if not fm:
         fail(f"{rel}: SKILL.md без frontmatter или отсутствует")
         return 1
@@ -245,7 +208,7 @@ def check_anthropic(skill_dir: Path, root: Path, place: str) -> int:
     prefix = next((p for p in DIR_PREFIX_TO_SLUG if skill_dir.name.startswith(p)), "")
     prefix_slug = DIR_PREFIX_TO_SLUG.get(prefix, "")
     if not prefix_slug:
-        if place != "data/skills":  # для локальных навыков data/skills префикс опционален
+        if not is_prefix_optional(mtype):  # для локальных навыков (pr_loc) префикс опционален
             fail(f"{rel}: нет типового префикса ({', '.join(DIR_PREFIX_TO_SLUG)}) - переименовать в pg-{skill_dir.name}/")
             errors += 1
             return errors
@@ -272,7 +235,7 @@ def walk_skills(root: Path) -> tuple[int, int]:
     doc_skills = root / "doc" / "skills"
     if doc_skills.is_dir():
         for entry in sorted(doc_skills.iterdir()):
-            if entry.name.startswith("_index"):
+            if is_index_name(entry.name):
                 continue
             if entry.is_file() and entry.suffix == ".md":
                 checked += 1
@@ -288,7 +251,7 @@ def walk_skills(root: Path) -> tuple[int, int]:
                     checked += 1
                     errors += check_anthropic(skill_md.parent, root, place="doc/skills")
                 for md in sorted(entry.rglob("*.md")):
-                    if md.name == "SKILL.md" or "/templates/" in md.as_posix():
+                    if md.name == "SKILL.md" or "/templates/" in md.as_posix() or is_index_name(md.name):
                         continue
                     checked += 1
                     errors += check_internal(md, root, in_repo_subfolder=True)
@@ -296,6 +259,8 @@ def walk_skills(root: Path) -> tuple[int, int]:
     data_skills = root / "data" / "skills"
     if data_skills.is_dir():
         for entry in sorted(data_skills.iterdir()):
+            if is_index_name(entry.name):
+                continue
             if entry.is_dir() and (entry / "SKILL.md").is_file():
                 checked += 1
                 errors += check_anthropic(entry, root, place="data/skills")
