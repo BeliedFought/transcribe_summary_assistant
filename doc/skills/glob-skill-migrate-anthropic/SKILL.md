@@ -3,7 +3,7 @@ name: glob-skill-migrate-anthropic
 description: Переносит навык внутреннего формата (doc/skills/<name>.md) в самодостаточный пакет Anthropic Agent Skills - каталог <name>/SKILL.md, весь код и внешние скрипты навыка в <name>/scripts/, исходники (навык и скрипты проекта) в <name>/templates/ через git mv; приводит существующий пакет SKILL.md в соответствие стандарту; проверяет полноту - все навыки репозитория обоих форматов на соответствие требованиям (тип, категория области применения, префикс, расположение, поля frontmatter). Применять при запросах мигрировать, конвертировать или перенести навык в формат SKILL.md, Anthropic или opencode, проверить или исправить существующий SKILL.md-навык, проверить все навыки или провести проверку полноты навыков; исходный навык указывает пользователь
 allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/move_source.sh *), Bash(${CLAUDE_SKILL_DIR}/scripts/check_package.py *), Bash(${CLAUDE_SKILL_DIR}/scripts/check_all_skills.py *)
 metadata:
-  version: 1.8.1
+  version: 1.9.0
   status: stable
   type: hub_glob
   category: skill
