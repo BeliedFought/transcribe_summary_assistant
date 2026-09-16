@@ -2,7 +2,9 @@
 """Проверка пакета навыка формата Anthropic после сборки или миграции.
 
 Проверяет структуру пакета, поле name в frontmatter, тип навыка
-(metadata.type - валидный слаг, соответствие префиксу имени), исполнимость
+(metadata.type - валидный слаг, соответствие префиксу имени), категорию
+(metadata.category / metadata.category_name - по закрытому справочнику,
+соответствие второму сегменту имени каталога, заполнение парой), исполнимость
 и shebang скриптов, компилирует scripts/*.py (артефакты __pycache__ удаляет)
 и предупреждает об исполняемых fenced-блоках в теле SKILL.md без вызова
 скриптов пакета. Кроме удаления __pycache__ ничего не меняет.
@@ -21,6 +23,15 @@ from pathlib import Path
 EXECUTABLE_LANGS = {"bash", "sh", "shell", "python", "python3", "py"}
 SCRIPT_SUFFIXES = {".py", ".sh", ".bash"}
 DIR_PREFIX_TO_SLUG = {"hub-": "hub_loc", "glob-": "hub_glob", "pg-": "pr_glob", "pl-": "pr_loc"}
+CATEGORY_NAMES = {
+    "sync": "Синхронизация",
+    "update": "Актуализация",
+    "audit": "Аудит",
+    "skill": "Навыки",
+    "cfg": "Конфигурация",
+    "rules": "Правила агентов",
+    "agent": "Правила работы с агентом",
+}
 
 EXIT_OK = 0
 EXIT_FAIL = 1
@@ -40,6 +51,42 @@ def frontmatter_block(text: str) -> str:
     """Вернуть текст frontmatter (между двумя --- в начале файла) или пустую строку."""
     parts = text.split("---")
     return parts[1] if len(parts) >= 3 else ""
+
+
+def metadata_field(fm: str, key: str) -> str:
+    """Значение ключа вложенного словаря metadata."""
+    m = re.search(rf"^\s+{key}:\s*(\S.*)$", fm, re.MULTILINE)
+    return m.group(1).strip() if m else ""
+
+
+def name_category(name: str, prefix: str) -> str:
+    """Второй сегмент имени каталога после типового префикса."""
+    return name[len(prefix):].split("-", 1)[0]
+
+
+def check_category(fm: str, skill_dir: Path) -> int:
+    """Проверить категорию: metadata.category / category_name по справочнику и имени каталога."""
+    errors = 0
+    category = metadata_field(fm, "category")
+    category_name = metadata_field(fm, "category_name")
+    if not category and not category_name:
+        return 0
+    if not category or not category_name:
+        fail("frontmatter: category и category_name заполняются только парой")
+        return 1
+    if category not in CATEGORY_NAMES:
+        fail(f"metadata.category ({category}) не из справочника - допустимы: {', '.join(CATEGORY_NAMES)}")
+        errors += 1
+    elif CATEGORY_NAMES[category] != category_name:
+        fail(f"metadata.category_name ({category_name}) не соответствует справочнику для {category} ({CATEGORY_NAMES[category]})")
+        errors += 1
+    prefix = next((p for p in DIR_PREFIX_TO_SLUG if skill_dir.name.startswith(p)), "")
+    if prefix:
+        segment = name_category(skill_dir.name, prefix)
+        if segment != category:
+            fail(f"второй сегмент имени каталога ({segment}) не совпадает с metadata.category ({category})")
+            errors += 1
+    return errors
 
 
 def check_type(fm: str, skill_dir: Path) -> int:
@@ -85,7 +132,9 @@ def check_name(skill_dir: Path) -> tuple[int, str]:
     elif match.group(1) != skill_dir.name:
         fail(f"frontmatter name ({match.group(1)}) не совпадает с именем каталога ({skill_dir.name})")
         errors += 1
-    errors += check_type(frontmatter_block(text), skill_dir)
+    fm = frontmatter_block(text)
+    errors += check_type(fm, skill_dir)
+    errors += check_category(fm, skill_dir)
     return errors, text
 
 

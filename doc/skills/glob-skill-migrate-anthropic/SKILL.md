@@ -1,11 +1,13 @@
 ---
 name: glob-skill-migrate-anthropic
-description: Переносит навык внутреннего формата (doc/skills/<name>.md) в самодостаточный пакет Anthropic Agent Skills - каталог <name>/SKILL.md, весь код и внешние скрипты навыка в <name>/scripts/, исходники (навык и скрипты проекта) в <name>/templates/ через git mv; приводит существующий пакет SKILL.md в соответствие стандарту; проверяет полноту - все навыки репозитория обоих форматов на соответствие требованиям (тип, префикс, расположение, поля frontmatter). Применять при запросах мигрировать, конвертировать или перенести навык в формат SKILL.md, Anthropic или opencode, проверить или исправить существующий SKILL.md-навык, проверить все навыки или провести проверку полноты навыков; исходный навык указывает пользователь
+description: Переносит навык внутреннего формата (doc/skills/<name>.md) в самодостаточный пакет Anthropic Agent Skills - каталог <name>/SKILL.md, весь код и внешние скрипты навыка в <name>/scripts/, исходники (навык и скрипты проекта) в <name>/templates/ через git mv; приводит существующий пакет SKILL.md в соответствие стандарту; проверяет полноту - все навыки репозитория обоих форматов на соответствие требованиям (тип, категория области применения, префикс, расположение, поля frontmatter). Применять при запросах мигрировать, конвертировать или перенести навык в формат SKILL.md, Anthropic или opencode, проверить или исправить существующий SKILL.md-навык, проверить все навыки или провести проверку полноты навыков; исходный навык указывает пользователь
 allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/move_source.sh *), Bash(${CLAUDE_SKILL_DIR}/scripts/check_package.py *), Bash(${CLAUDE_SKILL_DIR}/scripts/check_all_skills.py *)
 metadata:
-  version: 1.6.0
+  version: 1.8.0
   status: stable
   type: hub_glob
+  category: skill
+  category_name: Навыки
 ---
 
 # Миграция навыка на формат Anthropic Agent Skills
@@ -35,7 +37,7 @@ metadata:
 ### 1. Изучить исходный навык
 
 1. Прочитать файл навыка целиком.
-2. Извлечь frontmatter: `id`, `description`, `auto_apply`, `version`, `status`.
+2. Извлечь frontmatter: `id`, `description`, `auto_apply`, `version`, `status`, `category`, `category_name`.
 3. Зафиксировать состав и порядок разделов (Описание, Когда использовать, Предусловия, Инструкция, Критерии завершения, Примеры, Ограничения и др.).
 4. Определить деструктивность: операции удаления, перезаписи, миграций БД, деплоя - по разделу «Ограничения» и командам инструкции.
 5. Оценить объем: если тело исходника больше ~500 строк - заранее спланировать вынос материала в `reference.md` / `examples.md`.
@@ -68,6 +70,8 @@ description: <what-and-when>   # WHAT + WHEN, до 1024 символов; из d
 metadata:
   version: <version>   # версия исходника или 1.0.0
   status: <status>   # статус исходника или stable
+  category: <category>   # опционально: слаг из закрытого справочника (skill_plain_standards.md, раздел 01.03)
+  category_name: <category-name>   # название из справочника, строго парой с category
 ---
 ```
 
@@ -80,6 +84,7 @@ metadata:
 | `auto_apply: true` | не переносится; авто-применение по `description` - поведение по умолчанию |
 | `auto_apply: false` | правило «только явный вызов по имени» - в тело; для Claude Code допускается `disable-model-invocation: true` (расширение, раздел 5 стандарта) - только если навык не распространяется по строгой спецификации |
 | `version`, `status` | `metadata.version`, `metadata.status` |
+| `category`, `category_name` | `metadata.category`, `metadata.category_name` (слаг и название из закрытого справочника; заполняются парой) |
 
 Отображение разделов:
 
@@ -132,6 +137,7 @@ ${CLAUDE_SKILL_DIR}/scripts/check_package.py doc/skills/<kebab-id>
 - [ ] в frontmatter нет `id` / `auto_apply` и других полей внутреннего формата
 - [ ] `name` совпадает с именем каталога, kebab-case, до 64 символов
 - [ ] `description` - WHAT + WHEN, до 1024 символов
+- [ ] категория (при наличии): `metadata.category` / `metadata.category_name` из закрытого справочника, слаг совпадает со вторым сегментом имени каталога, заполнены парой
 - [ ] тело до 500 строк
 - [ ] в теле нет исполняемого кода: только команды вызова `scripts/` пакета и нерасполнимые схемы; предупреждения `check_package.py` по блокам тела разобраны
 - [ ] скрипты исполняемые (`chmod +x`), с shebang; `py_compile` без ошибок; артефакты `__pycache__` удалены скриптом проверок
@@ -193,6 +199,7 @@ ${CLAUDE_SKILL_DIR}/scripts/check_all_skills.py
 - внутренний формат - обязательные поля frontmatter: `id` (совпадает с именем файла), `type`, `description`, `auto_apply`;
 - формат Anthropic - обязательные поля: `name` (совпадает с именем каталога), `description`, `metadata.type`; верхнеуровневое `type` - нарушение (строгий allowlist);
 - слаг типа валиден: `hub_loc`, `hub_glob`, `pr_glob`, `pr_loc`;
+- категория области применения (при наличии): слаг и название из закрытого справочника, второй сегмент имени совпадает со слагом, поля `category` / `category_name` (или `metadata.category` / `metadata.category_name`) заполнены парой; без категории второй сегмент имени не совпадает ни с одним слагом справочника (`skill_plain_standards.md`, раздел 01.03);
 - префикс имени соответствует слагу: `hub_` / `hub-` - `hub_loc`, `glob_` / `glob-` - `hub_glob`, `pg_` / `pg-` - `pr_glob`; для `pr_loc` префикс опционален: `pl_` / `pl-` или без префикса;
 - навыки без типового префикса в `doc/skills/` - нарушение (кандидаты на переименование); для локальных навыков `data/skills/` имя без префикса допустимо;
 - агрегат `doc/skills/ext/` пропускается - его содержимое проверяется в репо-источниках.
@@ -216,7 +223,7 @@ ${CLAUDE_SKILL_DIR}/scripts/check_all_skills.py
 - `doc/standards/skill_anthropic_standards.md` - целевой формат: frontmatter, структура тела, progressive disclosure, самодостаточность пакета и правила кода (разделы 03.01, 03.03), чеклист автора, пары форматов (раздел 01.03)
 - `doc/standards/skill_plain_standards.md` - исходный формат: поля frontmatter и состав разделов
 - `scripts/move_source.sh` - перемещение исходников (навык, внешние скрипты) в `templates/` пакета через `git mv`
-- `scripts/check_package.py` - проверки одного пакета: frontmatter (`name`, `metadata.type` и соответствие префиксу), исполнимость скриптов, компиляция, исполняемые блоки в теле
+- `scripts/check_package.py` - проверки одного пакета: frontmatter (`name`, `metadata.type` и соответствие префиксу, `metadata.category` / `metadata.category_name` и соответствие второму сегменту имени), исполнимость скриптов, компиляция, исполняемые блоки в теле
 - `scripts/check_all_skills.py` - проверка полноты: все навыки репозитория обоих форматов на соответствие требованиям (тип, префикс, расположение, поля frontmatter)
 - Индекс навыков репозитория (`_index_skills_repo.md`; в хабе - `_index_skills_hub.md`) - регистрация результата
 

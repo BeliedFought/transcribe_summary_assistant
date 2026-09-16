@@ -3,7 +3,9 @@
 
 Сверяет навыки обоих форматов во всех канонических местах хранения с
 требованиями skill_plain_standards.md и skill_anthropic_standards.md:
-обязательные поля frontmatter, валидный слаг типа, соответствие префикса
+обязательные поля frontmatter, валидный слаг типа, категория области
+применения (слаг и название из закрытого справочника, второй сегмент имени
+совпадает со слагом, поля - парой), соответствие префикса
 имени типу и расположению (для локальных навыков data/skills/ - оба формата,
 префикс опционален), запрет ссылок на конкретные навыки чужих
 репозиториев (пути ext/<repo-name>/ вместо плейсхолдеров). Ничего не меняет -
@@ -25,6 +27,15 @@ EXIT_USAGE = 2
 VALID_SLUGS = ("hub_loc", "hub_glob", "pr_glob", "pr_loc")
 FLAT_PREFIX_TO_SLUG = {"hub_": "hub_loc", "glob_": "hub_glob", "pg_": "pr_glob", "pl_": "pr_loc"}
 DIR_PREFIX_TO_SLUG = {"hub-": "hub_loc", "glob-": "hub_glob", "pg-": "pr_glob", "pl-": "pr_loc"}
+CATEGORY_NAMES = {
+    "sync": "Синхронизация",
+    "update": "Актуализация",
+    "audit": "Аудит",
+    "skill": "Навыки",
+    "cfg": "Конфигурация",
+    "rules": "Правила агентов",
+    "agent": "Правила работы с агентом",
+}
 FLAT_SLUG_TO_LOCATION = {
     "hub_loc": "корень doc/skills/",
     "hub_glob": "корень doc/skills/",
@@ -69,6 +80,49 @@ def metadata_value(fm: str, key: str) -> str:
 
 def has_top_level_type(fm: str) -> bool:
     return bool(re.search(r"^type:\s*\S", fm, re.MULTILINE))
+
+
+def name_category(name: str, prefix: str) -> str:
+    """Второй сегмент имени после типового префикса (без расширения)."""
+    return re.split(r"[_\-]", name[len(prefix):], maxsplit=1)[0]
+
+
+def check_category(fm: str, name: str, prefix: str, anthropic: bool, rel: Path) -> int:
+    """Проверить категорию области применения по закрытому справочнику и имени.
+
+    Категория опциональна; при наличии - оба поля, слаг и название из справочника,
+    слаг совпадает со вторым сегментом имени. Без категории второй сегмент имени
+    не должен совпадать со слагом справочника (однозначность разбора).
+    """
+    if anthropic:
+        category = metadata_value(fm, "category")
+        category_name = metadata_value(fm, "category_name")
+    else:
+        category = flat_value(fm, "category")
+        category_name = flat_value(fm, "category_name")
+    if not category and not category_name:
+        if prefix and name_category(name, prefix) in CATEGORY_NAMES:
+            fail(f"{rel}: категория не задана, но второй сегмент имени совпадает со слагом "
+                 f"справочника ({name_category(name, prefix)}) - указать category / category_name или переименовать")
+            return 1
+        return 0
+    if not category or not category_name:
+        fail(f"{rel}: category и category_name заполняются только парой")
+        return 1
+    errors = 0
+    if category not in CATEGORY_NAMES:
+        fail(f"{rel}: категория ({category}) не из справочника - допустимы: {', '.join(CATEGORY_NAMES)}")
+        errors += 1
+    elif CATEGORY_NAMES[category] != category_name:
+        fail(f"{rel}: category_name ({category_name}) не соответствует справочнику для {category} "
+             f"({CATEGORY_NAMES[category]})")
+        errors += 1
+    if prefix:
+        segment = name_category(name, prefix)
+        if segment != category:
+            fail(f"{rel}: второй сегмент имени ({segment}) не совпадает с категорией ({category})")
+            errors += 1
+    return errors
 
 
 def check_concrete_ext_refs(path: Path, rel: Path) -> int:
@@ -131,7 +185,8 @@ def check_internal(path: Path, root: Path, in_repo_subfolder: bool, place: str =
         errors += 1
         return errors
 
-    prefix_slug = next((slug for prefix, slug in FLAT_PREFIX_TO_SLUG.items() if path.name.startswith(prefix)), "")
+    prefix = next((p for p in FLAT_PREFIX_TO_SLUG if path.name.startswith(p)), "")
+    prefix_slug = FLAT_PREFIX_TO_SLUG.get(prefix, "")
     if not prefix_slug:
         if place != "data/skills":  # для локальных навыков data/skills префикс опционален
             fail(f"{rel}: нет типового префикса (hub_, glob_, pg_, pl_) - переименовать в pg_{path.stem}")
@@ -140,6 +195,8 @@ def check_internal(path: Path, root: Path, in_repo_subfolder: bool, place: str =
     elif prefix_slug != ftype:
         fail(f"{rel}: префикс имени ({prefix_slug}) не соответствует type ({ftype})")
         errors += 1
+
+    errors += check_category(fm, path.name, prefix, anthropic=False, rel=rel)
 
     if ftype in ("hub_loc", "hub_glob") and in_repo_subfolder:
         fail(f"{rel}: навык типа {ftype} должен лежать в корне doc/skills/")
@@ -185,7 +242,8 @@ def check_anthropic(skill_dir: Path, root: Path, place: str) -> int:
         errors += 1
         return errors
 
-    prefix_slug = next((slug for prefix, slug in DIR_PREFIX_TO_SLUG.items() if skill_dir.name.startswith(prefix)), "")
+    prefix = next((p for p in DIR_PREFIX_TO_SLUG if skill_dir.name.startswith(p)), "")
+    prefix_slug = DIR_PREFIX_TO_SLUG.get(prefix, "")
     if not prefix_slug:
         if place != "data/skills":  # для локальных навыков data/skills префикс опционален
             fail(f"{rel}: нет типового префикса ({', '.join(DIR_PREFIX_TO_SLUG)}) - переименовать в pg-{skill_dir.name}/")
@@ -194,6 +252,8 @@ def check_anthropic(skill_dir: Path, root: Path, place: str) -> int:
     elif prefix_slug != mtype:
         fail(f"{rel}: префикс имени ({prefix_slug}) не соответствует metadata.type ({mtype})")
         errors += 1
+
+    errors += check_category(fm, skill_dir.name, prefix, anthropic=True, rel=rel)
 
     if mtype == "pr_loc" and place != "data/skills":
         fail(f"{rel}: локальный навык (pl-) должен лежать в data/skills/")

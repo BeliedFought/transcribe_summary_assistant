@@ -1,10 +1,12 @@
 ---
-name: glob-setup-pip-mirror
+name: glob-cfg-pip
 description: Подбирает рабочее зеркало PyPI, измеряет время отклика кандидатов и записывает выбранное зеркало в pip.conf при недоступности pypi.org. Держит список зеркал-кандидатов - обновляемый артефакт навыка. Применять при установке зависимостей, ошибках скачивания пакетов, запросах настроить pip, выбрать зеркало PyPI или ускорить установку
 metadata:
-  version: 1.0.0
+  version: 1.1.0
   status: stable
   type: hub_glob
+  category: cfg
+  category_name: Конфигурация
 ---
 
 # Подбор и настройка зеркала PyPI
@@ -58,6 +60,6 @@ ${CLAUDE_SKILL_DIR}/scripts/set_pip_conf.sh <mirror_url>
 
 ## Ссылки
 
-- `templates/glob_setup_pip_mirror.md` - исходник навыка (внутренний формат); правки вносить только в него, затем повторная миграция
+- `templates/glob_cfg_pip.md` - исходник навыка (внутренний формат); правки вносить только в него, затем повторная миграция
 - `scripts/set_pip_conf.sh` - запись выбранного зеркала в `~/.config/pip/pip.conf`
 - `doc/standards/project_standards.md` (раздел 01.07) - норма алгоритма установки зависимостей

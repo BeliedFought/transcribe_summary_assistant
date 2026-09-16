@@ -1,63 +1,67 @@
 ---
 id: glob_update_indexes
 type: hub_glob
-description: Актуализирует локальные индексы репозитория по канону index_nav_standards.md - индекс навыков _index_skills_repo.md и индекс спецификаций doc/specs/_index_specs.md. Пересобирает полный канонический скелет (интро, обязательность применения, реестры, карта маршрутизации, автоактуализация) и проверяет структуру индексов по чек-листу канона. Применять при запросах обновить локальные индексы, актуализировать список навыков или спецификаций, после изменения состава doc/skills/ или doc/specs/
+category: update
+category_name: Актуализация
+description: Актуализирует локальные индексы репозитория по канону index_nav_standards.md - индекс навыков _index_skills_repo.md, индекс спецификаций doc/specs/_index_specs.md и индекс локальных навыков data/skills/_index_skills_pl.md (при наличии каталога). Пересобирает полный канонический скелет (интро, обязательность применения, реестры, карта маршрутизации, автоактуализация) и проверяет структуру индексов по чек-листу канона. Применять при запросах обновить локальные индексы, актуализировать список навыков или спецификаций, после изменения состава doc/skills/, doc/specs/ или data/skills/
 auto_apply: true
-version: 1.3.0
+version: 1.5.0
 ---
 
 # Навык: Актуализация локальных индексов репозитория
 
-> Глобальный навык (префикс `glob_`), раздается во все репозитории. Работает только по локальному репозиторию, кросс-репо ничего не знает. В хабе `project_standards` не применяется: сводный индекс навыков `_index_skills_hub.md` ведет `hub-sync-indexes`, а `doc/specs/_index_specs.md` хаба - эталонный шаблон, который не перезаписывается.
+> Глобальный навык (префикс `glob-`), раздается во все репозитории. Работает только по локальному репозиторию, кросс-репо ничего не знает. В хабе `project_standards` сводный индекс навыков `_index_skills_hub.md` ведет `hub-sync-indexes`, а `doc/specs/_index_specs.md` хаба - эталонный шаблон; в хабе навык пересобирает только `data/skills/_index_skills_pl.md` (при наличии каталога).
 
 ## Описание
 
-Навык пересобирает два индекса репозитория по канону навигационных документов `index_nav_standards.md`: `doc/skills/_index_skills_repo.md` - точку входа в каталог навыков и `doc/specs/_index_specs.md` - реестр спецификаций со сводкой подпапок. Скрипт генерирует полный канонический скелет: интро с указателем на 07.06, обязательность применения, реестры, карту маршрутизации (первичное заполнение по описаниям) и раздел автоактуализации. После пересборки навык проверяет структуру обоих индексов по чек-листу канона и дорабатывает назначения и карту. Навык правит только эти два индекса и не трогает сами навыки, спецификации, стандарты и их индексы.
+Навык пересобирает три индекса репозитория по канону навигационных документов `index_nav_standards.md`: `doc/skills/_index_skills_repo.md` - точку входа в каталог навыков, `doc/specs/_index_specs.md` - реестр спецификаций со сводкой подпапок и `data/skills/_index_skills_pl.md` - индекс локальных навыков (слаг `pr_loc`; собирается при наличии каталога `data/skills/`, в том числе в хабе). Скрипт генерирует полный канонический скелет: интро с указателем на 07.06, обязательность применения, реестры, карту маршрутизации (первичное заполнение по описаниям) и раздел автоактуализации. После пересборки навык проверяет структуру собранных индексов по чек-листу канона и дорабатывает назначения и карту. Навык правит только эти индексы и не трогает сами навыки, спецификации, стандарты и их индексы.
 
 ## Когда использовать
 
-- Пользователь просит обновить/актуализировать локальные индексы репозитория (навыков или спецификаций)
-- Добавлен, удален или переименован навык в корне `doc/skills/` либо файл в `doc/specs/`
-- Изменен frontmatter навыка (id, description, auto_apply, version)
-- Пользователь тегнул `@doc/skills/_index_skills_repo.md` или `@doc/specs/_index_specs.md` без конкретной задачи
-- Триггер-слова: обнови индексы, актуализируй список навыков, актуализируй индекс спецификаций
+- Пользователь просит обновить/актуализировать локальные индексы репозитория (навыков, спецификаций или локальных навыков)
+- Добавлен, удален или переименован навык в корне `doc/skills/`, файл в `doc/specs/` либо навык в `data/skills/`
+- Изменен frontmatter навыка (`id`, `description`, `auto_apply`, `version`, `type`, `category`, `category_name` для plain; `name`, `description`, `metadata.type`, `metadata.category`, `metadata.category_name`, `metadata.version` для Anthropic) - в `doc/skills/` или `data/skills/`
+- Пользователь тегнул `@doc/skills/_index_skills_repo.md`, `@doc/specs/_index_specs.md` или `@data/skills/_index_skills_pl.md` без конкретной задачи
 
 ## Предусловия
 
-- Запуск из корня репозитория (не из хаба `project_standards`)
-- Существует хотя бы одна из папок: `doc/skills/`, `doc/specs/`
+- Запуск из корня репозитория
+- Существует хотя бы одна из папок: `doc/skills/`, `doc/specs/`, `data/skills/`; в хабе `project_standards` пересобирается только `data/skills/`
 
 ## Инструкция
 
 1. Запустить скрипт из раздела "Скрипт" из корня репозитория.
-2. Скрипт пересобирает два индекса в каноническом скелете:
-   - `doc/skills/_index_skills_repo.md`: интро, обязательность применения, реестр навыков (класс, автоприменение, версия, назначение), раздел каталогов SKILL.md, карта маршрутизации (первичные темы - из описаний навыков), автоактуализация;
-   - `doc/specs/_index_specs.md`: интро, обязательность применения, реестр корневых файлов с типами, сводка подпапок `doc/specs/<project>/`, карта маршрутизации (по известным типам файлов), автоактуализация.
-3. Скрипт сохраняет ранее заполненные значения колонки «Назначение» индекса спецификаций; новым файлам и подпапкам ставится `-`. После запуска заполнить назначения вручную (для `ui_spec.html` указать SemVer макета по `console_ui_standards.md`).
-4. Проверить структуру обоих индексов по чек-листу канона `index_nav_standards.md`:
+2. Скрипт пересобирает индексы в каноническом скелете:
+   - `doc/skills/_index_skills_repo.md`: интро, обязательность применения, реестр навыков (класс, область применения, автоприменение, версия, назначение), раздел каталогов SKILL.md, карта маршрутизации (первичные темы - из описаний навыков), автоактуализация;
+   - `doc/specs/_index_specs.md`: интро, обязательность применения, реестр корневых файлов с типами, сводка подпапок `doc/specs/<project>/`, карта маршрутизации (по известным типам файлов), автоактуализация;
+   - `data/skills/_index_skills_pl.md` (при наличии каталога, в любом репозитории включая хаб): интро, обязательность применения, реестр плоских навыков и каталогов SKILL.md (класс - локальный, область применения - из `category` / `metadata.category`), карта маршрутизации, автоактуализация.
+3. Скрипт сохраняет ранее заполненные значения колонки «Назначение» индекса спецификаций и индекса локальных навыков (при отсутствии описания во frontmatter); новым файлам и подпапкам ставится `-`. После запуска заполнить назначения вручную (для `ui_spec.html` указать SemVer макета по `console_ui_standards.md`).
+4. Проверить структуру собранных индексов по чек-листу канона `index_nav_standards.md`:
    - скелет полный (раздел 03.01): интро с указателем на 07.06, обязательность применения, реестр, карта маршрутизации, автоактуализация;
    - реестр (раздел 03.03): каждая строка - существующий файл; каждый объект каталога присутствует; назначение - по факту, без оценок и историй;
    - карта (раздел 4): темы от лица задачи пользователя, без расплывчатых формулировок («прочее», «разное»), каждый объект реестра покрыт хотя бы одной строкой, ссылки ведут на существующие объекты;
    - указатель на `project_standards.md` 07.06 присутствует.
    Найденные отклонения исправить в индексах; то, что исправить нельзя, - в отчет.
 5. Доработать первичные темы карты маршрутизации: сформулировать от лица задачи пользователя, добавить синонимы-триггеры (канон - `index_nav_standards.md`, раздел 04).
-6. В хабе `project_standards` скрипт ничего не меняет и сообщает причину.
+6. В хабе `project_standards` скрипт пропускает `_index_skills_repo.md` и `_index_specs.md` (причина - в логе) и пересобирает только `data/skills/_index_skills_pl.md`.
 7. Вывод передать пользователю: что попало в каждый индекс, результаты проверки структуры, пути к обновленным файлам.
 
 ## Скрипт
 
 ```python
 #!/usr/bin/env python3
-"""Пересборка локальных индексов репозитория: doc/skills/_index_skills_repo.md
-и doc/specs/_index_specs.md по канону index_nav_standards.md (скелет индекса).
+"""Пересборка локальных индексов репозитория: doc/skills/_index_skills_repo.md,
+doc/specs/_index_specs.md и data/skills/_index_skills_pl.md
+по канону index_nav_standards.md (скелет индекса).
 
 Использование (запуск из корня репозитория):
     update_indexes.py
 
 Скрипт формирует полный канонический скелет: интро с указателем на 07.06,
 обязательность применения, реестры, карту маршрутизации (первичное заполнение)
-и раздел автоактуализации. В хабе project_standards скрипт ничего не меняет
-и сообщает причину.
+и раздел автоактуализации. Индекс локальных навыков собирается при наличии
+data/skills/ в любом репозитории, включая хаб: в хабе project_standards два
+прочих индекса не трогаются (причина выводится в лог).
 """
 
 import re
@@ -69,6 +73,8 @@ SKILLS_DIR = Path("doc/skills")
 SKILLS_INDEX = SKILLS_DIR / "_index_skills_repo.md"
 SPECS_DIR = Path("doc/specs")
 SPECS_INDEX = SPECS_DIR / "_index_specs.md"
+LOCAL_SKILLS_DIR = Path("data/skills")
+LOCAL_SKILLS_INDEX = LOCAL_SKILLS_DIR / "_index_skills_pl.md"
 
 EXIT_OK = 0
 
@@ -117,6 +123,19 @@ SPECS_AUTO = """## Автоактуализация индекса
 При любом изменении состава `doc/specs/` (добавление, удаление, переименование, изменение назначения файла) пересобрать индекс навыком `glob-update-indexes`; заполнить назначения (для `ui_spec.html` указать SemVer макета) и дополнить карту маршрутизации по канону `index_nav_standards.md` (разделы 03.03, 04). Вывести отчет: что добавлено, изменено, удалено.
 """
 
+PL_APPLY = """## Обязательность применения
+
+Тегание этого файла означает обязательное применение релевантных локальных навыков, а не просто ознакомление. Агент:
+
+1. Определяет релевантные навыки по карте маршрутизации
+2. Загружает указанные файлы навыков и выполняет их инструкции
+3. Применяет правила навыков при наличии соответствующей задачи, независимо от явного тегирования"""
+
+PL_AUTO = """## Автоактуализация индекса
+
+При любом изменении состава `data/skills/` (добавление, удаление, переименование, изменение frontmatter навыка) пересобрать индекс навыком `glob-update-indexes`; заполнить назначения и доработать карту маршрутизации по канону `index_nav_standards.md` (разделы 03.03, 04). Вывести отчет: что добавлено, изменено, удалено.
+"""
+
 
 def now() -> str:
     """Метка времени в формате строгого режима логгера (04.04.01)."""
@@ -136,8 +155,46 @@ def first_clause(description: str) -> str:
     return (description or "").split(". ")[0]
 
 
+TYPE_CLASS = {
+    "hub_glob": "общий",
+    "pr_glob": "проектный",
+    "hub_loc": "хаб",
+    "pr_loc": "локальный",
+}
+
+PREFIX_TYPE = {
+    "hub": "hub_loc",
+    "glob": "hub_glob",
+    "pg": "pr_glob",
+    "pl": "pr_loc",
+}
+
+
+def type_slug(name: str, declared: str | None) -> str | None:
+    """Слаг типа навыка: из frontmatter, иначе по префиксу имени."""
+    if declared:
+        return declared
+    parts = re.split(r"[_\-]", name)
+    return PREFIX_TYPE.get(parts[0]) if parts else None
+
+
+def class_of(name: str, declared: str | None) -> str:
+    """Класс навыка по слагу типа."""
+    return TYPE_CLASS.get(type_slug(name, declared) or "", "проектный")
+
+
+def area_value(category: str | None, category_name: str | None) -> str:
+    """Значение колонки области применения: название (слаг) или прочерк."""
+    if category and category_name:
+        return f"{category_name} (`{category}`)"
+    return "-"
+
+
 def frontmatter(path: Path) -> dict:
-    meta: dict[str, str | None] = {"id": None, "description": None, "auto_apply": None, "version": None}
+    meta: dict[str, str | None] = {
+        "id": None, "description": None, "auto_apply": None, "version": None, "type": None,
+        "category": None, "category_name": None,
+    }
     text = path.read_text(encoding="utf-8")
     if text.startswith("---"):
         end = text.find("---", 3)
@@ -177,7 +234,7 @@ def old_purposes(path: Path) -> dict:
 
 def anthropic_meta(path: Path) -> dict:
     text = path.read_text(encoding="utf-8")
-    meta = {"name": "", "description": "", "version": ""}
+    meta = {"name": "", "description": "", "version": "", "type": "", "category": "", "category_name": ""}
     if not text.startswith("---"):
         return meta
     end = text.find("\n---", 3)
@@ -186,9 +243,10 @@ def anthropic_meta(path: Path) -> dict:
         m = re.search(rf"^{key}:\s*(.+)$", fm, re.MULTILINE)
         if m:
             meta[key] = m.group(1).strip()
-    v = re.search(r"^\s+version:\s*(\S+)", fm, re.MULTILINE)
-    if v:
-        meta["version"] = v.group(1)
+    for key in ("version", "type", "category", "category_name"):
+        m = re.search(rf"^\s+{key}:\s*(\S.*)$", fm, re.MULTILINE)
+        if m:
+            meta[key] = m.group(1).strip()
     return meta
 
 
@@ -204,7 +262,7 @@ def rebuild_skills_index(root: Path) -> None:
     lines = [
         f"# Индекс навыков репозитория {root.name}",
         "",
-        "Локальный индекс навыков этого репозитория. Точка входа в каталог `doc/skills/`: перечисляет общие (`glob_*`), проектные (`pg_*` в корне и в подпапке `<repo-name>/`) навыки репо и каталоги формата Anthropic. Агент загружает индекс, а не каталог целиком, и по карте маршрутизации находит нужные навыки. Формируется автоматически навыком `glob-update-indexes`. Порядок принятия решений агентом при отсутствии нормы - `project_standards.md`, раздел 07.06.",
+        "Локальный индекс навыков этого репозитория. Точка входа в каталог `doc/skills/`: перечисляет общие (`glob-*`, `glob_*`) и проектные (`pg-*` в корне, `pg_*.md` в подпапке `<repo-name>/`) навыки обоих форматов. Агент загружает индекс, а не каталог целиком, и по карте маршрутизации находит нужные навыки. Формируется автоматически навыком `glob-update-indexes`. Порядок принятия решений агентом при отсутствии нормы - `project_standards.md`, раздел 07.06.",
         "",
         "---",
         "",
@@ -214,16 +272,16 @@ def rebuild_skills_index(root: Path) -> None:
         "",
         "## Реестр навыков",
         "",
-        "| Навык | Класс | Автоприменение | Версия | Назначение |",
-        "|-------|-------|----------------|--------|-----------|",
+        "| Навык | Класс | Область | Автоприменение | Версия | Назначение |",
+        "|-------|-------|---------|----------------|--------|-----------|",
     ]
     map_rows = []
     for p in skills + sub_skills:
         m = frontmatter(p)
-        cls = "общий" if p.name.startswith("glob_") else "проектный"
+        cls = class_of(p.stem, m["type"])
         ident = m["id"] or p.stem
         desc = m["description"] or ""
-        lines.append(f"| `{ident}` | {cls} | {m['auto_apply'] or '-'} | {m['version'] or '-'} | {first_clause(desc)} |")
+        lines.append(f"| `{ident}` | {cls} | {area_value(m['category'], m['category_name'])} | {m['auto_apply'] or '-'} | {m['version'] or '-'} | {first_clause(desc)} |")
         map_rows.append(f"| {first_clause(desc)} | `{ident}` |")
     lines.append("")
     anthropic = [
@@ -235,14 +293,14 @@ def rebuild_skills_index(root: Path) -> None:
         lines += [
             "## Навыки формата Anthropic Agent Skills (SKILL.md)",
             "",
-            "| Навык (каталог) | Класс | Версия | Назначение |",
-            "|-----------------|-------|--------|-----------|",
+            "| Навык (каталог) | Класс | Область | Версия | Назначение |",
+            "|-----------------|-------|---------|--------|-----------|",
         ]
         for d in anthropic:
             m = anthropic_meta(d)
             name = d.parent.relative_to(SKILLS_DIR).as_posix()
-            cls = "общий" if name.startswith("glob-") else "проектный"
-            lines.append(f"| `{name}` | {cls} | {m['version'] or '-'} | {first_clause(m['description'])} |")
+            cls = class_of(name, m["type"])
+            lines.append(f"| `{name}` | {cls} | {area_value(m['category'], m['category_name'])} | {m['version'] or '-'} | {first_clause(m['description'])} |")
             map_rows.append(f"| {first_clause(m['description'])} | `{name}` |")
         lines.append("")
     lines += [
@@ -261,6 +319,71 @@ def rebuild_skills_index(root: Path) -> None:
     info(f"Обновлен {SKILLS_INDEX} - навыков: {len(skills) + len(sub_skills)}, каталогов SKILL.md - {len(anthropic)}")
     for p in skills:
         info(f"- {p.name}")
+
+
+def rebuild_local_skills_index(root: Path) -> None:
+    if not LOCAL_SKILLS_DIR.exists():
+        warn(f"Пропуск индекса локальных навыков: не найдена папка {LOCAL_SKILLS_DIR}")
+        return
+    purposes = old_purposes(LOCAL_SKILLS_INDEX)
+    flat = [p for p in sorted(LOCAL_SKILLS_DIR.glob("*.md")) if not p.name.startswith("_index")]
+    dirs = [d for d in sorted(LOCAL_SKILLS_DIR.iterdir()) if d.is_dir() and (d / "SKILL.md").is_file()]
+    lines = [
+        f"# Индекс локальных навыков репозитория {root.name}",
+        "",
+        "Точка входа в каталог `data/skills/`: перечисляет локальные навыки (слаг `pr_loc`) - плоские файлы и каталоги формата Anthropic. Локальные навыки в сводные индексы `_index_skills_hub.md` и `_index_skills_repo.md` не входят - они отражены здесь. Агент загружает индекс, а не каталог целиком, и по карте маршрутизации находит нужные навыки. Формируется автоматически навыком `glob-update-indexes`. Порядок принятия решений агентом при отсутствии нормы - `project_standards.md`, раздел 07.06.",
+        "",
+        "---",
+        "",
+        PL_APPLY,
+        "",
+        "---",
+        "",
+        "## Реестр навыков",
+        "",
+        "| Навык | Класс | Область | Автоприменение | Версия | Назначение |",
+        "|-------|-------|---------|----------------|--------|-----------|",
+    ]
+    map_rows = []
+    for p in flat:
+        m = frontmatter(p)
+        ident = m["id"] or p.stem
+        desc = m["description"] or ""
+        purpose = first_clause(desc) if desc else purposes.get(ident, "-")
+        lines.append(f"| `{ident}` | локальный | {area_value(m['category'], m['category_name'])} | {m['auto_apply'] or '-'} | {m['version'] or '-'} | {purpose} |")
+        map_rows.append(f"| {purpose} | `{ident}` |")
+    lines.append("")
+    if dirs:
+        lines += [
+            "## Навыки формата Anthropic Agent Skills (SKILL.md)",
+            "",
+            "| Навык (каталог) | Класс | Область | Версия | Назначение |",
+            "|-----------------|-------|---------|--------|-----------|",
+        ]
+        for d in dirs:
+            m = anthropic_meta(d / "SKILL.md")
+            purpose = first_clause(m["description"]) or purposes.get(d.name, "-")
+            lines.append(f"| `{d.name}` | локальный | {area_value(m['category'], m['category_name'])} | {m['version'] or '-'} | {purpose} |")
+            map_rows.append(f"| {purpose} | `{d.name}` |")
+        lines.append("")
+    lines += [
+        "---",
+        "",
+        "## Карта маршрутизации",
+        "",
+        SKILLS_MAP_NOTE,
+        *map_rows,
+        "",
+        "---",
+        "",
+        PL_AUTO,
+    ]
+    LOCAL_SKILLS_INDEX.write_text("\n".join(lines), encoding="utf-8")
+    info(f"Обновлен {LOCAL_SKILLS_INDEX} - навыков: {len(flat)}, каталогов SKILL.md - {len(dirs)}")
+    for p in flat:
+        info(f"- {p.name}")
+    for d in dirs:
+        info(f"- {d.name}/")
 
 
 def spec_map_row(name: str) -> str | None:
@@ -336,11 +459,13 @@ def rebuild_specs_index(root: Path) -> None:
 def main() -> int:
     root = Path.cwd().resolve()
     if root.name == "project_standards":
-        warn("Пропуск: в хабе сводный индекс _index_skills_hub.md ведет hub-sync-indexes, "
-             "а doc/specs/_index_specs.md - эталонный шаблон и не перезаписывается")
-        return EXIT_OK
-    rebuild_skills_index(root)
-    rebuild_specs_index(root)
+        warn("Хаб project_standards: сводный индекс _index_skills_hub.md ведет hub-sync-indexes, "
+             "doc/specs/_index_specs.md - эталонный шаблон; пересобирается только "
+             "data/skills/_index_skills_pl.md")
+    else:
+        rebuild_skills_index(root)
+        rebuild_specs_index(root)
+    rebuild_local_skills_index(root)
     return EXIT_OK
 
 
@@ -350,27 +475,29 @@ if __name__ == "__main__":
 
 ## Критерии завершения
 
-- Оба индекса соответствуют скелету канона `index_nav_standards.md` (раздел 03.01): интро, обязательность применения, реестр, карта маршрутизации, автоактуализация
+- Собранные индексы соответствуют скелету канона `index_nav_standards.md` (раздел 03.01): интро, обязательность применения, реестр, карта маршрутизации, автоактуализация
 - `doc/skills/_index_skills_repo.md` соответствует фактическому составу корневых навыков, проектных `pg_*` в подпапке `<repo-name>/` и каталогов SKILL.md; индексные файлы (`_index_*.md`) в перечень не включены
 - `doc/specs/_index_specs.md` соответствует фактическому составу `doc/specs/`: корневые файлы с типами и сводка подпапок
+- `data/skills/_index_skills_pl.md` (при наличии каталога) соответствует фактическому составу `data/skills/`: плоские навыки и каталоги SKILL.md
 - Проверка структуры по разделу 4 канона выполнена: темы карты от лица задач, покрытие объектов полное, расплывчатых формулировок нет
-- Назначения новых файлов и подпапок спецификаций заполнены вручную после пересборки
-- В хабе навык не изменяет файлы и сообщает об этом
-- Пользователю выдан отчет по обоим индексам с результатами проверки структуры
+- Назначения новых файлов и подпапок спецификаций и локальных навыков заполнены вручную после пересборки
+- В хабе навык пересобирает только `data/skills/_index_skills_pl.md` и сообщает о пропуске прочих индексов
+- Пользователю выдан отчет по каждому собранному индексу с результатами проверки структуры
 
 ## Примеры
 
-1. Пользователь: «обнови индексы» -> агент запускает скрипт, пересобирает оба индекса, проверяет структуру, выдает отчет.
+1. Пользователь: «обнови индексы» -> агент запускает скрипт, пересобирает индексы, проверяет структуру, выдает отчет.
 2. В `doc/specs/` добавлена спецификация `spec_export.md` -> агент перегенерирует индекс, в реестре и карте появляется строка, назначение заполняется вручную.
+3. В `data/skills/` добавлен каталог `pl-report/SKILL.md` -> скрипт включает его в `_index_skills_pl.md` (в любом репозитории, включая хаб); назначения и карта дорабатываются вручную.
 
 ## Ограничения
 
-- Не запускать в хабе `project_standards`: сводный индекс навыков ведет `hub-sync-indexes`, а `doc/specs/_index_specs.md` в хабе - эталонный шаблон
-- Редактировать только `doc/skills/_index_skills_repo.md` и `doc/specs/_index_specs.md`; не менять сами навыки, спецификации, стандарты и их индексы
+- В хабе `project_standards` сводный индекс навыков ведет `hub-sync-indexes`, а `doc/specs/_index_specs.md` - эталонный шаблон; в хабе пересобирается только `data/skills/_index_skills_pl.md`
+- Редактировать только `doc/skills/_index_skills_repo.md`, `doc/specs/_index_specs.md` и `data/skills/_index_skills_pl.md`; не менять сами навыки, спецификации, стандарты и их индексы
 - Кросс-репо синхронизации не выполняет - только локальный репозиторий
 
 ## Ссылки
 
-- `doc/standards/index_nav_standards.md` - канон навигационных документов: скелет индексов и правила карт маршрутизации
-- `scripts/update_indexes.py` - пересборка обоих индексов в каноническом скелете; запускать из корня репозитория
+- `doc/standards/index_nav_standards.md` - канон навигационных документов: скелет индексов и правила карт маршрутизации (индексы навыков - раздел 06.02)
+- `scripts/update_indexes.py` - пересборка индексов в каноническом скелете; запускать из корня репозитория
 - `doc/standards/project_standards.md` (раздел 07.06) - порядок принятия решений агентом при отсутствии нормы
