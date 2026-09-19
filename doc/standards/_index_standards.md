@@ -55,6 +55,7 @@
 | Инициализация нового проекта, структура папок | `project_standards.md` (01, 07) |
 | Бэкапы данных, папка `data/backup/`; бэкап веб-рантайма и томов Docker | `project_standards.md` (01.01); `web_standards.md` (02.07, 10.01); `deploy_docker_standards.md` (04) |
 | Архивация вместо удаления: `.arch/` рядом с точкой накопления (сессии, задания, выгрузки), правила переноса | `project_standards.md` (01.01, 01.01.01) |
+| Удаление агентом, карантин файлов: `.trash/<slug>_<YYYYMMDDHHMM>/`, правила переноса вместо удаления | `project_standards.md` (01.01.06) |
 | Сессионные структуры, файл `SESSION.md`, идентификатор сессии, имя папки сессии, оверрайды и жизненный цикл сессии, архивация в `.arch/` | `project_standards.md` (01.01.01) |
 | Проектные оверрайды стандарта, `doc/specs/overrides.md` | `project_standards.md` (01.01.02) |
 | Индекс спецификаций `doc/specs/_index_specs.md` (обязателен), реестр файлов `doc/specs/` и сводка подпапок | `project_standards.md` (01.01); канон индексов - `index_nav_standards.md` (06.03) |
