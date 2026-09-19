@@ -1,4 +1,4 @@
-# Деплой Python-проекта на Linux (overlay). Версия 4.12.0
+# Деплой Python-проекта на Linux (overlay). Версия 4.12.1
 
 OS-overlay к `deploy_standards.md` (общее ядро). Применяется вместе с ядром и `project_standards.md` для установки проекта как системного инструмента на Linux. Документ содержит только Linux-специфику; общие правила деплоя - в ядре.
 
@@ -113,7 +113,7 @@ APP_VERSION: str = config.get("app", "version", fallback="dev")
 #    Проверить что pyproject.toml содержит [build-system] и версии зависимостей с ==.
 #
 # 2. Проверить состояние установки:
-# which tool-name
+# uv tool list (наличие tool-name в выводе)
 #
 # 3. Если пакет не установлен:
 # python run/deploy/install.py
@@ -135,7 +135,7 @@ APP_VERSION: str = config.get("app", "version", fallback="dev")
 # 1. Проверить что запуск выполнен из репозитория (рядом есть pyproject.toml и .git/).
 #
 # 2. Проверить состояние установки:
-# which tool-name
+# uv tool list (наличие tool-name в выводе)
 #
 # 3. Если пакет не установлен:
 # - Сообщить пользователю: пакет не установлен.
@@ -217,10 +217,17 @@ def _copy_translations() -> None:
     shutil.copy2(src, APP_DIR / "config" / "translations.json")
 
 
+def _is_tool_installed() -> bool:
+    result = subprocess.run(
+        ["uv", "tool", "list"], capture_output=True, text=True, check=False
+    )
+    return TOOL_NAME in result.stdout
+
+
 def main() -> None:
     _check_pyproject()
     _check_uv()
-    if shutil.which(TOOL_NAME):
+    if _is_tool_installed():
         print(f"Пакет '{TOOL_NAME}' уже установлен. Для обновления: python run/deploy/update.py")
         return
     try:
@@ -318,7 +325,7 @@ def main() -> None:
 1. Проверить наличие `pyproject.toml` и `uv`.
 2. Проверить, что пакет установлен. Если не установлен - сообщить и завершить (для установки использовать `run/deploy/install.py`).
 3. Если в репозитории нет `config/config.ini` - создать его копированием из `config/config.ini.example`.
-4. Синхронизировать версию между `pyproject.toml` и `config/config.ini` (dev-конфиг): прочитать `version` из обоих источников, сравнить по SemVer и привести к более высокому значению (раздел 03.05). Нечисловые версии (`dev` и т.п.) - пропустить с сообщением.
+4. Синхронизировать версию между `pyproject.toml`, `config/config.ini` и `config/config.ini.example` по SemVer - привести все три к максимальному значению (канон - `deploy_standards.md`, раздел 04.01). Нечисловые версии (`dev` и т.п.) - пропустить с сообщением.
 5. Очистить кэш: `uv cache clean tool-name`. Без этого при неизменной версии в `pyproject.toml` команда `uv tool install . --force` установит кэшированный wheel вместо пересборки из текущих исходников - изменения кода не попадут в установленный пакет.
 6. Переустановить пакет: `uv tool install . --force`.
 7. Обновить `translations.json` в каталоге данных (всегда копировать из репозитория).
@@ -358,7 +365,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 *Опционально - для CLI с большим количеством команд и аргументов.*
 
-Для CLI-инструментов с большим количеством команд и аргументов рекомендуется добавить генерацию автодополнения для оболочки. Если используется `argparse`, завершения генерируются через встроенную поддержку Python (требуется Python >= 3.13, доступно в 3.14+) или через пакет `argcomplete` (для Python >= 3.12). Пример регистрации:
+Для CLI-инструментов с большим количеством команд и аргументов рекомендуется добавить генерацию автодополнения для оболочки. Если используется `argparse`, завершения генерируются через пакет `argcomplete` (требуемая версия Python - по документации пакета). Пример регистрации:
 
 ```bash
 eval "$(register-python-argcomplete tool-name)"
@@ -405,7 +412,7 @@ build/
 Канон алгоритма миграции (сравнение структур, резервные копии, перенос значений, правила) - ядро `deploy_standards.md`, раздел 04.01; здесь только платформенная специфика Linux:
 
 - Скрипт - `run/deploy/update.py` (разделы 02.04, 02.06)
-- **Этап 0 - синхронизация версии в репозитории (до установки):** выполняется перед `uv tool install --force`; сравнивает `pyproject.toml` (поле `version`) и `config/config.ini` (параметр `version` секции `[app]`) по SemVer, большее значение записывается в источник с меньшим; при отсутствии `config/config.ini` - сначала создать из `config/config.ini.example`
+- **Этап 0 - синхронизация версии в репозитории (до установки):** выполняется перед `uv tool install --force`; алгоритм - по канону ядра (`deploy_standards.md`, раздел 04.01)
 - Источник структуры example - репозиторий (установка выполняется из его корня)
 - Prod-файлы - `XDG_CONFIG_HOME/tool-name/` (по умолчанию `~/.config/tool-name/`): `config/config.ini`, `.env`
 - Резервные копии и перезапись - по канону ядра (`deploy_standards.md`, раздел 04.01)

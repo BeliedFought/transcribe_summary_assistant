@@ -1,4 +1,4 @@
-# Деплой Python-проекта на Windows (overlay). Версия 4.12.0
+# Деплой Python-проекта на Windows (overlay). Версия 4.12.1
 
 OS-overlay к `deploy_standards.md` (общее ядро). Применяется вместе с ядром и `project_standards.md` для установки проекта как системного инструмента на Windows. Документ содержит только Windows-специфику; общие правила деплоя - в ядре.
 
@@ -40,18 +40,17 @@ OS-overlay к `deploy_standards.md` (общее ядро). Применяетс�
 | Компонент | Кто устанавливает | Почему |
 |-----------|-------------------|--------|
 | Python 3.14+ | Администратор | Системный пакет, требует записи в Program Files и PATH |
-| Git 2.30+ | Администратор | Системный пакет, требует запись в Program Files и PATH |
 | uv | Пользователь | Устанавливается в профиль пользователя, админ не нужен |
 | Кодировка UTF-8 | Администратор (опционально) | Изменение реестра для системной кодировки |
 | Проект (tool-name) | Пользователь | Устанавливается из архива через `python install.py` |
 
-Итого: пользователю нужно обратиться к администратору один раз - для установки Python и Git на машину. Все остальное пользователь делает сам из установочного архива.
+Итого: пользователю нужно обратиться к администратору один раз - для установки Python на машину. Все остальное пользователь делает сам из установочного архива.
 
 ---
 
 ## 01.02. Обращение к администратору
 
-*Обязательно при отсутствии Python и Git на машине.*
+*Обязательно при отсутствии Python на машине.*
 
 Пользователь отправляет администратору следующий текст без изменений (заменить `TOOL-NAME` на имя проекта):
 
@@ -60,7 +59,7 @@ OS-overlay к `deploy_standards.md` (общее ядро). Применяетс�
 > **Тема: Запрос на установку ПО для работы с Python-проектом**
 >
 > Для работы нужен Python-проект (TOOL-NAME). Сам проект я установлю самостоятельно.
-> Прошу установить на мою машину два компонента:
+> Прошу установить на мою машину один компонент:
 >
 > **1. Python 3.14 или новее**
 >
@@ -76,21 +75,11 @@ OS-overlay к `deploy_standards.md` (общее ядро). Применяетс�
 > Remove-Item "$env:TEMP\python-installer.exe"
 > ```
 >
-> **2. Git 2.30 или новее**
->
-> Скачать: https://git-scm.com/download/win
->
-> Или через winget:
-> ```powershell
-> winget install Git.Git
-> ```
->
-> **После установки прошу подтвердить**, что команды работают:
+> **После установки прошу подтвердить**, что команда работает:
 > ```powershell
 > python --version
-> git --version
 > ```
-> Обе команды должны вывести версию без ошибок.
+> Команда должна вывести версию без ошибок.
 >
 > Больше ничего устанавливать не нужно - остальное я сделаю сам.
 
@@ -147,10 +136,9 @@ uv --version
 ```powershell
 python --version
 uv --version
-git --version
 ```
 
-Все три команды должны возвращать версию без ошибок. После этого можно устанавливать проект: распаковать архив и выполнить `python install.py`.
+Обе команды должны возвращать версию без ошибок. После этого можно устанавливать проект: распаковать архив и выполнить `python install.py`.
 
 ---
 
@@ -280,7 +268,7 @@ tool-name-1.0.0-install/
 
 Файл `README.txt` генерируется скриптом `package.py` при сборке архива. Содержит:
 
-1. **Обращение к администратору** - текст из раздела 01.02 (установка Python, Git, опционально UTF-8)
+1. **Обращение к администратору** - текст из раздела 01.02 (установка Python, опционально UTF-8)
 2. **Действия пользователя** - установка uv (раздел 01.03), распаковка архива, запуск `python install.py`
 3. **Проверка установки** - `tool-name --help`
 
@@ -358,7 +346,7 @@ python run/deploy/package.py
 # Если пользователь указывает @install.py без дополнительных пояснений:
 #
 # 1. Если запуск из репозитория Linux (рядом есть pyproject.toml и .git/):
-#    - Проверить состояние установки на Linux: which tool-name
+#    - Проверить состояние установки на Linux: uv tool list (наличие tool-name в выводе)
 #    - Если не установлен: python run/deploy/install.py
 #    - Если установлен: сообщить, предложить @run/deploy/update.py
 #
@@ -383,7 +371,7 @@ python run/deploy/package.py
 # Если пользователь указывает @update.py без дополнительных пояснений:
 #
 # 1. Если запуск из репозитория Linux (рядом есть pyproject.toml и .git/):
-#    - Проверить что пакет установлен: which tool-name
+#    - Проверить что пакет установлен: uv tool list (наличие tool-name в выводе)
 #    - Если не установлен: сообщить, предложить @run/deploy/install.py
 #    - Сравнить исходники в uv-venv с репозиторием:
 #      diff <file> ~/.local/share/uv/tools/tool-name/lib/python*/site-packages/<file>
@@ -393,8 +381,11 @@ python run/deploy/package.py
 #    - Если совпадают: сообщить об актуальности
 #
 # 2. Если пользователь сообщает о проблемах на Windows-машине:
-#    Сравнить исходники в uv-venv с репозиторием (выполняет пользователь):
-# fc <file> $env:LOCALAPPDATA\uv\tools\tool-name\lib\python*\site-packages\<file>
+#    Сравнить исходники в uv-venv с репозиторием (выполняет пользователь).
+#    Сначала определить фактический каталог Python в venv:
+# Get-ChildItem "$(uv tool dir)\tool-name\lib\" -Directory -Filter python*
+#    Затем сравнить файлы по конкретному пути (подставить <python-xy> из вывода):
+# fc <file> "$(uv tool dir)\tool-name\lib\<python-xy>\site-packages\<file>"
 #    Проверить как минимум: main.py, src/config.py, src/logger.py и все
 #    ключевые модули из src/ и run/
 #
@@ -466,7 +457,7 @@ main():
 ```
 main():
     проверить uv (иначе сообщение с командой установки и exit 1)
-    если tool-name уже в PATH:
+    если tool-name есть в выводе uv tool list:
         сообщить «уже установлен, для обновления python update.py»; выход 0
     найти wheel в SCRIPT_DIR/dist (иначе exit 1)
     uv tool install <wheel>          # при ошибке вызова - сообщение с причиной и exit 1
@@ -501,7 +492,7 @@ main():
 # SCRIPT_DIR = корень архива; TOOL_NAME; APP_DIR = %APPDATA%\tool-name
 
 def main() -> None:
-    name, version = _read_app_info()
+    name, version = _read_app_info()   # из config.ini.example архива (SCRIPT_DIR/config/)
     print(f"{name} v{version}", flush=True)
     _check_uv()
     if not _is_tool_installed():
@@ -522,6 +513,8 @@ def main() -> None:
 ```
 
 Новый ini/`.env` собирать по тексту example с подстановкой значений (сохранять порядок и комментарии шаблона). Не полагаться на `ConfigParser.write()` как на единственный способ записи нового файла.
+
+Источник `name`/`version` для баннера - `config/config.ini.example` архива (`SCRIPT_DIR/config/`): это версия устанавливаемого wheel; прод-конфиг до миграции ее еще не содержит.
 
 ---
 
@@ -596,7 +589,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 *Опционально - для CLI с большим количеством команд и аргументов.*
 
-**PowerShell** - через `Register-ArgumentCompleter`. Если используется `argparse`, завершения генерируются через встроенную поддержку Python (требуется Python >= 3.13) или через пакет `argcomplete` (для Python >= 3.12). Пример регистрации:
+**PowerShell** - через `Register-ArgumentCompleter`. Если используется `argparse`, завершения генерируются через пакет `argcomplete` (требуемая версия Python - по документации пакета). Пример регистрации:
 
 ```powershell
 Register-ArgumentCompleter -CommandName tool-name -ScriptBlock {
@@ -608,7 +601,7 @@ Register-ArgumentCompleter -CommandName tool-name -ScriptBlock {
 Для постоянного использования добавить в PowerShell profile:
 
 ```powershell
-Add-Content -Path $PROFILE -Value "Register-ArgumentCompleter -CommandName tool-name -ScriptBlock { }"
+Add-Content -Path $PROFILE -Value "Register-ArgumentCompleter -CommandName tool-name -ScriptBlock { # <заполнить реальной логикой автодополнения> }"
 ```
 
 **cmd** - автодополнение через `argcomplete` не поддерживается нативно.
@@ -635,8 +628,8 @@ build/
 ## 05.04. Итоговая структура после установки
 
 ```
-Код:        $env:LOCALAPPDATA\uv\tools\tool-name\lib\python*\site-packages\
-Команда:    $env:LOCALAPPDATA\uv\tools\tool-name\Scripts\tool-name.exe
+Код:        $(uv tool dir)\tool-name\lib\<python-xy>\site-packages\
+Команда:    tool-name (шим uv в `%USERPROFILE%\.local\bin\`, каталог в PATH)
 Конфиг:     $env:APPDATA\tool-name\config\config.ini
 Секреты:    $env:APPDATA\tool-name\.env
 Логи:       $env:APPDATA\tool-name\log\
