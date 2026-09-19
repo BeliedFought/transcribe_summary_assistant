@@ -492,6 +492,7 @@ if __name__ == "__main__":
 
 ## Ограничения
 
+- Удаление файлов и папок репозитория - перенос в `.trash/<slug>_<YYYYMMDDHHMM>/` (карантин, `project_standards.md` 01.01.06), а не удаление; чистить `.trash/` только по явному запросу пользователя
 - В хабе `project_standards` сводный индекс навыков ведет `hub-sync-indexes`, а `doc/specs/_index_specs.md` - эталонный шаблон; в хабе пересобирается только `data/skills/_index_skills_pl.md`
 - Редактировать только `doc/skills/_index_skills_repo.md`, `doc/specs/_index_specs.md` и `data/skills/_index_skills_pl.md`; не менять сами навыки, спецификации, стандарты и их индексы
 - Кросс-репо синхронизации не выполняет - только локальный репозиторий
