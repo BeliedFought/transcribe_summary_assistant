@@ -34,3 +34,6 @@ doc/agent_questions/*
 !doc/agent_questions/.gitkeep
 doc/change_requests/*
 !doc/change_requests/.gitkeep
+
+# карантин удаляемого - целиком, без .gitkeep
+.trash/
