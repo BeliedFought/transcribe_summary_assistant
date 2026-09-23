@@ -1,4 +1,4 @@
-# Стандарт оформления навыков по спецификации Anthropic Agent Skills. Версия 4.14.1
+# Стандарт оформления навыков по спецификации Anthropic Agent Skills. Версия 4.14.2
 
 Документ описывает правила создания и оформления навыков в формате Anthropic Agent Skills: каталог навыка с обязательным `SKILL.md`, YAML frontmatter, принцип progressive disclosure, вложенные файлы и скрипты. Является дополнением к `doc/standards/project_standards.md` и применяется поверх него.
 
