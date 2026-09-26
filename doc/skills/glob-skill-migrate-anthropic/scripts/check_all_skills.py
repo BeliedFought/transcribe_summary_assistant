@@ -8,11 +8,12 @@
 совпадает со слагом, поля - парой), соответствие префикса
 имени типу и расположению (для локальных навыков data/skills/ - оба формата,
 префикс опционален), запрет ссылок на конкретные навыки чужих
-репозиториев (пути ext/<repo-name>/ вместо плейсхолдеров). Ничего не меняет -
-только отчет.
+репозиториев (пути ext/<repo-name>/ вместо плейсхолдеров), запрет
+кириллических плейсхолдеров в угловых и квадратных скобках.
+Ничего не меняет - только отчет.
 
 Использование:
-    check_all_skills.py [корень-репозитория]
+    check_all_skills.py [repo-root]
 """
 
 import re
@@ -39,6 +40,7 @@ from skill_common import (
     is_prefix_optional,
     metadata_value,
     name_category,
+    stamp,
 )
 
 FLAT_SLUG_TO_LOCATION = {
@@ -47,7 +49,10 @@ FLAT_SLUG_TO_LOCATION = {
     "pr_glob": "doc/skills/<repo-name>/",
 }
 CONCRETE_EXT_RE = re.compile(r"ext/(?!<)(?!\{)[A-Za-z0-9_][A-Za-z0-9_-]*")
-CYRILLIC_PLACEHOLDER_RE = re.compile(r"<[^>]*[А-Яа-яЁё][^>]*>")
+CYRILLIC_PLACEHOLDER_RE = re.compile(
+    r"<[^>]*[А-Яа-яЁё][^>]*>"  # угловые скобки: <repo-name>, <имя-каталога>
+    r"|\[[^\[\]]*[А-Яа-яЁё][^\[\]]*\](?!\s*[(:\[])"  # квадратные скобки: [marker], [маркер]; не markdown-ссылка
+)
 
 
 def check_category(fm: str, name: str, prefix: str, anthropic: bool, rel: Path) -> int:
@@ -99,7 +104,7 @@ def check_concrete_ext_refs(path: Path, rel: Path) -> int:
         fail(f"{rel}: упоминание конкретного навыка чужого репозитория ({match.group(0)}...) - заменить плейсхолдерами (<repo-name>, <name>)")
         errors += 1
     for match in CYRILLIC_PLACEHOLDER_RE.finditer(text):
-        fail(f"{rel}: кириллический плейсхолдер ({match.group(0)}) - только латиница (<repo-name>, <name>, <dir-name>)")
+        fail(f"{rel}: кириллический плейсхолдер ({match.group(0)}) - только латиница (<repo-name>, <name>, <dir-name>, [repo-root])")
         errors += 1
     return errors
 
@@ -272,7 +277,7 @@ def walk_skills(root: Path) -> tuple[int, int]:
 
 def main() -> int:
     if len(sys.argv) > 2:
-        print(f"{stamp()} [!] Использование: {Path(sys.argv[0]).name} [корень-репозитория]", file=sys.stderr)
+        print(f"{stamp()} [!] Использование: {Path(sys.argv[0]).name} [repo-root]", file=sys.stderr)
         return EXIT_USAGE
 
     root = Path(sys.argv[1]).resolve() if len(sys.argv) == 2 else Path.cwd().resolve()
