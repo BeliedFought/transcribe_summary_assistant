@@ -601,7 +601,7 @@ Register-ArgumentCompleter -CommandName tool-name -ScriptBlock {
 Для постоянного использования добавить в PowerShell profile:
 
 ```powershell
-Add-Content -Path $PROFILE -Value "Register-ArgumentCompleter -CommandName tool-name -ScriptBlock { # <заполнить реальной логикой автодополнения> }"
+Add-Content -Path $PROFILE -Value "Register-ArgumentCompleter -CommandName tool-name -ScriptBlock { # <fill with real completion logic> }"
 ```
 
 **cmd** - автодополнение через `argcomplete` не поддерживается нативно.
