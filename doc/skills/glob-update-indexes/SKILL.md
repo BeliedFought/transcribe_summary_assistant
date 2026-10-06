@@ -2,7 +2,7 @@
 name: glob-update-indexes
 description: Актуализирует локальные индексы репозитория по канону index_nav_standards.md - индекс навыков _index_skills_repo.md, индекс спецификаций doc/specs/_index_specs.md и индекс локальных навыков data/skills/_index_skills_pl.md (при наличии каталога). Пересобирает полный канонический скелет (интро, обязательность применения, реестры, карта маршрутизации, автоактуализация) и проверяет структуру индексов по чек-листу канона. Применять при запросах обновить локальные индексы, актуализировать список навыков или спецификаций, после изменения состава doc/skills/, doc/specs/ или data/skills/
 metadata:
-  version: 1.5.0
+  version: 1.5.1
   status: stable
   type: hub_glob
   category: update

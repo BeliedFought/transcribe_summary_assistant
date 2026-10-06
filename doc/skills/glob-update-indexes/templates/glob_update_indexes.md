@@ -5,7 +5,7 @@ category: update
 category_name: Актуализация
 description: Актуализирует локальные индексы репозитория по канону index_nav_standards.md - индекс навыков _index_skills_repo.md, индекс спецификаций doc/specs/_index_specs.md и индекс локальных навыков data/skills/_index_skills_pl.md (при наличии каталога). Пересобирает полный канонический скелет (интро, обязательность применения, реестры, карта маршрутизации, автоактуализация) и проверяет структуру индексов по чек-листу канона. Применять при запросах обновить локальные индексы, актуализировать список навыков или спецификаций, после изменения состава doc/skills/, doc/specs/ или data/skills/
 auto_apply: true
-version: 1.5.0
+version: 1.5.1
 ---
 
 # Навык: Актуализация локальных индексов репозитория
@@ -258,7 +258,8 @@ def rebuild_skills_index(root: Path) -> None:
     skills = [p for p in sorted(SKILLS_DIR.glob("*.md")) if not p.name.startswith("_index")]
     sub_skills = []
     for d in sorted(SKILLS_DIR.iterdir()):
-        if d.is_dir() and not (d / "SKILL.md").is_file() and not d.name.startswith("_index"):
+        if (d.is_dir() and not d.name.startswith(".") and not d.name.startswith("_index")
+                and not (d / "SKILL.md").is_file()):
             sub_skills.extend(sorted(d.glob("pg_*.md")))
     lines = [
         f"# Индекс навыков репозитория {root.name}",
@@ -328,7 +329,8 @@ def rebuild_local_skills_index(root: Path) -> None:
         return
     purposes = old_purposes(LOCAL_SKILLS_INDEX)
     flat = [p for p in sorted(LOCAL_SKILLS_DIR.glob("*.md")) if not p.name.startswith("_index")]
-    dirs = [d for d in sorted(LOCAL_SKILLS_DIR.iterdir()) if d.is_dir() and (d / "SKILL.md").is_file()]
+    dirs = [d for d in sorted(LOCAL_SKILLS_DIR.iterdir())
+            if d.is_dir() and not d.name.startswith(".") and (d / "SKILL.md").is_file()]
     lines = [
         f"# Индекс локальных навыков репозитория {root.name}",
         "",
@@ -408,7 +410,8 @@ def rebuild_specs_index(root: Path) -> None:
         p for p in INIT_DIR.iterdir()
         if p.is_file() and p.name not in (".gitkeep", "_index_specs.md")
     ) if INIT_DIR.is_dir() else []
-    subdirs = sorted(d for d in SPECS_DIR.iterdir() if d.is_dir() and d.name != "init")
+    subdirs = sorted(d for d in SPECS_DIR.iterdir()
+                     if d.is_dir() and d.name != "init" and not d.name.startswith("."))
     lines = [
         f"# Индекс спецификаций репозитория {root.name}",
         "",
