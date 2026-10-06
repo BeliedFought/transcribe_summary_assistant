@@ -37,3 +37,4 @@ doc/change_requests/*
 
 # карантин удаляемого - целиком, без .gitkeep
 .trash/
+.arch/
