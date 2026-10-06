@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# pre-commit: ворота целостности пакета стандартов (канон - project_standards.md, 06.01)
+# Проверки:
+#   1) правка doc/standards/*.md требует обновления _index_standards.md в том же коммите
+#   2) единая версия пакета: заголовки всех doc/standards/*.md совпадают между собой
+#      и со строками "Соответствует стандарту:" в AGENTS.md, README.md, CLAUDE.md (если есть)
+#   3) зеркало: CLAUDE.md = AGENTS.md с точностью до известных строк (H1 и интро),
+#      если doc/specs/overrides.md не содержит собственной политики CLAUDE.md
+#   4) ссылки: контекстные ссылки вида "раздел NN.NN" и "(NN.NN" в staged файлах
+#      пакета ведут на существующие разделы пакета; голые упоминания вне контекста
+#      не проверяются (защита от ложных срабатываний на примеры в тексте)
+# Универсален для хаба и производных репо. Активация на машине: git config core.hooksPath .githooks
+
+set -euo pipefail
+
+INDEX="doc/standards/_index_standards.md"
+FAIL=0
+
+staged_files() {
+    git diff --cached --name-only --diff-filter=ACMR -- "$@"
+}
+
+# содержимое файла из индекса коммита (staged; для незатронутых файлов = HEAD)
+indexed() {
+    git show ":$1" 2>/dev/null || true
+}
+
+# --- 1. Актуальность индекса стандартов ---
+
+CHANGED_STANDARDS=$(staged_files 'doc/standards/*.md' | grep -v -F "$INDEX" || true)
+if [ -n "$CHANGED_STANDARDS" ] && ! staged_files "$INDEX" | grep -q .; then
+    echo "[!] Изменены файлы стандарта без обновления _index_standards.md" >&2
+    echo "$CHANGED_STANDARDS" | sed 's/^/      - /' >&2
+    echo "    [*] Выполните автоактуализацию $INDEX (раздел Автоактуализация индекса)" >&2
+    echo "    и добавьте его в коммит" >&2
+    FAIL=1
+fi
+
+# --- 2. Единая версия пакета (при правке стандартов в коммите) ---
+
+if staged_files 'doc/standards/*.md' | grep -q .; then
+    expected=""
+    mismatch=""
+    for f in doc/standards/*.md; do
+        [ -f "$f" ] || continue
+        v=$(indexed "$f" | head -n 5 | grep -oE 'Версия [0-9]+\.[0-9]+\.[0-9]+' | head -n 1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+        [ -z "$v" ] && continue
+        if [ -z "$expected" ]; then
+            expected="$v"
+        elif [ "$v" != "$expected" ]; then
+            mismatch="$mismatch $f:$v"
+        fi
+    done
+    for f in AGENTS.md README.md CLAUDE.md; do
+        [ -f "$f" ] || continue
+        v=$(indexed "$f" | grep -m1 -oE 'Соответствует стандарту: [0-9]+\.[0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+        [ -z "$v" ] && continue
+        if [ -z "$expected" ]; then
+            expected="$v"
+        elif [ "$v" != "$expected" ]; then
+            mismatch="$mismatch $f:$v"
+        fi
+    done
+    if [ -n "$mismatch" ]; then
+        echo "[!] Версии пакета не синхронны (базовая: ${expected}):${mismatch}" >&2
+        echo "    [*] Bump версии - одно значение во всех заголовках doc/standards/*.md" >&2
+        echo "    и в строках «Соответствует стандарту» AGENTS.md, README.md, CLAUDE.md" >&2
+        FAIL=1
+    fi
+fi
+
+# --- 3. Зеркало CLAUDE.md = AGENTS.md ---
+
+if [ -f AGENTS.md ] && [ -f CLAUDE.md ]; then
+    if [ -f doc/specs/overrides.md ] && grep -q 'CLAUDE' doc/specs/overrides.md; then
+        :  # собственная политика CLAUDE.md - зеркало не требуется
+    else
+        normalize() {
+            sed -e 's|^# AGENTS\.md$|# MIRROR|' \
+                -e 's|^# CLAUDE\.md$|# MIRROR|' \
+                -e 's|инструкции для AI-агентов при работе|инструкции для MIRROR при работе|' \
+                -e 's|инструкции для Claude Code при работе|инструкции для MIRROR при работе|' "$1"
+        }
+        if ! diff -q <(indexed AGENTS.md | normalize /dev/stdin) <(indexed CLAUDE.md | normalize /dev/stdin) >/dev/null; then
+            echo "[!] CLAUDE.md расходится с AGENTS.md (зеркало)" >&2
+            echo "    [*] Синхронизируйте зеркало; допустимые отличия - только H1 и строка интро" >&2
+            FAIL=1
+        fi
+    fi
+fi
+
+# --- 4. Контекстные ссылки NN.NN в staged файлах пакета ---
+
+sections=$(for f in doc/standards/*.md; do
+    [ -f "$f" ] || continue
+    indexed "$f"
+done | grep -oE '^#{1,4} [0-9]{2}\.[0-9]{2}(\.[0-9]{2})?' | grep -oE '[0-9]{2}\.[0-9]{2}(\.[0-9]{2})?' | sort -u || true)
+
+if [ -n "$sections" ]; then
+    for f in $(staged_files 'doc/standards/*.md'); do
+        [ -f "$f" ] || continue
+        refs=$(indexed "$f" | grep -oE '[Рр]аздел[а-я]{0,3} [0-9]{2}\.[0-9]{2}(\.[0-9]{2})?|\([0-9]{2}\.[0-9]{2}(\.[0-9]{2})?' | grep -oE '[0-9]{2}\.[0-9]{2}(\.[0-9]{2})?' | sort -u || true)
+        for r in $refs; do
+            if ! echo "$sections" | grep -qx "$r"; then
+                echo "[!] Ссылка на несуществующий раздел: $f -> $r" >&2
+                echo "    [*] Проверьте номер раздела или обновите ссылки при перенумерации" >&2
+                FAIL=1
+            fi
+        done
+    done
+fi
+
+exit "$FAIL"
