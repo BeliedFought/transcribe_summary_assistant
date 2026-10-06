@@ -1,4 +1,4 @@
-# Стандарт написания кода. Версия 4.15.0
+# Стандарт написания кода. Версия 4.15.1
 
 Канон требований к написанию кода по языкам: Python, JavaScript, HTML и CSS, Shell, Windows (PowerShell и batch); форматы данных; общие правила (комментарии, TODO, длина строки) и линтеры. Документ - дополнение к `project_standards.md` и применяется поверх него: структура проекта, конфигурация, вывод и интерфейс, безопасность, git и рабочий процесс - в основном стандарте. Порядок принятия решений при отсутствии или неоднозначности нормы - `project_standards.md`, раздел 07.06.
 
@@ -280,7 +280,7 @@ def get_logger(name: str, log_dir: Path) -> logging.Logger:
 
 # 04. HTML и CSS
 
-Правила применяются к артефакту `doc/specs/ui_spec.html` (контракт - `console_ui_standards.md`), живым HTML-макетам и фронтенду (`web_standards.md`).
+Правила применяются к артефакту `doc/specs/spec_ui.html` (контракт - `console_ui_standards.md`), живым HTML-макетам и фронтенду (`web_standards.md`).
 
 ## 04.01. Каркас документа
 
@@ -480,7 +480,7 @@ def get_logger(name: str, log_dir: Path) -> logging.Logger:
 
 *Обязательно для репозиториев с HTML/CSS.*
 
-- Проверка валидаторами W3C (HTML: validator.w3.org; CSS: jigsaw.w3.org/css-validator) - при создании и значимых правках `ui_spec.html`, живых макетов и фронтов
+- Проверка валидаторами W3C (HTML: validator.w3.org; CSS: jigsaw.w3.org/css-validator) - при создании и значимых правках `spec_ui.html`, живых макетов и фронтов
 
 ## 08.05. PowerShell: PSScriptAnalyzer
 
@@ -499,7 +499,7 @@ def get_logger(name: str, log_dir: Path) -> logging.Logger:
 |----------|-------|
 | `doc/standards/project_standards.md` | Основа: структура проекта, вывод и интерфейс (04), политика обработки ошибок (05.02), логирование (04.06), текст (04.03), зависимости (01.06) |
 | `doc/standards/skill_anthropic_standards.md` | Канон вывода скриптов навыков (раздел 03.03); правила этого стандарта применяются к коду скриптов навыков поверх канона вывода |
-| `doc/standards/console_ui_standards.md` | Артефакт `ui_spec.html`; правила HTML применяются к макету |
+| `doc/standards/console_ui_standards.md` | Артефакт `spec_ui.html`; правила HTML применяются к макету |
 | `doc/standards/web_standards.md` | Фронтенд и веб-структура; правила JS и HTML/CSS применяются к коду фронтов |
 | `doc/standards/_index_standards.md` | Реестр пакета, карта маршрутизации, политика версионирования |
 

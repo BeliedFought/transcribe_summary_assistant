@@ -1,4 +1,4 @@
-# Стандарт оформления навыков по спецификации Anthropic Agent Skills. Версия 4.15.0
+# Стандарт оформления навыков по спецификации Anthropic Agent Skills. Версия 4.15.1
 
 Документ описывает правила создания и оформления навыков в формате Anthropic Agent Skills: каталог навыка с обязательным `SKILL.md`, YAML frontmatter, принцип progressive disclosure, вложенные файлы и скрипты. Является дополнением к `doc/standards/project_standards.md` и применяется поверх него.
 
@@ -178,7 +178,7 @@ my-skill/
 | Отражает задачу, не общие слова | `pdf-fill-form`, не `helper` |
 | Уникально в пределах установки инструмента | - |
 | Префикс `glob-` / `hub-` / `pg-` / `pl-` - маркер типа (раздел 01.03); для локальных (`pr_loc`) префикс опционален | `glob-skill-migrate-anthropic` (общий, `hub_glob`); `pg-<name>` - проектный (`pr_glob`); `pl-<name>` или `<name>` - локальный (`pr_loc`, в `data/skills/`); `hub-<name>` - хаб (`hub_loc`) |
-| Категория - второй уровень префикса: `<prefix>-<category>-<name>`; слаг из закрытого справочника (`skill_plain_standards.md`, раздел 01.03), соответствует `metadata.category`; допустимо `<prefix>-<category>`, когда имя совпадает со слагом; у локального навыка без префикса категория - первый сегмент: `<category>-<name>` | `glob-cfg-pip` (общий, `cfg`); `glob-update-kilo-rules` (`update`); `hub-update` (`update`); `cfg-kde` (локальный, `cfg`) |
+| Категория - второй уровень префикса: `<prefix>-<category>-<name>`; слаг из закрытого справочника (`skill_plain_standards.md`, раздел 01.03), соответствует `metadata.category`; допустимо `<prefix>-<category>`, когда имя совпадает со слагом; у локального навыка без префикса категория - первый сегмент: `<category>-<name>` | `glob-cfg-pip` (общий, `cfg`); `glob-update-indexes` (`update`); `hub-update` (`update`); `cfg-kde` (локальный, `cfg`) |
 
 **Вложенные файлы:** латиница, `snake_case` или `kebab-case`, без кириллицы и пробелов в именах. Вложенность `scripts/` внутри каталога навыка допускается; навыки внутри навыков - нет. Для пары форматов исходник хранится в `templates/` под своим исходным именем (внутренний frontmatter сохраняется).
 
