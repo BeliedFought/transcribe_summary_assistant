@@ -81,8 +81,7 @@ pip install -r requirements.txt
 | `data/` | Рабочие данные: SQLite, кеш |
 | `data/sessions/` | Папки сессий: metadata.json, transcription.md/json, diarization.json, summary.md, article.md |
 | `debug/` | Отладочные скрипты и временные файлы |
-| `doc/specs/init_spec.txt` | Исходные требования |
-| `doc/specs/final_spec.md` | Структурированная спецификация |
+| `doc/specs/_index_specs.md` | Индекс спецификаций |
 | `doc/agent_questions/` | Уточняющие вопросы агента |
 | `doc/change_requests/` | Запросы на изменения |
 | `doc/skills/` | Навыки агента |
