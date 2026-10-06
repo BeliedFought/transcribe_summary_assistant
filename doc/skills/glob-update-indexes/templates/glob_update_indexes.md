@@ -33,9 +33,9 @@ version: 1.5.0
 1. Запустить скрипт из раздела "Скрипт" из корня репозитория.
 2. Скрипт пересобирает индексы в каноническом скелете:
    - `doc/skills/_index_skills_repo.md`: интро, обязательность применения, реестр навыков (класс, область применения, автоприменение, версия, назначение), раздел каталогов SKILL.md, карта маршрутизации (первичные темы - из описаний навыков), автоактуализация;
-   - `doc/specs/_index_specs.md`: интро, обязательность применения, реестр корневых файлов с типами, сводка подпапок `doc/specs/<project>/`, карта маршрутизации (по известным типам файлов), автоактуализация;
+   - `doc/specs/_index_specs.md`: интро, обязательность применения, реестр корневых файлов с типами, раздел стартовых `init/`, сводка подпапок `doc/specs/<project>/`, карта маршрутизации (по известным типам файлов), автоактуализация;
    - `data/skills/_index_skills_pl.md` (при наличии каталога, в любом репозитории включая хаб): интро, обязательность применения, реестр плоских навыков и каталогов SKILL.md (класс - локальный, область применения - из `category` / `metadata.category`), карта маршрутизации, автоактуализация.
-3. Скрипт сохраняет ранее заполненные значения колонки «Назначение» индекса спецификаций и индекса локальных навыков (при отсутствии описания во frontmatter); новым файлам и подпапкам ставится `-`. После запуска заполнить назначения вручную (для `ui_spec.html` указать SemVer макета по `console_ui_standards.md`).
+3. Скрипт сохраняет ранее заполненные значения колонки «Назначение» индекса спецификаций и индекса локальных навыков (при отсутствии описания во frontmatter); новым файлам и подпапкам ставится `-`. После запуска заполнить назначения вручную (для `spec_ui.html` указать SemVer макета по `console_ui_standards.md`).
 4. Проверить структуру собранных индексов по чек-листу канона `index_nav_standards.md`:
    - скелет полный (раздел 03.01): интро с указателем на 07.06, обязательность применения, реестр, карта маршрутизации, автоактуализация;
    - реестр (раздел 03.03): каждая строка - существующий файл; каждый объект каталога присутствует; назначение - по факту, без оценок и историй;
@@ -73,6 +73,7 @@ SKILLS_DIR = Path("doc/skills")
 SKILLS_INDEX = SKILLS_DIR / "_index_skills_repo.md"
 SPECS_DIR = Path("doc/specs")
 SPECS_INDEX = SPECS_DIR / "_index_specs.md"
+INIT_DIR = SPECS_DIR / "init"
 LOCAL_SKILLS_DIR = Path("data/skills")
 LOCAL_SKILLS_INDEX = LOCAL_SKILLS_DIR / "_index_skills_pl.md"
 
@@ -107,9 +108,9 @@ SPECS_APPLY = """## Обязательность применения
 Индекс применяется при любой работе со спецификациями независимо от явного тегирования."""
 
 SPECS_MAP_TOPICS = {
-    "init_spec.txt": "Исходные требования проекта, свободная форма",
-    "final_spec.md": "Итоговая спецификация компактного проекта",
-    "ui_spec.html": "UI-эталон: карта меню, кадры, клавиши, макет лога",
+    "init_base.txt": "Исходные требования проекта, свободная форма (стартовые)",
+    "init_final.md": "Итоговая спецификация инициализации (стартовые)",
+    "spec_ui.html": "Спецификация вывода: карта меню, кадры, клавиши, макет лога",
     "overrides.md": "Проектные оверрайды стандарта",
 }
 
@@ -120,7 +121,7 @@ SPECS_MAP_NOTE = """Карта связывает тип задачи с фай�
 
 SPECS_AUTO = """## Автоактуализация индекса
 
-При любом изменении состава `doc/specs/` (добавление, удаление, переименование, изменение назначения файла) пересобрать индекс навыком `glob-update-indexes`; заполнить назначения (для `ui_spec.html` указать SemVer макета) и дополнить карту маршрутизации по канону `index_nav_standards.md` (разделы 03.03, 04). Вывести отчет: что добавлено, изменено, удалено.
+При любом изменении состава `doc/specs/` (добавление, удаление, переименование, изменение назначения файла) пересобрать индекс навыком `glob-update-indexes`; заполнить назначения (для `spec_ui.html` указать SemVer макета) и дополнить карту маршрутизации по канону `index_nav_standards.md` (разделы 03.03, 04). Вывести отчет: что добавлено, изменено, удалено.
 """
 
 PL_APPLY = """## Обязательность применения
@@ -208,9 +209,9 @@ def frontmatter(path: Path) -> dict:
 
 def spec_type(name: str) -> str:
     known = {
-        "init_spec.txt": "Требования",
-        "final_spec.md": "Спецификация",
-        "ui_spec.html": "UI-эталон",
+        "init_base.txt": "Требования",
+        "init_final.md": "Итоговая спецификация",
+        "spec_ui.html": "Спецификация вывода",
         "overrides.md": "Оверрайды",
     }
     if name in known:
@@ -386,11 +387,11 @@ def rebuild_local_skills_index(root: Path) -> None:
         info(f"- {d.name}/")
 
 
-def spec_map_row(name: str) -> str | None:
+def spec_map_row(key: str, name: str) -> str | None:
     if name in SPECS_MAP_TOPICS:
-        return f"| {SPECS_MAP_TOPICS[name]} | `{name}` |"
+        return f"| {SPECS_MAP_TOPICS[name]} | `{key}` |"
     if re.fullmatch(r"spec_.+\.md", name):
-        return f"| Спецификация задачи или модуля `{name}` | `{name}` |"
+        return f"| Спецификация задачи или модуля `{name}` | `{key}` |"
     return None
 
 
@@ -403,11 +404,15 @@ def rebuild_specs_index(root: Path) -> None:
         p for p in SPECS_DIR.iterdir()
         if p.is_file() and p.name not in ("_index_specs.md", ".gitkeep")
     )
-    subdirs = sorted(d for d in SPECS_DIR.iterdir() if d.is_dir())
+    init_files = sorted(
+        p for p in INIT_DIR.iterdir()
+        if p.is_file() and p.name not in (".gitkeep", "_index_specs.md")
+    ) if INIT_DIR.is_dir() else []
+    subdirs = sorted(d for d in SPECS_DIR.iterdir() if d.is_dir() and d.name != "init")
     lines = [
         f"# Индекс спецификаций репозитория {root.name}",
         "",
-        "Точка входа в каталог спецификаций этого репозитория. Агент загружает индекс, а не каталог целиком, и по реестру и карте маршрутизации открывает только релевантные файлы. Формируется автоматически навыком `glob-update-indexes` из состава `doc/specs/`: корневые файлы и сводка подпапок проектов. Порядок принятия решений агентом при отсутствии нормы - `project_standards.md`, раздел 07.06.",
+        "Точка входа в каталог спецификаций этого репозитория. Агент загружает индекс, а не каталог целиком, и по реестру и карте маршрутизации открывает только релевантные файлы. Формируется автоматически навыком `glob-update-indexes` из состава `doc/specs/`: реестр корневых файлов, раздел стартовых `init/` и сводка подпапок проектов. Порядок принятия решений агентом при отсутствии нормы - `project_standards.md`, раздел 07.06.",
         "",
         "---",
         "",
@@ -423,6 +428,17 @@ def rebuild_specs_index(root: Path) -> None:
     for p in root_files:
         lines.append(f"| `{p.name}` | {spec_type(p.name)} | {purposes.get(p.name, '-')} |")
     lines.append("")
+    if init_files:
+        lines += [
+            "## Стартовые спецификации (`init/`)",
+            "",
+            "| Файл | Тип | Назначение |",
+            "|------|-----|-----------|",
+        ]
+        for p in init_files:
+            key = f"init/{p.name}"
+            lines.append(f"| `{key}` | {spec_type(p.name)} | {purposes.get(key, purposes.get(p.name, '-'))} |")
+        lines.append("")
     if subdirs:
         lines += [
             "## Подпапки проектов",
@@ -435,7 +451,8 @@ def rebuild_specs_index(root: Path) -> None:
             key = f"{d.name}/"
             lines.append(f"| `{key}` | {', '.join(names) or '-'} | {purposes.get(key, '-')} |")
         lines.append("")
-    map_rows = [row for row in (spec_map_row(p.name) for p in root_files) if row]
+    map_rows = [row for row in (spec_map_row(p.name, p.name) for p in root_files) if row]
+    map_rows += [row for row in (spec_map_row(f"init/{p.name}", p.name) for p in init_files) if row]
     lines += [
         "---",
         "",
@@ -449,9 +466,12 @@ def rebuild_specs_index(root: Path) -> None:
         SPECS_AUTO,
     ]
     SPECS_INDEX.write_text("\n".join(lines), encoding="utf-8")
-    info(f"Обновлен {SPECS_INDEX} - корневых файлов: {len(root_files)}, подпапок: {len(subdirs)}")
+    info(f"Обновлен {SPECS_INDEX} - корневых файлов: {len(root_files)}, "
+         f"стартовых: {len(init_files)}, подпапок: {len(subdirs)}")
     for p in root_files:
         info(f"- {p.name}")
+    for p in init_files:
+        info(f"- init/{p.name}")
     for d in subdirs:
         info(f"- {d.name}/")
 
@@ -477,7 +497,7 @@ if __name__ == "__main__":
 
 - Собранные индексы соответствуют скелету канона `index_nav_standards.md` (раздел 03.01): интро, обязательность применения, реестр, карта маршрутизации, автоактуализация
 - `doc/skills/_index_skills_repo.md` соответствует фактическому составу корневых навыков, проектных `pg_*` в подпапке `<repo-name>/` и каталогов SKILL.md; индексные файлы (`_index_*.md`) в перечень не включены
-- `doc/specs/_index_specs.md` соответствует фактическому составу `doc/specs/`: корневые файлы с типами и сводка подпапок
+- `doc/specs/_index_specs.md` соответствует фактическому составу `doc/specs/`: корневые файлы с типами, раздел стартовых `init/` и сводка подпапок
 - `data/skills/_index_skills_pl.md` (при наличии каталога) соответствует фактическому составу `data/skills/`: плоские навыки и каталоги SKILL.md
 - Проверка структуры по разделу 4 канона выполнена: темы карты от лица задач, покрытие объектов полное, расплывчатых формулировок нет
 - Назначения новых файлов и подпапок спецификаций и локальных навыков заполнены вручную после пересборки
