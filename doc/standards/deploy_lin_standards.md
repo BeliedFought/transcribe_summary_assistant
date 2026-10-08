@@ -1,4 +1,4 @@
-# Деплой Python-проекта на Linux (overlay). Версия 4.15.1
+# Деплой Python-проекта на Linux (overlay). Версия 4.16.0
 
 OS-overlay к `deploy_standards.md` (общее ядро). Применяется вместе с ядром и `project_standards.md` для установки проекта как системного инструмента на Linux. Документ содержит только Linux-специфику; общие правила деплоя - в ядре.
 
@@ -10,7 +10,7 @@ OS-overlay к `deploy_standards.md` (общее ядро). Применяетс�
 
 **01. Поток и пути:** 01.01 Поток установки - 01.02 PROJECT_ROOT установленного режима
 
-**02. Установочные скрипты:** 02.01 Скрипты run/deploy - 02.02 Блок диагностики для ИИ-агента - 02.03 install.py - 02.04 update.py - 02.05 Логика install.py - первая установка - 02.06 Логика update.py - обновление
+**02. Установочные скрипты:** 02.01 Скрипты run/deploy - 02.02 Блок диагностики для ИИ-агента - 02.03 Платформенные подстановки скриптов
 
 **03. Платформа:** 03.01 uv - 03.02 Shell completion - 03.03 Дополнения к .gitignore - 03.04 Итоговая структура после установки - 03.05 Синхронизация версии, конфига и .env при обновлении - 03.06 Чек-лист OS-специфичных пунктов (Linux)
 
@@ -28,7 +28,7 @@ OS-overlay к `deploy_standards.md` (общее ядро). Применяетс�
 uv tool install .
 ```
 
-Флаг `--force` применяется только при обновлении (раздел 02.06). Сборка wheel выполняется `uv` автоматически из `pyproject.toml`.
+Флаг `--force` применяется только при обновлении (эталон - `deploy_standards.md`, раздел 03.04). Сборка wheel выполняется `uv` автоматически из `pyproject.toml`.
 
 ---
 
@@ -160,180 +160,22 @@ APP_VERSION: str = config.get("app", "version", fallback="dev")
 
 ---
 
-## 02.03. install.py
+## 02.03. Платформенные подстановки скриптов
 
 *Обязательно.*
 
-Файл `run/deploy/install.py`. В начале разместить блок диагностики из раздела 02.02, затем код:
+Эталон кода - `deploy_standards.md`, разделы 03.03 и 03.04; настоящий раздел задает только платформенные значения. Скрипты `run/deploy/install.py` и `run/deploy/update.py` используют общий код ядра; ниже - значения констант и шагов для Linux.
 
-```python
-#!/usr/bin/env python3
-# ... блок комментариев из раздела 02.02 ...
+| Константа / шаг | Значение Linux |
+|-----------------|----------------|
+| `APP_DIR` | `$XDG_CONFIG_HOME/tool-name` (по умолчанию `~/.config/tool-name`) |
+| Путь команды | `~/.local/bin/tool-name` |
+| Каталог uv-venv | `~/.local/share/uv/tools/tool-name` |
+| Права `.env` | `0600` |
+| Подсказка PATH | `~/.local/bin` |
+| Подсказка установки `uv` | `sudo pacman -S uv` (Arch) или `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 
-import os
-import shutil
-import subprocess
-import sys
-from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-TOOL_NAME = "tool-name"
-XDG_CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
-APP_DIR = XDG_CONFIG / TOOL_NAME
-
-
-def _check_uv() -> None:
-    if not shutil.which("uv"):
-        print("uv не найден. Установите: sudo pacman -S uv (Arch) или curl -LsSf https://astral.sh/uv/install.sh | sh")
-        sys.exit(1)
-
-
-def _check_pyproject() -> None:
-    if not (PROJECT_ROOT / "pyproject.toml").exists():
-        print("pyproject.toml не найден в корне проекта")
-        sys.exit(1)
-
-
-def _ensure_data_dirs() -> None:
-    APP_DIR.mkdir(parents=True, exist_ok=True)
-    (APP_DIR / "config").mkdir(exist_ok=True)
-    (APP_DIR / "log").mkdir(exist_ok=True)
-
-
-def _copy_if_missing(src: Path, dst: Path) -> None:
-    if dst.exists():
-        return
-    if not src.exists():
-        print(f"Шаблон не найден: {src}")
-        return
-    shutil.copy2(src, dst)
-
-
-def _copy_translations() -> None:
-    src = PROJECT_ROOT / "config" / "translations.json"
-    if not src.exists():
-        print(f"Шаблон не найден: {src}")
-        return
-    shutil.copy2(src, APP_DIR / "config" / "translations.json")
-
-
-def _is_tool_installed() -> bool:
-    result = subprocess.run(
-        ["uv", "tool", "list"], capture_output=True, text=True, check=False
-    )
-    return TOOL_NAME in result.stdout
-
-
-def main() -> None:
-    _check_pyproject()
-    _check_uv()
-    if _is_tool_installed():
-        print(f"Пакет '{TOOL_NAME}' уже установлен. Для обновления: python run/deploy/update.py")
-        return
-    try:
-        subprocess.run(["uv", "tool", "install", "."], cwd=PROJECT_ROOT, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Ошибка установки пакета: {e}")
-        sys.exit(1)
-    _ensure_data_dirs()
-    _copy_if_missing(
-        PROJECT_ROOT / "config" / "config.ini.example",
-        APP_DIR / "config" / "config.ini",
-    )
-    _copy_if_missing(
-        PROJECT_ROOT / ".env.example",
-        APP_DIR / ".env",
-    )
-    _copy_translations()
-    cmd_path = shutil.which(TOOL_NAME)
-    if cmd_path:
-        print(f"Команда '{TOOL_NAME}' доступна: {cmd_path}")
-    else:
-        print("Команда установлена, но не найдена в PATH.")
-        print("Добавьте ~/.local/bin в PATH или перезапустите оболочку.")
-
-
-if __name__ == "__main__":
-    main()
-```
-
----
-
-## 02.04. update.py
-
-*Обязательно.*
-
-Файл `run/deploy/update.py`. В начале разместить блок диагностики из раздела 02.02.
-
-Скрипт изолирован (`deploy_standards.md`, раздел 03.01): не импортирует из `src/`, вывод через `print(..., flush=True)`.
-
-Обязательный порядок действий - раздел 02.06. Алгоритм миграции `config.ini` и `.env` - раздел 03.05.
-
-Каркас (имена helpers ориентировочные; полная реализация должна покрывать раздел 02.06):
-
-```python
-#!/usr/bin/env python3
-# ... блок комментариев из раздела 02.02 ...
-
-# PROJECT_ROOT, TOOL_NAME
-# XDG_CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
-# APP_DIR = XDG_CONFIG / TOOL_NAME
-
-def main() -> None:
-    name, version = _read_app_info()
-    print(f"{name} v{version}", flush=True)
-    _check_pyproject()
-    _check_uv()
-    if not _is_tool_installed():
-        print(f"Пакет {TOOL_NAME} не установлен. Для установки: python run/deploy/install.py", flush=True)
-        return
-    _ensure_dev_config()          # config.ini из example, если нет
-    _sync_version()               # pyproject <-> config.ini, SemVer
-    subprocess.run(["uv", "cache", "clean", TOOL_NAME], check=False)
-    subprocess.run(["uv", "tool", "install", ".", "--force"], cwd=PROJECT_ROOT, check=True)
-    _ensure_data_dirs()
-    _copy_translations()
-    _migrate_config()             # структура vs example; .bak_YYYY-MM-DD_HH-MM
-    _migrate_env()                # ключи vs .env.example; .bak_YYYY-MM-DD_HH-MM
-    _verify_install()
-    print("Обновление завершено", flush=True)
-```
-
-Новый ini/`.env` собирать по тексту example с подстановкой значений (сохранять порядок и комментарии шаблона). Не полагаться на `ConfigParser.write()` как на единственный способ записи нового файла.
-
----
-
-## 02.05. Логика install.py - первая установка
-
-*Обязательно.*
-
-1. Проверить наличие `pyproject.toml` и `uv`.
-2. Проверить, не установлен ли уже пакет. Если установлен - сообщить и завершить (для обновления использовать `run/deploy/update.py`).
-3. Установить пакет (`uv tool install .`).
-4. Создать каталог данных (`~/.config/tool-name/`) с подкаталогами `config/` и `log/`.
-5. Скопировать шаблон конфига - только если файл отсутствует.
-6. Скопировать `.env` - только если файл отсутствует.
-7. Скопировать `translations.json` в каталог данных (всегда из репозитория).
-8. Проверить, что команда доступна в PATH.
-
----
-
-## 02.06. Логика update.py - обновление
-
-*Обязательно.*
-
-1. Проверить наличие `pyproject.toml` и `uv`.
-2. Проверить, что пакет установлен. Если не установлен - сообщить и завершить (для установки использовать `run/deploy/install.py`).
-3. Если в репозитории нет `config/config.ini` - создать его копированием из `config/config.ini.example`.
-4. Синхронизировать версию между `pyproject.toml`, `config/config.ini` и `config/config.ini.example` по SemVer - привести все три к максимальному значению (канон - `deploy_standards.md`, раздел 04.01). Нечисловые версии (`dev` и т.п.) - пропустить с сообщением.
-5. Очистить кэш: `uv cache clean tool-name`. Без этого при неизменной версии в `pyproject.toml` команда `uv tool install . --force` установит кэшированный wheel вместо пересборки из текущих исходников - изменения кода не попадут в установленный пакет.
-6. Переустановить пакет: `uv tool install . --force`.
-7. Обновить `translations.json` в каталоге данных (всегда копировать из репозитория).
-8. Мигрировать prod-конфиг относительно `config/config.ini.example` (раздел 03.05): сравнение по структуре (секции и ключи); при отличии - резервная копия и новый файл; при совпадении - только `app.name` / `app.version`.
-9. Мигрировать prod-`.env` относительно `.env.example` (раздел 03.05): сравнение по набору ключей; при отличии - резервная копия и новый файл; при совпадении - ничего не делать.
-10. Кратко проверить установку (`uv tool list`, наличие в PATH) и сообщить итог.
-
-Вывод баннера и сообщений - через `print(..., flush=True)`, чтобы строки не перемешивались с выводом `uv`.
+В коде ядра эти значения подставляются в константы `APP_DIR`, `PATH_HINT`, `UV_INSTALL_HINT` и имя команды `TOOL_NAME`. Заменить `tool-name` на фактическое имя инструмента.
 
 ---
 
@@ -394,7 +236,7 @@ build/
 ## 03.04. Итоговая структура после установки
 
 ```
-Код:        ~/.local/share/uv/tools/tool-name/lib/python*/site-packages/tool_name/
+Код:        ~/.local/share/uv/tools/tool-name/lib/python*/site-packages/ (импорт-пакет src/ и модуль main.py)
 Команда:    ~/.local/bin/tool-name
 Конфиг:     ~/.config/tool-name/config/config.ini
 Секреты:    ~/.config/tool-name/.env
@@ -411,7 +253,7 @@ build/
 
 Канон алгоритма миграции (сравнение структур, резервные копии, перенос значений, правила) - ядро `deploy_standards.md`, раздел 04.01; здесь только платформенная специфика Linux:
 
-- Скрипт - `run/deploy/update.py` (разделы 02.04, 02.06)
+- Скрипт - `run/deploy/update.py` (эталон кода - `deploy_standards.md`, раздел 03.04; подстановки - раздел 02.03)
 - **Этап 0 - синхронизация версии в репозитории (до установки):** выполняется перед `uv tool install --force`; алгоритм - по канону ядра (`deploy_standards.md`, раздел 04.01)
 - Источник структуры example - репозиторий (установка выполняется из его корня)
 - Prod-файлы - `XDG_CONFIG_HOME/tool-name/` (по умолчанию `~/.config/tool-name/`): `config/config.ini`, `.env`

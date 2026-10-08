@@ -1,4 +1,4 @@
-# Стандарт веб-приложений. Версия 4.15.1
+# Стандарт веб-приложений. Версия 4.16.0
 
 Документ описывает правила разработки и развертывания веб-приложений: бэкенд на FastAPI (uvicorn) и веб-сервер nginx с одним или несколькими фронтами. Часть I (разделы 01-04) - разработка и локальный запуск, часть II (разделы 05-13) - развертывание и связь. Является дополнением к `project_standards.md` и применяется поверх него. Все требования основного стандарта остаются в силе, кроме случаев, явно описанных в данном документе. Порядок принятия решений при отсутствии или неоднозначности нормы - `project_standards.md`, раздел 07.06.
 
@@ -85,7 +85,7 @@
 
 *Обязательно.*
 
-Вся веб-подсистема проекта находится в каталоге `web/` и автономна: собственная конфигурация, секреты, данные, логи, SQL и tooling. Правила основного стандарта о корневых папках (`project_standards.md`, разделы 01.01, 01.02, 04.06) применяются изнутри `web/`: `config` -> `web/config`, рантайм-данные -> `web/var/` (раздел 02.07: переносимые - `web/var/user`, служебные - `web/var/system`), `sql` -> `web/sql`, точки входа `run` -> `web/run`, `.env` -> `web/.env`, `requirements.txt` -> `web/requirements.txt`, `requirements-dev.txt` -> `web/requirements-dev.txt`, `pyproject.toml` -> `web/pyproject.toml`, `uv.lock` -> `web/uv.lock`. В чисто веб-репозитории корневые `config/`, `data/`, `sql/`, `log/`, `var/`, `.env` не создаются. Размещение кода в `web/` вместо `src/` - осознанное отклонение от `project_standards.md` (раздел 01.01), зафиксированное этим документом.
+Вся веб-подсистема проекта находится в каталоге `web/` и автономна: собственная конфигурация, секреты, данные, логи, SQL и tooling. Правила основного стандарта о корневых папках (`project_standards.md`, разделы 01.01, 01.02, 04.06) применяются изнутри `web/`: `config` -> `web/config`, рантайм-данные -> `web/var/` (раздел 02.07: переносимые - `web/var/user`, служебные - `web/var/system`), `sql` -> `web/sql`, точки входа `run` -> `web/run`, `.env` -> `web/.env`, `pyproject.toml` -> `web/pyproject.toml` (включая секцию `[project]` с зависимостями приложения), `uv.lock` -> `web/uv.lock`. Файлы `requirements.txt` и `requirements-dev.txt` в `web/` не ведутся - зависимости фиксируются в `pyproject.toml` и локфайле. В чисто веб-репозитории корневые `config/`, `data/`, `sql/`, `log/`, `var/`, `.env` не создаются. Размещение кода в `web/` вместо `src/` - осознанное отклонение от `project_standards.md` (раздел 01.01), зафиксированное этим документом.
 
 ```
 web/                              # автономная веб-подсистема
@@ -97,13 +97,12 @@ web/                              # автономная веб-подсисте
 ├── health.py                     # GET /healthz (раздел 03.02)
 ├── localization.py               # i18n бэкенда (project_standards.md, 04.01)
 ├── config/
-│   └── config.ini                # [app] обязателен, [web] - host, port, reload
+│   ├── config.ini                # [app] обязателен, [web] - host, port, reload; прод-файл не коммитится (12.02)
+│   └── config.ini.example        # шаблон структуры; источник миграции (12.02); коммитится
 ├── .env                          # секреты (0600); не коммитится
 ├── .env.example                  # шаблон переменных без значений
-├── requirements.txt              # зависимости приложения (пиннинг ==)
-├── requirements-dev.txt          # ruff, mypy
-├── uv.lock                       # локфайл транзитивных зависимостей; коммитится
-├── pyproject.toml                # [tool.ruff], [tool.mypy]; без секций сборки
+├── pyproject.toml                # [project] dependencies (пиннинг ==), [dependency-groups] dev, [tool.ruff], [tool.mypy]
+├── uv.lock                       # локфайл полного дерева зависимостей; коммитится, применяется в деплое (uv sync --frozen)
 ├── static/                       # статика фронта: css/, js/, img/
 ├── templates/                    # шаблоны Jinja2 (SSR)
 ├── var/                          # рантайм-данные (раздел 02.07); не коммитится
@@ -132,8 +131,8 @@ web/                              # автономная веб-подсисте
 
 *Обязательно.*
 
-- Зависимости приложения - `web/requirements.txt` с пиннингом `==` (`project_standards.md`, 01.06); dev-зависимости (ruff, mypy) - `web/requirements-dev.txt`; не смешивать requirements и dev-секции pyproject
-- `web/uv.lock` - фиксация транзитивных зависимостей для воспроизводимости dev-окружения и сборок; коммитится. Команды деплоя используют `web/requirements.txt` (пиннинг `==`), а не локфайл
+- Зависимости приложения - секция `[project] dependencies` в `web/pyproject.toml` с пиннингом `==` (`project_standards.md`, 01.06); dev-зависимости (ruff, mypy) - группа `[dependency-groups] dev`; механизмы не смешиваются
+- `web/uv.lock` - фиксация полного дерева зависимостей; коммитится и применяется в деплое: модель хоста - `uv sync --frozen --no-dev`, Docker - `uv sync --frozen` (разделы 05.01, 06.01); локальная разработка - `uv sync`
 - Конфигурация ruff и mypy - в `web/pyproject.toml`, секции `[tool.ruff]`, `[tool.mypy]` (наборы и параметры - по `code_standards.md`, раздел 08); секции сборки в pyproject не добавляются - веб-приложение не пакет CLI
 - Проверки перед коммитом - из каталога `web/`: `ruff check .` и `mypy .`
 
@@ -328,7 +327,7 @@ web/
 - Репозиторий размещается в `/opt/<app>/` (clone/pull от root; файлы - `root:root`)
 - Исполнение - от выделенного системного пользователя `<app>` (`useradd --system --no-create-home <app>`); работа от root или личного пользователя не допускается
 - Владение файлами - `root:root`; исключение - `web/var/` (рантайм-данные, раздел 02.07: `var/user/` и, при файловых логах, `var/system/log/`): владелец - пользователь `<app>` (назначить `chown`), сервис пишет туда от своего имени
-- Виртуальное окружение - `/opt/<app>/.venv`; зависимости: `/opt/<app>/.venv/bin/pip install -r web/requirements.txt`
+- Виртуальное окружение - `/opt/<app>/.venv`; зависимости - из локфайла: `cd /opt/<app>/web && uv sync --frozen --no-dev` (точное воспроизведение дерева зависимостей)
 
 ### 05.02. systemd-юнит
 
@@ -351,11 +350,18 @@ EnvironmentFile=/opt/<app>/web/.env
 Restart=on-failure
 RestartSec=5
 
+# hardening: рекомендуемый минимум для сервиса с данными пользователей
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/<app>/web/var
+PrivateTmp=true
+
 [Install]
 WantedBy=multi-user.target
 ```
 
 - `EnvironmentFile` подгружает секреты из `web/.env` (0600); секреты в юните не хранятся
+- Блок hardening (опционален, рекомендуемый минимум для сервиса с данными пользователей): запись только в `web/var/` - пользовательский рантайм и `var/system/log/` (раздел 02.07), остальная файловая система доступна процессу только на чтение
 - Установка: `cp web/deploy/systemd/<app>.service /etc/systemd/system/` -> `systemctl daemon-reload` -> `systemctl enable --now <app>`
 - Управление: `start`, `stop`, `restart`, `status`; логи - `journalctl -u <app> -f` (раздел 11.01)
 
@@ -413,10 +419,11 @@ networks:
 Dockerfile (`web/deploy/docker/Dockerfile`, build context - каталог `web/`):
 
 ```dockerfile
-FROM python:3.14-slim
+FROM python:3.12-slim
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /srv
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project --no-dev
 COPY . /srv/web
 CMD ["python", "-m", "web"]
 ```
@@ -488,10 +495,14 @@ server {
 
 server {
     listen 443 ssl;
+    http2 on;
     server_name <domain>;
 
     ssl_certificate     /etc/nginx/ssl/<app>.crt;
     ssl_certificate_key /etc/nginx/ssl/<app>.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
 
     root /opt/<app>/web;
     client_max_body_size 10m;
@@ -515,6 +526,7 @@ server {
 ```
 
 - Порт 80 - только ACME challenge (08.01) и redirect на 443
+- Минимальный SSL-профиль обязателен: `ssl_protocols TLSv1.2 TLSv1.3`, кэш сессий (`ssl_session_cache`, `ssl_session_timeout`); HTTP/2 включается директивой `http2 on` - устаревшая форма `listen 443 ssl http2` не используется
 - Пути сертификатов и `root` адаптируются по модели: модель A - как в шаблоне; модель B - сертификаты `/etc/nginx/ssl/` (bind mount, 06.02), `root` - на путь статики внутри образа, API - `proxy_pass http://<app>:<port>`
 
 ### 07.02. Проксирование
@@ -568,10 +580,12 @@ server {
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout /etc/nginx/ssl/<app>.key \
   -out /etc/nginx/ssl/<app>.crt \
-  -subj "/CN=<app>.local"
+  -subj "/CN=<app>.local" \
+  -addext "subjectAltName=DNS:<app>.local,IP:<lan-ip>"
 chmod 600 /etc/nginx/ssl/<app>.key
 ```
 
+- Сертификат выпускается с `subjectAltName`: без SAN современные клиенты (браузеры, curl) отвергают сертификат независимо от доверия к CN; в SAN перечисляются все адреса подключения - DNS-имя и IP (LAN-IP, `127.0.0.1`)
 - Срок 365 дней: перевыпуск - повтором команды; права на ключ - 600
 - Доверие сертификату - ручной импорт на клиентах; без импорта браузер предупреждает. API-клиенты используют `verify` с путем к CA-сертификату; `verify=False` - только по правилам `project_standards.md` (раздел 05.01): с обоснованием и ограничением области применения
 
@@ -640,7 +654,7 @@ ufw allow 443/tcp comment '<app> https'
 *Обязательно.*
 
 - Модель A: `access_log` и `error_log` - в системных путях `/var/log/nginx/` на хосте; собственные пути не задавать без обоснования. Ротация - штатный `/etc/logrotate.d/nginx` из пакета; собственные конфигурации logrotate для nginx не создаются
-- Модель B: логи nginx - вывод контейнера, просмотр через `docker logs` / `docker compose logs`; отдельная ротация не настраивается
+- Модель B: логи nginx - вывод контейнера, просмотр через `docker logs` / `docker compose logs`; ротация - лимиты драйвера `json-file` в секции `logging` compose либо глобально в daemon.json (`deploy_docker_standards.md`, 02.03, 01.06)
 
 ---
 
@@ -673,7 +687,7 @@ ufw allow 443/tcp comment '<app> https'
 - Проект, совмещающий устанавливаемый CLI-инструмент и веб-подсистему `web/` в одном репозитории: к CLI-части и упаковке применяется deploy-семейство, к подсистеме `web/` - этот документ; граница - каталог `web/`. Стык и порядок фиксируются в спецификации проекта (12.01)
 - Рантайм CLI-части (корневые `data/`, `log/`, `output/`) и рантайм веб-части (`web/var/`) - разные сущности: каждая часть ведет собственные данные, общая БД размещается ровно в одном месте (раздел 02.07)
 - Прод-`web/config/config.ini` и `web/.env` не коммитятся - исключения в `.gitignore` подсистемы `web/`; прод-значения живут только на хосте, `git pull` (шаг 2 последовательности 10.01) с ними не конфликтует
-- При изменении набора ключей `web/config/config.ini` или `web/.env` - миграция прод-файлов в рамках шага 2 последовательности 10.01 по канону `deploy_standards.md` (раздел 04.01): новые ключи - из example, значения пользователя сохранить
+- При изменении набора ключей `web/config/config.ini` или `web/.env` - миграция прод-файлов в рамках шага 2 последовательности 10.01 по канону `deploy_standards.md` (раздел 04.01): новые ключи - из example (источники структуры - коммитимые шаблоны `web/config/config.ini.example` и `web/.env.example`, раздел 02.01), значения пользователя сохранить
 
 ### 12.03. spec_ui.html
 
