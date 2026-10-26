@@ -6,7 +6,7 @@
 
 ## Оглавление
 
-**01. Структура и порядок развертывания:** 01.01 Файловая структура - 01.02 Тома - 01.03 Сеть - 01.04 Взаимозависимости сервисов - 01.05 Порядок добавления сервиса - 01.06 Адресное пространство Docker (daemon.json)
+**01. Структура и порядок развертывания:** 01.01 Файловая структура - 01.02 Тома - 01.03 Сеть - 01.04 Взаимозависимости сервисов - 01.05 Порядок добавления сервиса - 01.06 Адресное пространство Docker (daemon.json) - 01.07 Восстановление compose-контейнеров после старта Docker (рекуррентная регрессия moby)
 
 **02. Шаблон docker-compose.yml:** 02.01 Обязательные элементы - 02.02 Опциональные секции (02.02.01 environment - 02.02.06 Docker socket) - 02.03 Правила - 02.04 Именование томов - 02.05 Сеть - 02.06 Публикация портов - 02.07 Reverse proxy (доступ из интернета)
 
@@ -84,6 +84,97 @@
 - Конкретные значения `bip` и `default-address-pools` зависят от диапазона VPN/LAN сайта: пример для VPN `172.16.0.0/12` - в `install/01_docker/docker.md`; примененные значения фиксируются в `override/<hostname>/_machine/network.md`.
 - Рабочая сеть `docker_network` (01.03) задается с явной подсетью вне диапазонов Docker и VPN и не зависит от `daemon.json`.
 - Тот же `/etc/docker/daemon.json` задает дефолтные лимиты драйвера логов для контейнеров без собственной секции `logging`: ключи `log-driver` и `log-opts` (`max-size`, `max-file`; раздел 02.03).
+
+### 01.07. Восстановление compose-контейнеров после старта Docker (рекуррентная регрессия moby)
+
+*Статус: регрессия закрыта upstream (фикс в v29.9.1), юнит-автоматизация снята с эксплуатации; раздел описывает диагностику и лечение при рецидиве и обязательный порядок загрузки для машин с привязкой портов к LAN-адресу.*
+
+**Регрессия (историческая справка).** Engine 29.7-29.9.0 (moby/moby#52642, moby/moby#53901): после ребута хоста или рестарта демона контейнеры, поднятые restart-manager'ом при восстановлении состояния, стартуют без network endpoint'ов:
+
+- `docker inspect <container> --format '{{json .NetworkSettings.Networks}}'` -> `{}`, `Ports` -> `{}` при корректной `HostConfig` (netmode и PortBindings на месте)
+- `docker network inspect <network>` - секция `containers` пустая; бриджи в DOWN, veth-интерфейсов на хосте нет
+- порты не публикуются (порты - следствие endpoint'а: docker-proxy + NAT), сервисы недоступны по привязанным адресам
+- в журнале dockerd по сетевым отказам ошибок нет - отказ молчаливый, контейнер при этом `Up`
+
+Закрыта upstream: PR moby/moby#53907 влит 14.10.2026, фикс включен в v29.9.1 (release notes: «Fix bridge networks failing to restore on daemon startup when their bridge is bound to a firewalld zone other than docker»); issue #53901 закрыт как completed. Ограничение: фикс описывает вариант с firewalld-зонами; на машине без firewalld (backend iptables) 17.10.2026 на 29.9.1 молчаливый пропуск endpoint воспроизвелся на plain-старте контейнера в состоянии Created - лечение то же (`--force-recreate`); при рецидиве искать апстрим-issue под вариант без firewalld.
+
+**Диагностика** - первый проверочный шаг после каждого ребута (входит в `docker-machine-runtime-audit`):
+
+```bash
+docker network inspect docker_network --format '{{range $k,$v := .Containers}}{{$v.Name}} {{end}}'
+```
+
+Пустой вывод при работающих контейнерах = endpoints потеряны.
+
+**Лечение** - пересоздание compose-контейнеров (compose-конфигурация не меняется, тома сохраняются):
+
+```bash
+cd ~/.docker/<service> && docker compose up -d --force-recreate
+```
+
+**Порядок загрузки (обязательно).** На машинах, публикующих порты на LAN-адрес по DHCP, dockerd стартует раньше появления адреса на интерфейсе: привязка портов падает (`cannot assign requested address`), контейнер зависает в Created, и restart-политика его не спасает - по документации Docker политика действует только после первого успешного старта контейнера. Обязательное условие - реальное ожидание сети до старта Docker: `NetworkManager-wait-online.service` включен (тогда `network-online.target`, от которого зависит `docker.service`, означает фактическую связность). Проверка: `systemctl is-enabled NetworkManager-wait-online.service` -> `enabled`.
+
+**Автоматизация docker-compose-restore (юнит).** Юнит пересоздавал compose-контейнеры при старте Docker как обход регрессии. На pcdc01 снят с эксплуатации 17.10.2026 после контрольного ребута на 29.9.1 (wait-online включен, собственное восстановление демона корректно - все контейнеры поднялись с endpoint'ами и портами). Юнит сохраняется только на машинах с docker <= 29.9.0 - до обновления пакета. Известные изъяны шаблона юнита (учитывать при использовании): скрипт не ждет появления LAN-адреса и всегда завершается кодом 0, поэтому провал невидим systemd (`RemainAfterExit=yes` держит юнит active); при включенном wait-online оба изъяна компенсируются.
+
+Шаблоны для машин с docker <= 29.9.0. Скрипт `~/.docker/scripts/docker-compose-restore.sh`:
+
+```bash
+#!/bin/bash
+# Восстановление compose-сервисов после старта Docker.
+# Регрессия moby 29.7-29.9: контейнеры после ребута стартуют без network endpoint'ов.
+# systemd не задает HOME - путь к каталогу сервисов указывать явно (/home/<user>/.docker).
+set -u
+SERVICES_DIR=/home/<user>/.docker
+
+for compose_dir in "$SERVICES_DIR"/*/; do
+  service=$(basename "$compose_dir")
+  compose_file="$compose_dir/docker-compose.yml"
+  [ -f "$compose_file" ] || continue
+  echo "$service: compose up -d --force-recreate"
+  if docker compose -f "$compose_file" up -d --force-recreate >/dev/null 2>&1; then
+    echo "$service: ok"
+  else
+    echo "$service: FAILED"
+  fi
+done
+
+for c in $(docker ps --format '{{.Names}}'); do
+  nets=$(docker inspect "$c" --format '{{len .NetworkSettings.Networks}}')
+  if [ "$nets" -eq 0 ]; then
+    echo "check: $c: NO NETWORK - recreate failed"
+  else
+    echo "check: $c: network ok"
+  fi
+done
+```
+
+Юнит `/etc/systemd/system/docker-compose-restore.service`:
+
+```ini
+[Unit]
+Description=Восстановление compose-контейнеров после старта Docker (регрессия moby 29.x - endpoints теряются при восстановлении после ребута)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/<user>/.docker/scripts/docker-compose-restore.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Установка и включение (sudo выполняет пользователь):
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now docker-compose-restore.service
+```
+
+Проверка: `journalctl -u docker-compose-restore.service` - ожидаемые строки `<service>: ok` и `check: <service>: network ok` по каждому сервису. Окончательная верификация защиты - пустой вывод диагностики после следующего ребута.
+
+**Границы.** Юнит не пулит образы (обновление образов - отдельный шаг по разделу «Порядок применения» навыка аудита), тома не трогает и не блокирует загрузку (`Type=oneshot`, `RemainAfterExit=yes`). После обновления машины на 29.9.1+ юнит снимается (условия снятия и порядок загрузки - в начале раздела). Факт применения или снятия фиксируется в профиле машины (`<hostname>_services_summary.md`).
 
 ---
 
@@ -244,10 +335,7 @@ volumes:
 
 *Обязательно.*
 
-- Все контейнеры работают в одной внешней сети `docker_network`
-- Сеть создается один раз перед первым сервисом
-- В каждом compose-файле сеть указывается как external
-- Контейнеры обращаются друг к другу по `container_name` (например `postgres:5432`)
+Канон - раздел 01.03: одна внешняя сеть `docker_network`, создается один раз перед первым сервисом; в каждом compose-файле сеть указывается как external; контейнеры обращаются друг к другу по `container_name` (например `postgres:5432`).
 
 ### 02.06. Публикация портов
 
@@ -265,6 +353,8 @@ volumes:
 | Из интернета | через reverse proxy (раздел 02.07): бэкенд порты не публикует, прокси публикует `80/443` | Не требуется |
 
 Если для опубликованного порта нужна фильтрация по источнику, это возможно через утилиту `ufw-docker` (правила в цепочке `DOCKER-USER`). Такой вариант опционален: применяется для отдельных задач по явному запросу пользователя и не входит в базовую настройку.
+
+Привязка к `<LAN_IP>` открывает порт только на этом адресе - `localhost` самой машины не отвечает, так как порт не слушает loopback. Для веб-интерфейса, используемого и с других машин, и с самой машины (дашборд, admin-панель), в `ports` добавляют обе привязки - LAN (`<LAN_IP>:<host_port>:<container_port>`) и loopback (`127.0.0.1:<host_port>:<container_port>`, строка «Только сам хост» таблицы выше). Проверку доступности после публикации выполнять по обоим адресам: отсутствие loopback-привязки внешне выглядит как отказ сервиса - из LAN порт работает, а по `localhost` подключение отклоняется.
 
 ### 02.07. Reverse proxy (доступ из интернета)
 

@@ -294,7 +294,7 @@ python run/deploy/package.py
 4. Копирует: wheel из `dist/`, `config/config.ini.example`, `config/translations.json`, `.env.example`, `install.py`, `update.py`
 5. Генерирует `README.txt` на основе шаблона (с подстановкой имени и версии проекта)
 6. Упаковывает в ZIP-архив: `tool-name-1.0.0-install.zip`
-7. Вычисляет SHA256 архива и записывает рядом файл `<архив>.sha256`; значение выводится в консоль (проверка целостности на Windows: `certutil -hashfile <архив> SHA256`)
+7. Вычисляет SHA256 архива и записывает рядом файл `<archive>.sha256`; значение выводится в консоль (проверка целостности на Windows: `certutil -hashfile <archive> SHA256`)
 8. Размещает архив в корне проекта
 
 Архив готов к передаче на Windows-машину. Исходный репозиторий не нужен на Windows.
@@ -383,10 +383,11 @@ python run/deploy/package.py
 #
 # 2. Если пользователь сообщает о проблемах на Windows-машине:
 #    Сравнить исходники в uv-venv с репозиторием (выполняет пользователь).
-#    Сначала определить фактический каталог Python в venv:
-# Get-ChildItem "$(uv tool dir)\tool-name\lib\" -Directory -Filter python*
-#    Затем сравнить файлы по конкретному пути (подставить <python-xy> из вывода):
-# fc <file> "$(uv tool dir)\tool-name\lib\<python-xy>\site-packages\<file>"
+#    Каталог site-packages в venv инструмента; в venv на Windows нет уровня
+#    pythonX.Y, как на Linux:
+# $(uv tool dir)\tool-name\Lib\site-packages
+#    Затем сравнить файлы по конкретному пути:
+# fc <file> "$(uv tool dir)\tool-name\Lib\site-packages\<file>"
 #    Проверить как минимум: main.py, src/config.py, src/logger.py и все
 #    ключевые модули из src/ и run/
 #
@@ -518,7 +519,7 @@ build/
 ## 05.04. Итоговая структура после установки
 
 ```
-Код:        $(uv tool dir)\tool-name\lib\<python-xy>\site-packages\ (импорт-пакет src\ и модуль main.py)
+Код:        $(uv tool dir)\tool-name\Lib\site-packages\ (импорт-пакет src\ и модуль main.py)
 Команда:    tool-name (шим uv в `%USERPROFILE%\.local\bin\`, каталог в PATH)
 Конфиг:     $env:APPDATA\tool-name\config\config.ini
 Секреты:    $env:APPDATA\tool-name\.env
