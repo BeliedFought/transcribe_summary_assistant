@@ -1,50 +1,50 @@
-# Стандарт деплоя Python-проекта как системного инструмента. Версия 4.16.0
+# Deploy Standards. Version 5.0.0
 
-Документ описывает общие (OS-agnostic) правила установки Python-проекта как системного CLI-инструмента. Является дополнением к `doc/standards/project_standards.md` и применяется поверх него. Все требования основного стандарта остаются в силе, кроме случаев, явно описанных в данном документе.
+This document defines OS-agnostic rules for installing a Python project as a system CLI tool. It supplements `doc/standards/project_standards.md` and applies on top of it. All core requirements remain in force unless this document explicitly overrides them.
 
-OS-специфика (пути к данным, поток установки, команды оболочки) вынесена в overlay-документы:
+OS specifics (data paths, install flow, shell commands) live in overlay documents:
 
-- `deploy_lin_standards.md` - установка на Linux
-- `deploy_win_standards.md` - установка на Windows
+- `deploy_lin_standards.md` - installation on Linux
+- `deploy_win_standards.md` - installation on Windows
 
-При деплое применять этот документ вместе с релевантным overlay.
-
----
-
-## Оглавление
-
-**01. Условия и сборка:** 01.01 Обязательные условия к проекту - 01.02 Структура pyproject.toml - 01.03 Упаковка non-Python файлов (01.03.01 MANIFEST.in - 01.03.02 package-data в pyproject.toml - 01.03.03 Доступ к data-файлам в коде - 01.03.04 Правила)
-
-**02. Разделение кода и данных:** 02.01 Подмена PROJECT_ROOT в config.py - 02.02 Построение путей от PROJECT_ROOT
-
-**03. Установочные скрипты:** 03.01 Установочные скрипты - общие правила - 03.02 Блок диагностики для ИИ-агента - 03.03 Эталон install.py - 03.04 Эталон update.py
-
-**04. Имя и версия:** 04.01 Версия приложения и миграция конфигурации при обновлении
-
-**05. Правила сопровождения:** 05.01 Точка входа - 05.02 Режим разработчика - 05.03 Удаление - 05.04 Чек-лист перед релизом
-
-**06. Связь и версионирование:** 06.01 Связь с другими документами - 06.02 Версионирование
+Apply this document together with the relevant overlay.
 
 ---
 
-## 01.01. Обязательные условия к проекту
+## Table of Contents
 
-*Обязательно.*
+**01. Prerequisites and build:** 01.01 Mandatory project conditions - 01.02 `pyproject.toml` structure - 01.03 Packaging non-Python files (01.03.01 MANIFEST.in - 01.03.02 package-data in pyproject.toml - 01.03.03 Accessing data files in code - 01.03.04 Rules)
 
-До начала установки проект должен соответствовать следующим требованиям:
+**02. Code and data separation:** 02.01 PROJECT_ROOT swap in config.py - 02.02 Building paths from PROJECT_ROOT
 
-1. **Корневой модуль с точкой входа** - функция `main()` в файле (например `main.py` или `cli.py`). Функция должна вызываться через `if __name__ == "__main__": main()` и не содержать побочных эффектов на уровне модуля. Функция `main()` не должна содержать логику напрямую - разобрать аргументы, инициализировать конфигурацию, делегировать выполнение (в соответствии с основным стандартом).
-2. **Все импорты через пакеты** - `from src.xxx import ...`. Запрещены хаки с `sys.path`, относительные импорты за пределами пакета, динамическое формирование путей импорта. Импорт-пакет `src` един для обоих режимов (упаковка - раздел 01.02): в режиме разработки код лежит в `src/` репозитория, в установленном - в `site-packages/src/` изолированного venv инструмента.
-3. **`__init__.py`** в каждом каталоге, который импортируется как пакет. Пустой файл, без кода инициализации.
-4. **Все зависимости зафиксированы** в `requirements.txt` с точными версиями (`==`).
+**03. Install scripts:** 03.01 Install scripts - general rules - 03.02 Diagnostic block for AI agents - 03.03 install.py reference - 03.04 update.py reference
+
+**04. Name and version:** 04.01 Application version and config migration on update
+
+**05. Maintenance rules:** 05.01 Entry point - 05.02 Developer mode - 05.03 Uninstall - 05.04 Pre-release checklist
+
+**06. Relations and versioning:** 06.01 Related documents - 06.02 Versioning
 
 ---
 
-## 01.02. Структура pyproject.toml
+## 01.01. Mandatory project conditions
 
-*Обязательно.*
+*Mandatory.*
 
-Файл `pyproject.toml` размещается в корне проекта. Это единственный файл конфигурации сборки.
+Before installation the project must meet these requirements:
+
+1. **Root module with an entry point** - a `main()` function in a file (for example `main.py` or `cli.py`). Call it via `if __name__ == "__main__": main()`; no module-level side effects. `main()` must not hold logic directly - parse arguments, initialize configuration, delegate execution (per the core standard).
+2. **All imports through packages** - `from src.xxx import <name>`. No `sys.path` hacks, no relative imports outside the package, no dynamically built import paths. The `src` import package is the same in both modes (packaging - 01.02): in development mode code lives in the repository `src/`, in installed mode in `site-packages/src/` of the isolated tool venv.
+3. **`__init__.py`** in every directory imported as a package. Empty file, no initialization code.
+4. **All dependencies pinned** in `requirements.txt` with exact versions (`==`).
+
+---
+
+## 01.02. pyproject.toml structure
+
+*Mandatory.*
+
+`pyproject.toml` lives in the project root. It is the only build configuration file.
 
 ```toml
 [build-system]
@@ -67,62 +67,62 @@ packages = ["src"]
 py-modules = ["main"]
 ```
 
-**Пояснения к секциям:**
+**Section notes:**
 
-- **`[build-system]`** - определяет инструмент сборки и его зависимости. Явное указание гарантирует одинаковое поведение на всех машинах независимо от версии pip/setuptools.
-- **`[project.scripts]`** - создает CLI-команду. Формат: `имя_команды = "модуль:функция"`; модуль записывается так, как он импортируется после установки: корневой оркестратор `main` или модуль пакета `src.xxx`. После установки wrapper-скрипт попадает в каталог пользователя. Пример: `tool-name = "main:main"` создаст команду `tool-name`, которая вызывает `main()` из корневого `main.py`.
-- **`[tool.setuptools]`** - упаковка плоской структуры основного стандарта: `packages = ["src"]` упаковывает каталог `src/` целиком как импорт-пакет `src`, `py-modules = ["main"]` - корневой оркестратор `main.py`. После установки в site-packages попадают `src/` и `main.py`; импорты `from src.xxx import ...` работают в обоих режимах без изменений кода.
-- Имя дистрибутива (`name`) на имена импортов не влияет: это метаданные пакета для pip/uv. Импорт-пакет называется `src` и в репозитории, и в site-packages; коллизия общего имени исключена - инструмент ставится в изолированный venv (`uv tool install`, раздел 05.02).
+- **`[build-system]`** - defines the build tool and its dependencies. An explicit declaration guarantees identical behavior on every machine regardless of the pip/setuptools version.
+- **`[project.scripts]`** - creates the CLI command. Format: `command_name = "module:function"`; the module is written as imported after installation: the root orchestrator `main` or a package module `src.xxx`. The wrapper script lands in the user directory after installation. Example: `tool-name = "main:main"` creates the `tool-name` command that calls `main()` from the root `main.py`.
+- **`[tool.setuptools]`** - packages the flat structure of the core standard: `packages = ["src"]` packages the whole `src/` directory as the `src` import package, `py-modules = ["main"]` adds the root orchestrator `main.py`. After installation site-packages contains `src/` and `main.py`; imports `from src.xxx import <name>` work unchanged in both modes.
+- The distribution name (`name`) does not affect import names: it is package metadata for pip/uv. The import package is `src` both in the repository and in site-packages; the generic name collision is excluded because the tool is installed into an isolated venv (`uv tool install`, 05.02).
 
-**Правила:**
+**Rules:**
 
-- `pyproject.toml.version` - источник метаданных пакета (pip/uv); отображаемая версия приложения - `config.ini [app].version` (раздел 04.01). Синхронность версий - ответственность агента при коммите.
-- Имя дистрибутива (`name`) - только строчные латинские буквы, цифры, дефисы. Без подчеркиваний; в имени wheel-файла дефисы нормализуются в подчеркивания (`tool_name-1.0.0-*.whl`).
-- Имя CLI-команды (`[project.scripts]`) совпадает с именем дистрибутива: установочные скрипты overlay-стандартов используют одно `TOOL_NAME` для имени команды, дистрибутива и записи `uv tool` (`deploy_lin_standards.md`, 02.03; `deploy_win_standards.md`, 04.04).
-- `requires-python` - указывать минимальную версию, с которой реально тестировался проект.
-- Версии **runtime-зависимостей** (секция `[project] dependencies`) фиксируются с `==`, аналогично `requirements.txt`. Build-зависимости (`[build-system] requires`) указываются с `>=` - это корректно, правило фиксации версий к ним не применяется.
-- Локфайл `uv.lock` коммитится и актуален: перед релизом `uv lock --check` без расхождений (раздел 05.04). Ограничение: `uv tool install` собирает окружение инструмента по `pyproject.toml`, локфайл проекта в установке не участвует - локфайл обеспечивает воспроизводимость пересборки и аудита дерева, а не самой установки; деплой со строгой воспроизводимостью набора пакетов - через `uv sync --frozen` из проекта (применяется в `web_standards.md`)
-- `requirements.txt` и `pyproject.toml` должны быть синхронизированы: одинаковые пакеты и версии в обеих файлах. Рекомендуется проверять синхронизацию перед каждым коммитом: сравнить список зависимостей из обоих файлов и убедиться, что каждая строка из `requirements.txt` имеет соответствующую строку в `dependencies` в `pyproject.toml`.
+- `pyproject.toml.version` is the package metadata source (pip/uv); the displayed application version is `config.ini [app].version` (04.01). Version sync is the agent's responsibility at commit.
+- Distribution name (`name`) - lowercase Latin letters, digits, hyphens only. No underscores; the wheel filename normalizes hyphens to underscores (`tool_name-1.0.0-*.whl`).
+- The CLI command name (`[project.scripts]`) matches the distribution name: overlay install scripts use one `TOOL_NAME` for the command, distribution and `uv tool` entry (`deploy_lin_standards.md`, 02.03; `deploy_win_standards.md`, 04.04).
+- `requires-python` - the minimum version actually tested with the project.
+- Pin **runtime dependency** versions (`[project] dependencies`) with `==`, same as `requirements.txt`. Build dependencies (`[build-system] requires`) use `>=`; the pinning rule does not apply to them.
+- Commit a current lockfile `uv.lock`: `uv lock --check` must be clean before release (05.04). Limitation: `uv tool install` builds the tool environment from `pyproject.toml`, the project lockfile does not participate in installation - the lockfile ensures rebuild reproducibility and tree audit, not the installation itself; strict reproducible package deployment uses `uv sync --frozen` from the project (applied in `web_standards.md`).
+- `requirements.txt` and `pyproject.toml` must stay synchronized: identical packages and versions in both files. Check before every commit: compare both dependency lists and confirm each `requirements.txt` line has a matching `dependencies` line in `pyproject.toml`.
 
 ---
 
-## 01.03. Упаковка non-Python файлов
+## 01.03. Packaging non-Python files
 
-*Опционально - только если проект содержит SQL, шаблоны или иные данные, не являющиеся Python-модулями.*
+*Optional - only when the project contains SQL, templates or other non-Python data.*
 
-Если проект содержит SQL-файлы, шаблоны или другие данные, не являющиеся Python-модулями, их нужно явно включить в дистрибутив. По умолчанию setuptools упаковывает только `.py` файлы.
+If the project contains SQL files, templates or other non-Python data, include them explicitly in the distribution. By default setuptools packages only `.py` files.
 
-Рекомендуемый подход - рантайм-активы внутри пакета: секция `[tool.setuptools.package-data]` для включения файлов в wheel + `MANIFEST.in` для контроля содержимого sdist.
+Recommended approach - runtime assets inside the package: the `[tool.setuptools.package-data]` section includes files in the wheel, plus `MANIFEST.in` controls sdist contents.
 
 ### 01.03.01. MANIFEST.in
 
-*Обязательно при упаковке non-Python файлов.*
+*Mandatory when packaging non-Python files.*
 
-Файл `MANIFEST.in` размещается в корне проекта рядом с `pyproject.toml`. Он определяет, какие дополнительные файлы попадают в sdist (исходный дистрибутив). Без него non-Python файлы будут отсутствовать в sdist, и при установке из него возникнут ошибки.
+`MANIFEST.in` lives in the project root next to `pyproject.toml`. It defines which additional files enter the sdist (source distribution). Without it non-Python files are absent from the sdist and installation from it fails.
 
-Пример `MANIFEST.in` для проекта с SQL-файлами:
+Example `MANIFEST.in` for a project with SQL files:
 
 ```
 recursive-include src/sql *.sql
 recursive-include config *.example
 ```
 
-**Директивы:**
+**Directives:**
 
-- `include` - включает файлы по glob-шаблону относительно корня проекта
-- `recursive-include dir pattern` - рекурсивно включает файлы из каталога
-- `exclude` / `recursive-exclude` - исключает файлы
-- `global-include` / `global-exclude` - применяет шаблон ко всему дереву
+- `include` - include files by glob pattern relative to the project root
+- `recursive-include dir pattern` - recursively include files from a directory
+- `exclude` / `recursive-exclude` - exclude files
+- `global-include` / `global-exclude` - apply a pattern to the whole tree
 
-Подробнее: https://packaging.python.org/en/latest/guides/using-manifest-in/
+Details: https://packaging.python.org/en/latest/guides/using-manifest-in/
 
-### 01.03.02. package-data в pyproject.toml
+### 01.03.02. package-data in pyproject.toml
 
-*Обязательно при упаковке non-Python файлов.*
+*Mandatory when packaging non-Python files.*
 
-Рантайм-активы, читаемые установленным инструментом (SQL-файлы по `project_standards.md`, раздел 03.02), размещаются внутри импорт-пакета `src`: `src/sql/`. Для проектов с деплоем это размещение перекрывает корневую папку `sql/` из `project_standards.md` (раздел 01.01): в режиме разработки пакет лежит в `src/` репозитория, в установленном режиме - в site-packages изолированного venv, код читает файлы одним и тем же способом.
+Runtime assets read by the installed tool (SQL files per `project_standards.md`, 03.02) live inside the `src` import package: `src/sql/`. For deployable projects this placement overrides the root `sql/` folder from `project_standards.md` (01.01): in development mode the package sits in the repository `src/`, in installed mode in site-packages of the isolated venv, and code reads files the same way.
 
-Секция `[tool.setuptools.package-data]` включает файлы внутри пакета в wheel (при конфигурации через pyproject.toml `include-package-data = true` по умолчанию):
+The `[tool.setuptools.package-data]` section includes files inside the package in the wheel (with pyproject.toml configuration `include-package-data = true` is the default):
 
 ```toml
 [tool.setuptools.package-data]
@@ -134,17 +134,17 @@ src = [
 ]
 ```
 
-Условие попадания файла в wheel (документация setuptools): файл выбран секцией `package-data` или выбран `MANIFEST.in` при `include-package-data = true`, и не исключен `exclude-package-data`.
+File inclusion condition (setuptools documentation): the file is selected by `package-data` or by `MANIFEST.in` with `include-package-data = true`, and is not excluded by `exclude-package-data`.
 
-Секция `[tool.setuptools.data-files]` (файлы вне пакета, относительно префикса установки, например `share/tool-name/`) не используется: после установки из wheel нет поддерживаемого способа надежного получения таких файлов - рекомендация setuptools/PyPA - рантайм-данные внутри пакета.
+Do not use `[tool.setuptools.data-files]` (files outside the package, relative to the install prefix, for example `share/tool-name/`): after wheel installation there is no supported reliable way to obtain such files; the setuptools/PyPA recommendation is runtime data inside the package.
 
-Шаблоны, используемые установочными скриптами overlay-стандартов (`config/config.ini.example`, `config/translations.json`), остаются в корневой папке `config/`: их копируют скрипты установки и обновления из репозитория или архива, это не рантайм-активы wheel.
+Templates used by overlay install scripts (`config/config.ini.example`, `config/translations.json`) stay in the root `config/` folder: install and update scripts copy them from the repository or archive; they are not wheel runtime assets.
 
-### 01.03.03. Доступ к data-файлам в коде
+### 01.03.03. Accessing data files in code
 
-*Обязательно при упаковке non-Python файлов.*
+*Mandatory when packaging non-Python files.*
 
-Доступ к активам пакета - через `importlib.resources`; путь одинаков для режима разработки и установленного режима:
+Access package assets through `importlib.resources`; the path is identical in development and installed modes:
 
 ```python
 from importlib.resources import files
@@ -156,68 +156,63 @@ sql_content = (
 )
 ```
 
-Не собирать пути активов через `sys.prefix`, `__file__` соседних модулей или текущую рабочую директорию.
+Do not build asset paths from `sys.prefix`, `__file__` of neighboring modules or the current working directory.
 
-**Подход:** рантайм-активы установленного инструмента (SQL, DDL, шаблоны запросов) - внутри пакета через `package-data` + `MANIFEST.in`; шаблоны конфигурации - корневая папка `config/`, их устанавливают скрипты overlay-стандартов. Секцию `[tool.setuptools.data-files]` не использовать.
+**Approach:** runtime assets of the installed tool (SQL, DDL, query templates) - inside the package via `package-data` + `MANIFEST.in`; configuration templates - the root `config/` folder, installed by overlay scripts. Do not use `[tool.setuptools.data-files]`.
 
-### 01.03.04. Правила
+### 01.03.04. Rules
 
-*Обязательно при упаковке non-Python файлов.*
+*Mandatory when packaging non-Python files.*
 
-- Data-файлы, которые нужны только в режиме разработки (примеры, тестовые данные) - не упаковывать. Только те, что требуются для работы установленного инструмента
-- Проверять доступность data-файлов после `uv tool install .`: содержимое wheel смотреть командой `unzip -l dist/<tool_name>-<version>-*.whl` - файлы должны лежать внутри пути пакета (`src/sql/`)
-- Не использовать относительные пути с `..` в `package-data` и `importlib.resources` - поведение зависит от версии setuptools и формата архива
-- При добавлении новых типов data-файлов обновлять `MANIFEST.in` и секцию `[tool.setuptools.package-data]` в `pyproject.toml`
-- Не использовать `[tool.setuptools.data-files]`: файлы вне пакета после установки из wheel не имеют поддерживаемого способа надежного получения
-
----
-
-## 02.01. Подмена PROJECT_ROOT в config.py
-
-*Обязательно.*
-
-После установки код лежит в `site-packages/`, а конфиги, логи и секреты должны быть доступны пользователю. Решение - подмена `PROJECT_ROOT` в `src/config.py` в зависимости от режима запуска. В обоих режимах файл лежит в импорт-пакете `src` (`<repo>/src/config.py` или `site-packages/src/config.py`), поэтому `parents[1]` - корень соответствующего дерева.
-
-Эталонная реализация `src/config.py` (раздел 01.04 основного стандарта) не меняется. При подготовке конкретного проекта к установке в `src/config.py` добавляется проверка режима и подмена `PROJECT_ROOT`:
-
-- **Режим разработки** (запуск из репозитория): `PROJECT_ROOT = Path(__file__).resolve().parents[1]` - как в основном стандарте, не меняется.
-- **Установленный режим** (пакет установлен через `uv tool install`): `PROJECT_ROOT = <OS-CONFIG-ROOT> / "tool-name"`. Конкретный корень зависит от ОС:
-  - Linux: `XDG_CONFIG_HOME / "tool-name"` (по умолчанию `~/.config/tool-name/`) - см. `deploy_lin_standards.md`
-  - Windows: `APPDATA / "tool-name"` (обычно `C:\Users\<user>\AppData\Roaming\tool-name\`) - см. `deploy_win_standards.md`
-
-Маркер режима - наличие каталога `.git/` рядом с `src/`. Если каталог существует - это клон репозитория, активируется режим разработки. Если нет (код выполняется из `site-packages/` после установки) - установленный режим.
-
-Достаточно одной проверки `.git/`, без использования `importlib.metadata`:
-
-- При `uv tool install` код выполняется из изолированного venv, где нет `.git/` - установленный режим.
-- При запуске из репозитория (независимо от того, установлен ли пакет в системе) `.git/` существует - режим разработки.
-- При `uv pip install -e .` код выполняется из репозитория, `.git/` на месте - режим разработки.
-- При CI/CD из репозитория `.git/` существует - режим разработки, что корректно для запуска тестов.
-
-Полный пример `src/config.py` для установки - в overlay-документе под целевую ОС (`_lin.md` / `_win.md`), поскольку различается корень установленного режима. Скелет подмены:
-
-```python
-import os
-from pathlib import Path
-
-_repo_root = Path(__file__).resolve().parents[1]
-
-if (_repo_root / ".git").exists():
-    PROJECT_ROOT: Path = _repo_root
-else:
-    # корень установленного режима - по ОС (см. overlay _lin.md / _win.md)
-    PROJECT_ROOT = Path(os.environ.get("<OS_CONFIG_ENV>", "<OS_CONFIG_DEFAULT>")) / "tool-name"
-```
-
-Заменить `tool-name` на фактическое имя инструмента. Вся остальная логика `config.py` (загрузка `.env`, чтение `config.ini`) остается без изменений - она работает с `PROJECT_ROOT`, который уже указывает на нужный каталог.
+- Do not package data files needed only in development mode (examples, test data). Package only files required by the installed tool
+- Verify data availability after `uv tool install .`: inspect wheel contents with `unzip -l dist/<tool_name>-<version>-*.whl` - files must be inside the package path (`src/sql/`)
+- Do not use relative paths with `..` in `package-data` and `importlib.resources` - behavior depends on the setuptools version and archive format
+- When adding new data file types, update `MANIFEST.in` and `[tool.setuptools.package-data]` in `pyproject.toml`
+- Do not use `[tool.setuptools.data-files]`: files outside the package have no supported reliable retrieval after wheel installation
 
 ---
 
-## 02.02. Построение путей от PROJECT_ROOT
+## 02.01. PROJECT_ROOT swap in config.py
 
-*Обязательно.*
+*Mandatory.*
 
-Все пути в коде строятся от `PROJECT_ROOT` (как в основном стандарте):
+After installation code lives in `site-packages/`, while configs, logs and secrets must be user-accessible. The solution is swapping `PROJECT_ROOT` in `src/config.py` by run mode. In both modes the file lives in the `src` import package (`<repo>/src/config.py` or `site-packages/src/config.py`), so `parents[1]` is the root of the respective tree.
+
+The reference `src/config.py` (core standard, 01.04) does not change. When preparing a project for installation, add a mode check and the `PROJECT_ROOT` swap:
+
+- **Development mode** (run from the repository): `PROJECT_ROOT = Path(__file__).resolve().parents[1]` - as in the core standard, unchanged.
+- **Installed mode** (`uv tool install`): `PROJECT_ROOT = <OS-CONFIG-ROOT> / "tool-name"`. The root depends on the OS:
+  - Linux: `XDG_CONFIG_HOME / "tool-name"` (default `~/.config/tool-name/`) - see `deploy_lin_standards.md`
+  - Windows: `APPDATA / "tool-name"` (usually `C:\Users\<user>\AppData\Roaming\tool-name\`) - see `deploy_win_standards.md`
+
+Template: `doc/standards/templates/config.py`. Copy it to `src/config.py` and uncomment the deploy block for the target OS; the template already ships both variants commented out.
+
+**Contract:**
+
+- Exports `PROJECT_ROOT`, `ENV_PATH`, `CONFIG_PATH`, `config`, `APP_NAME`, `APP_VERSION`; `config` is a `ConfigParser` with `inline_comment_prefixes=(";", "#")`
+- `ENV_PATH = PROJECT_ROOT / ".env"`; load it with `load_dotenv(ENV_PATH, override=False)` only when it exists
+- `CONFIG_PATH = PROJECT_ROOT / "config" / "config.ini"`; read it when it exists
+- `APP_NAME` / `APP_VERSION` come from `[app]` with fallbacks (name - empty or tool name, version - `dev`)
+- No imports from other project modules, no side effects beyond loading `.env` and `config.ini`
+
+The mode marker is the presence of `.git/` next to `src/`. If the directory exists, this is a repository clone and development mode applies. If not (code runs from `site-packages/` after installation), installed mode applies.
+
+One `.git/` check is enough; do not use `importlib.metadata`:
+
+- Under `uv tool install` code runs from an isolated venv without `.git/` - installed mode.
+- When run from the repository (regardless of a system-wide install) `.git/` exists - development mode.
+- Under `uv pip install -e .` code runs from the repository, `.git/` is present - development mode.
+- In CI/CD from the repository `.git/` exists - development mode, correct for tests.
+
+Replace `tool-name` with the actual tool name. All other `config.py` logic (`.env` loading, `config.ini` reading) stays unchanged - it works with `PROJECT_ROOT`, which already points to the required directory.
+
+---
+
+## 02.02. Building paths from PROJECT_ROOT
+
+*Mandatory.*
+
+Build every path in code from `PROJECT_ROOT` (as in the core standard):
 
 ```python
 from src.config import PROJECT_ROOT
@@ -227,634 +222,189 @@ log_dir = PROJECT_ROOT / "log"
 env_path = PROJECT_ROOT / ".env"
 ```
 
-В режиме разработки `PROJECT_ROOT` указывает на корень репозитория. В установленном режиме - на каталог данных пользователя (по ОС). Код, использующий `PROJECT_ROOT / "config" / "config.ini"` и `PROJECT_ROOT / "log"`, работает без изменений в обоих режимах.
+In development mode `PROJECT_ROOT` points to the repository root. In installed mode it points to the user data directory (per OS). Code using `PROJECT_ROOT / "config" / "config.ini"` and `PROJECT_ROOT / "log"` works unchanged in both modes.
 
-**Правила:**
+**Rules:**
 
-- Не использовать `Path.cwd()` или `os.getcwd()` для определения путей к данным.
-- Не хардкодить абсолютные пути.
-- Использовать `pathlib.Path` для всех операций с путями.
-- При первом запуске в установленном режиме - создавать каталоги через `path.mkdir(parents=True, exist_ok=True)`.
-
----
-
-## 03.01. Установочные скрипты - общие правила
-
-*Обязательно.*
-
-Установочные скрипты размещаются в `run/deploy/`. Набор скриптов зависит от платформы (см. overlay-документ). Общие правила для всех скриптов:
-
-- Каждый скрипт выполняет только одну задачу, без аргументов командной строки и подкоманд.
-- Скрипты не зависят от других модулей проекта - не импортируют из `src/` и не используют логгер.
-- Вывод реализован через `print()` как исключение из общего правила.
-- Строки вывода не должны начинаться с маркеров уровня в квадратных скобках (`[i]`, `[!]`, `[*]`).
-- Каждый скрипт начинается с блока диагностики для ИИ-агента (раздел 03.02).
+- Do not use `Path.cwd()` or `os.getcwd()` to resolve data paths.
+- Do not hardcode absolute paths.
+- Use `pathlib.Path` for all path operations.
+- On first run in installed mode, create directories with `path.mkdir(parents=True, exist_ok=True)`.
 
 ---
 
-## 03.02. Блок диагностики для ИИ-агента
+## 03.01. Install scripts - general rules
 
-*Обязательно.*
+*Mandatory.*
 
-Каждый скрипт в `run/deploy/` выполняет двойную роль: исполняемый скрипт для пользователя и skill для ИИ-агента. Если пользователь тегает файл без пояснений (например `@run/deploy/install.py`), агент должен самостоятельно диагностировать состояние, выполнить нужные действия и сообщить результат.
+Install scripts live in `run/deploy/`. The script set depends on the platform (see the overlay). General rules for all scripts:
 
-Скрипт должен начинаться с блока комментариев-инструкций для ИИ-агента.
-
-**Структура блока:**
-
-1. **Условие активации** - когда ИИ-агент должен выполнять проверку (обычно - пользователь ссылается на файл без пояснений).
-2. **Проверка состояния установки** - установлен ли пакет, совпадают ли исходники.
-3. **Действия по результатам** - установить, обновить или сообщить об актуальности.
-
-Конкретные шаблоны блоков (с командами под ОС) - в overlay-документах `_lin.md` / `_win.md`.
-
-**Правила для блоков:**
-
-- Список файлов для проверки через `diff` / `fc` должен включать все ключевые модули проекта - `main.py`, `src/config.py`, `src/logger.py` и все файлы из `src/` и `run/`, которые влияют на работу инструмента.
-- Команды выносить на отдельные строки - агент (и пользователь) должен иметь возможность скопировать их дословно.
-- Заменять `tool-name` на фактическое имя инструмента.
-- Не включать в блок логику скрипта - только инструкции по проверке.
-- Агент должен принимать решения сам, не спрашивая пользователя о дальнейших шагах.
-- Для Windows-специфики: команды помечать явно - агент не имеет прямого доступа к Windows-машине, эти команды выполняет пользователь.
+- Each script performs exactly one task, with no command-line arguments or subcommands.
+- Scripts do not depend on other project modules - no imports from `src/`, no logger.
+- Output goes through `print()` as an exception to the general rule.
+- Output lines must not start with bracketed level markers (`[i]`, `[!]`, `[*]`).
+- Each script starts with the AI-agent diagnostic block (03.02).
 
 ---
 
-## 03.03. Эталон install.py
+## 03.02. Diagnostic block for AI agents
 
-*Обязательно.*
+*Mandatory.*
 
-Эталон кода первичной установки. Платформенные отличия - в значениях констант (`APP_DIR`, подсказки по оболочке, каталог команды, источник установки) и, в сценарии Windows-архива, в проверке `pyproject.toml` (в архиве его нет - заменяется проверкой wheel); порядок действий и код процедуры в остальном общие для Linux и Windows. Значения констант и шагов задает overlay-документ (`_lin.md` / `_win.md`, таблица платформенных подстановок; Windows-сценарий архива - `_win.md`, разделы 04.04, 05.01). Скрипт изолирован (раздел 03.01), вывод через `print(..., flush=True)`.
+Each script in `run/deploy/` serves a double role: an executable script for the user and a skill for an AI agent. If the user tags the file without explanation (for example `@run/deploy/install.py`), the agent must diagnose the state, perform the required actions and report the result.
 
-**Порядок действий (первая установка):**
+The script must start with a comment block containing AI-agent instructions.
 
-1. Проверить наличие `pyproject.toml` и `uv`.
-2. Проверить, не установлен ли уже пакет. Если установлен - сообщить и завершить (для обновления использовать `run/deploy/update.py`).
-3. Установить пакет (`uv tool install .`).
-4. Создать каталог данных `APP_DIR` с подкаталогами `config/` и `log/`.
-5. Скопировать шаблон `config.ini.example` в `config.ini` - только если файл отсутствует.
-6. Скопировать `.env.example` в `.env` - только если файл отсутствует; установить права `0600`.
-7. Скопировать `translations.json` в каталог данных (всегда из источника установки).
-8. Проверить, что команда доступна в PATH.
+**Block structure:**
 
-**Код:**
+1. **Activation condition** - when the AI agent must run the check (usually - the user references the file without explanation).
+2. **Install state check** - whether the package is installed and whether sources match.
+3. **Actions by result** - install, update or report that everything is current.
 
-```python
-#!/usr/bin/env python3
-# ... блок диагностики из раздела 03.02 ...
+Concrete block templates (with OS commands) live in the overlays `_lin.md` / `_win.md`.
 
-import os
-import shutil
-import subprocess
-import sys
-from pathlib import Path
+**Block rules:**
 
-# значения APP_DIR и команд - по overlay-документу (lin/win), таблицы подстановок
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-TOOL_NAME = "tool-name"
-# <OS_CONFIG_ENV> / <OS_CONFIG_DEFAULT> - по overlay-документу (lin/win)
-APP_DIR = (
-    Path(os.environ.get("<OS_CONFIG_ENV>", "<OS_CONFIG_DEFAULT>")).expanduser()
-    / TOOL_NAME
-)
-# <UV_INSTALL_HINT> / <PATH_HINT> - по overlay-документу (lin/win)
-UV_INSTALL_HINT = "<UV_INSTALL_HINT>"
-PATH_HINT = "<PATH_HINT>"
-
-
-def _check_uv() -> None:
-    if not shutil.which("uv"):
-        print(f"uv не найден. {UV_INSTALL_HINT}", flush=True)
-        sys.exit(1)
-
-
-def _check_pyproject() -> None:
-    if not (PROJECT_ROOT / "pyproject.toml").exists():
-        print("pyproject.toml не найден в корне проекта", flush=True)
-        sys.exit(1)
-
-
-def _ensure_data_dirs() -> None:
-    APP_DIR.mkdir(parents=True, exist_ok=True)
-    (APP_DIR / "config").mkdir(exist_ok=True)
-    (APP_DIR / "log").mkdir(exist_ok=True)
-
-
-def _copy_if_missing(src: Path, dst: Path) -> None:
-    if dst.exists():
-        return
-    if not src.exists():
-        print(f"Шаблон не найден: {src}", flush=True)
-        return
-    shutil.copy2(src, dst)
-
-
-def _copy_translations() -> None:
-    src = PROJECT_ROOT / "config" / "translations.json"
-    if not src.exists():
-        print(f"Шаблон не найден: {src}", flush=True)
-        return
-    shutil.copy2(src, APP_DIR / "config" / "translations.json")
-
-
-def _is_tool_installed() -> bool:
-    result = subprocess.run(
-        ["uv", "tool", "list"], capture_output=True, text=True, check=False
-    )
-    return TOOL_NAME in result.stdout
-
-
-def main() -> None:
-    _check_pyproject()
-    _check_uv()
-    if _is_tool_installed():
-        print(f"Пакет '{TOOL_NAME}' уже установлен. Для обновления: python run/deploy/update.py", flush=True)
-        return
-    try:
-        subprocess.run(["uv", "tool", "install", "."], cwd=PROJECT_ROOT, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Ошибка установки пакета: {e}", flush=True)
-        sys.exit(1)
-    _ensure_data_dirs()
-    _copy_if_missing(
-        PROJECT_ROOT / "config" / "config.ini.example",
-        APP_DIR / "config" / "config.ini",
-    )
-    _copy_if_missing(PROJECT_ROOT / ".env.example", APP_DIR / ".env")
-    # права 0600 на .env - при создании и после каждой записи (project_standards.md, раздел 05.01)
-    env_file = APP_DIR / ".env"
-    if env_file.exists():
-        env_file.chmod(0o600)
-    _copy_translations()
-    cmd_path = shutil.which(TOOL_NAME)
-    if cmd_path:
-        print(f"Команда '{TOOL_NAME}' доступна: {cmd_path}", flush=True)
-    else:
-        print(f"Команда установлена, но не найдена в PATH. Добавьте {PATH_HINT} в PATH или перезапустите оболочку.", flush=True)
-
-
-if __name__ == "__main__":
-    main()
-```
+- The file list for `diff` / `fc` checks must include all key project modules - `main.py`, `src/config.py`, `src/logger.py` and every file from `src/` and `run/` that affects tool behavior.
+- Put commands on separate lines - the agent (and the user) must be able to copy them verbatim.
+- Replace `tool-name` with the actual tool name.
+- Do not include script logic in the block - only check instructions.
+- The agent decides independently, without asking the user about next steps.
+- Windows specifics: mark commands explicitly - the agent has no direct access to the Windows machine, the user runs these commands.
 
 ---
 
-## 03.04. Эталон update.py
+## 03.03. install.py reference
 
-*Обязательно.*
+*Mandatory.*
 
-Эталон кода обновления. Платформенные отличия - в значениях констант (`APP_DIR`, подсказки по оболочке, каталог команды, источник шаблонов, источник установки) и, в сценарии Windows-архива, в пропуске шагов, привязанных к репозиторию (этап 0 и проверка `pyproject.toml`); порядок действий и код процедуры в остальном общие для Linux и Windows. Значения констант и шагов задает overlay-документ (`_lin.md` / `_win.md`, таблица платформенных подстановок; Windows-сценарий архива - `_win.md`, разделы 04.04, 05.05). Скрипт изолирован (раздел 03.01), вывод через `print(..., flush=True)`.
+Reference source - `doc/standards/templates/install.py`; copy it to `run/deploy/install.py`. Platform differences are limited to constants (`APP_DIR`, shell hints, command directory, install source) and, in the Windows archive scenario, verification of `pyproject.toml` (absent from the archive - replaced by a wheel check); the procedure order and code are otherwise shared by Linux and Windows. The overlay sets the constants and steps (`_lin.md` / `_win.md`, platform substitution table; Windows archive scenario - `_win.md`, 04.04, 05.01). The script is isolated (03.01) and prints through `print(message, flush=True)`.
 
-**Порядок действий (обновление):**
+**Contract:**
 
-1. Проверить наличие `pyproject.toml` и `uv`.
-2. Проверить, что пакет установлен. Если не установлен - сообщить и завершить (для установки использовать `run/deploy/install.py`).
-3. Создать dev-конфиг `config/config.ini` из `config.ini.example`, если он отсутствует, с подстановкой `name`/`version` из `pyproject.toml` (канон - раздел 04.01, этап 0).
-4. Синхронизировать версию между `pyproject.toml`, `config/config.ini` и `config/config.ini.example` по SemVer - привести все три к максимальному значению (канон - раздел 04.01, этап 0). Нечисловые версии (`dev` и т.п.) - пропустить с сообщением.
-5. Очистить кэш: `uv cache clean tool-name`. Без этого при неизменной версии в `pyproject.toml` команда `uv tool install . --force` поставит кэшированный wheel вместо пересборки из текущих исходников - изменения кода не попадут в установленный пакет.
-6. Переустановить пакет: `uv tool install . --force`.
-7. Обновить `translations.json` в каталоге данных (всегда копировать из источника установки).
-8. Мигрировать prod-`config.ini` и prod-`.env` по алгоритму раздела 04.01 (сравнение структур, резервные копии, перенос значений).
-9. Кратко проверить установку (`uv tool list`, команда в PATH) и сообщить итог.
+- **Placeholders** - `TOOL_NAME`, `<OS_CONFIG_ENV>`, `<OS_CONFIG_DEFAULT>`, `<UV_INSTALL_HINT>`, `<PATH_HINT>`; `PROJECT_ROOT = Path(__file__).resolve().parents[2]`; `APP_DIR` per the overlay table
+- **Input** - repository root with `pyproject.toml` (direct deploy) or unpacked archive with the wheel (Windows scenario); `uv` on `PATH`; no CLI arguments
+- **Behavior** - check `pyproject.toml` (or the wheel in the archive) and `uv`; if `uv tool list` already shows `TOOL_NAME` in the first column, print the update hint and return; otherwise run `uv tool install .` in `PROJECT_ROOT` (Windows archive: `uv tool install <wheel>`); create `APP_DIR` with `config/` and `log/`; copy `config.ini.example` to `config.ini` and `.env.example` to `.env` only when the target is missing; set `.env` mode `0600`; always copy `translations.json` from the install source; report the command path or the PATH hint
+- **Exit codes** - `0` success or already installed; `1` missing `uv`/`pyproject.toml` or failed `uv tool install`
+- **Output** - `print(message, flush=True)`; no imports from `src/`, no logger
 
-**Код:**
-
-```python
-#!/usr/bin/env python3
-# ... блок диагностики из раздела 03.02 ...
-
-import configparser
-import os
-import re
-import shutil
-import subprocess
-import sys
-from datetime import datetime
-from pathlib import Path
-
-# значения APP_DIR и команд - по overlay-документу (lin/win), таблицы подстановок
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-TOOL_NAME = "tool-name"
-# <OS_CONFIG_ENV> / <OS_CONFIG_DEFAULT> - по overlay-документу (lin/win)
-APP_DIR = (
-    Path(os.environ.get("<OS_CONFIG_ENV>", "<OS_CONFIG_DEFAULT>")).expanduser()
-    / TOOL_NAME
-)
-# <UV_INSTALL_HINT> / <PATH_HINT> - по overlay-документу (lin/win)
-UV_INSTALL_HINT = "<UV_INSTALL_HINT>"
-PATH_HINT = "<PATH_HINT>"
-
-_BAK_STAMP = "%Y-%m-%d_%H-%M"
-_SECTION_RE = re.compile(r"^\[(.+)\]\s*$")
-_INI_KEY_RE = re.compile(r"^([^#;=\s][^=]*?)\s*=(.*)$")
-_ENV_KEY_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$")
-
-
-def _check_uv() -> None:
-    if not shutil.which("uv"):
-        print(f"uv не найден. {UV_INSTALL_HINT}", flush=True)
-        sys.exit(1)
-
-
-def _check_pyproject() -> None:
-    if not (PROJECT_ROOT / "pyproject.toml").exists():
-        print("pyproject.toml не найден в корне проекта", flush=True)
-        sys.exit(1)
-
-
-def _ensure_data_dirs() -> None:
-    APP_DIR.mkdir(parents=True, exist_ok=True)
-    (APP_DIR / "config").mkdir(exist_ok=True)
-    (APP_DIR / "log").mkdir(exist_ok=True)
-
-
-def _copy_translations() -> None:
-    src = PROJECT_ROOT / "config" / "translations.json"
-    if not src.exists():
-        print(f"Шаблон не найден: {src}", flush=True)
-        return
-    shutil.copy2(src, APP_DIR / "config" / "translations.json")
-
-
-def _is_tool_installed() -> bool:
-    result = subprocess.run(
-        ["uv", "tool", "list"], capture_output=True, text=True, check=False
-    )
-    return TOOL_NAME in result.stdout
-
-
-def _pyproject_version() -> str:
-    text = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
-    return match.group(1) if match else "dev"
-
-
-def _semver_key(value: str) -> tuple[int, ...] | None:
-    parts = value.strip().split(".")
-    if not parts or not all(part.isdigit() for part in parts):
-        return None
-    return tuple(int(part) for part in parts)
-
-
-def _with_app_values(text: str, name: str, version: str) -> str:
-    """Вернуть текст конфига с подставленными app.name и app.version."""
-    out: list[str] = []
-    section = ""
-    for line in text.splitlines():
-        section_match = _SECTION_RE.match(line.strip())
-        if section_match:
-            section = section_match.group(1)
-            out.append(line)
-            continue
-        key_match = _INI_KEY_RE.match(line)
-        if key_match and section == "app":
-            key = key_match.group(1).strip()
-            if key == "name":
-                out.append(f"name = {name}")
-                continue
-            if key == "version":
-                out.append(f"version = {version}")
-                continue
-        out.append(line)
-    return "\n".join(out) + "\n"
-
-
-def _read_app_info() -> tuple[str, str]:
-    parser = configparser.ConfigParser()
-    for candidate in (
-        PROJECT_ROOT / "config" / "config.ini",
-        PROJECT_ROOT / "config" / "config.ini.example",
-    ):
-        if candidate.exists():
-            parser.read(candidate, encoding="utf-8")
-            if parser.has_section("app"):
-                return (
-                    parser.get("app", "name", fallback=TOOL_NAME),
-                    parser.get("app", "version", fallback="dev"),
-                )
-    return TOOL_NAME, "dev"
-
-
-def _ensure_dev_config() -> None:
-    dst = PROJECT_ROOT / "config" / "config.ini"
-    src = PROJECT_ROOT / "config" / "config.ini.example"
-    if dst.exists() or not src.exists():
-        return
-    # канон подстановки name/version - deploy_standards.md, раздел 04.01 (этап 0)
-    text = src.read_text(encoding="utf-8")
-    dst.write_text(
-        _with_app_values(text, TOOL_NAME, _pyproject_version()), encoding="utf-8"
-    )
-    print(f"Создан dev-конфиг: {dst}", flush=True)
-
-
-def _sync_version() -> None:
-    pyproject = PROJECT_ROOT / "pyproject.toml"
-    ini_paths = [
-        PROJECT_ROOT / "config" / "config.ini",
-        PROJECT_ROOT / "config" / "config.ini.example",
-    ]
-    versions: dict[str, str] = {}
-    if pyproject.exists():
-        versions["pyproject"] = _pyproject_version()
-    for path in ini_paths:
-        if path.exists():
-            parser = configparser.ConfigParser()
-            parser.read(path, encoding="utf-8")
-            if parser.has_section("app"):
-                versions[str(path)] = parser.get("app", "version", fallback="dev")
-    numeric = {key: value for key, value in versions.items() if _semver_key(value) is not None}
-    if not numeric:
-        print("Версии нечисловые - синхронизация пропущена", flush=True)
-        return
-    target = max(numeric.values(), key=lambda value: _semver_key(value) or ())
-    # привести все три файла к максимальному значению (канон - раздел 04.01, этап 0)
-    if pyproject.exists() and versions.get("pyproject") != target:
-        text = pyproject.read_text(encoding="utf-8")
-        text = re.sub(
-            r'^(version\s*=\s*")[^"]+(")',
-            rf"\g<1>{target}\g<2>",
-            text,
-            count=1,
-            flags=re.MULTILINE,
-        )
-        pyproject.write_text(text, encoding="utf-8")
-    for path in ini_paths:
-        if not path.exists():
-            continue
-        parser = configparser.ConfigParser()
-        parser.read(path, encoding="utf-8")
-        name = parser.get("app", "name", fallback=TOOL_NAME)
-        path.write_text(
-            _with_app_values(path.read_text(encoding="utf-8"), name, target),
-            encoding="utf-8",
-        )
-    print(f"Версия синхронизирована: {target}", flush=True)
-
-
-def _ini_structure(text: str) -> dict[str, set[str]]:
-    structure: dict[str, set[str]] = {}
-    section = ""
-    for line in text.splitlines():
-        section_match = _SECTION_RE.match(line.strip())
-        if section_match:
-            section = section_match.group(1)
-            structure.setdefault(section, set())
-            continue
-        key_match = _INI_KEY_RE.match(line)
-        if key_match and section:
-            structure[section].add(key_match.group(1).strip())
-    return structure
-
-
-def _env_keys(text: str) -> list[str]:
-    keys: list[str] = []
-    for line in text.splitlines():
-        key_match = _ENV_KEY_RE.match(line.strip())
-        if key_match:
-            keys.append(key_match.group(1))
-    return keys
-
-
-def _rebuild_ini(example_text: str, old_text: str, name: str, version: str) -> str:
-    old_values: dict[str, dict[str, str]] = {}
-    section = ""
-    for line in old_text.splitlines():
-        section_match = _SECTION_RE.match(line.strip())
-        if section_match:
-            section = section_match.group(1)
-            continue
-        key_match = _INI_KEY_RE.match(line)
-        if key_match and section:
-            old_values.setdefault(section, {})[key_match.group(1).strip()] = (
-                key_match.group(2).strip()
-            )
-    out: list[str] = []
-    section = ""
-    for line in example_text.splitlines():
-        section_match = _SECTION_RE.match(line.strip())
-        if section_match:
-            section = section_match.group(1)
-            out.append(line)
-            continue
-        key_match = _INI_KEY_RE.match(line)
-        if key_match and section:
-            key = key_match.group(1).strip()
-            if section == "app" and key in ("name", "version"):
-                value = name if key == "name" else version
-            elif key in old_values.get(section, {}):
-                value = old_values[section][key]
-            else:
-                value = key_match.group(2).strip()
-            out.append(f"{key} = {value}")
-            continue
-        out.append(line)
-    return "\n".join(out) + "\n"
-
-
-def _rebuild_env(example_text: str, old_text: str) -> str:
-    old_values: dict[str, str] = {}
-    for line in old_text.splitlines():
-        key_match = _ENV_KEY_RE.match(line.strip())
-        if key_match:
-            old_values[key_match.group(1)] = key_match.group(2).strip()
-    out: list[str] = []
-    for line in example_text.splitlines():
-        key_match = _ENV_KEY_RE.match(line.strip())
-        if key_match and key_match.group(1) in old_values:
-            out.append(f"{key_match.group(1)}={old_values[key_match.group(1)]}")
-        else:
-            out.append(line)
-    return "\n".join(out) + "\n"
-
-
-def _backup(path: Path) -> Path:
-    stamp = datetime.now().strftime(_BAK_STAMP)
-    backup = path.with_name(f"{path.name}.bak_{stamp}")
-    if backup.exists():
-        backup = path.with_name(f"{path.name}.bak_{stamp}-{datetime.now():%S}")
-    path.rename(backup)
-    return backup
-
-
-def _atomic_write(path: Path, text: str) -> None:
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    tmp.replace(path)
-
-
-def _migrate_config() -> None:
-    prod = APP_DIR / "config" / "config.ini"
-    example = PROJECT_ROOT / "config" / "config.ini.example"
-    if not example.exists():
-        return
-    example_text = example.read_text(encoding="utf-8")
-    parser = configparser.ConfigParser()
-    parser.read_string(example_text)
-    name = parser.get("app", "name", fallback=TOOL_NAME)
-    version = parser.get("app", "version", fallback="dev")
-    if not prod.exists():
-        _atomic_write(prod, _with_app_values(example_text, name, version))
-        return
-    old_text = prod.read_text(encoding="utf-8")
-    if _ini_structure(old_text) == _ini_structure(example_text):
-        # структуры совпадают - обновить только app.name / app.version (раздел 04.01)
-        new_text = _with_app_values(old_text, name, version)
-        if new_text != old_text:
-            _atomic_write(prod, new_text)
-        return
-    backup = _backup(prod)
-    # алгоритм миграции - deploy_standards.md, раздел 04.01
-    _atomic_write(prod, _rebuild_ini(example_text, old_text, name, version))
-    print(f"Конфиг мигрирован, резервная копия: {backup.name}", flush=True)
-
-
-def _migrate_env() -> None:
-    prod = APP_DIR / ".env"
-    example = PROJECT_ROOT / ".env.example"
-    if not example.exists():
-        return
-    example_text = example.read_text(encoding="utf-8")
-    if not prod.exists():
-        _atomic_write(prod, example_text)
-        prod.chmod(0o600)
-        return
-    old_text = prod.read_text(encoding="utf-8")
-    old_keys = _env_keys(old_text)
-    example_keys = _env_keys(example_text)
-    # канон - только набор ключей, порядок строк не сравнивается (раздел 04.01)
-    if set(old_keys) == set(example_keys):
-        return
-    backup = _backup(prod)
-    # алгоритм миграции - deploy_standards.md, раздел 04.01
-    _atomic_write(prod, _rebuild_env(example_text, old_text))
-    prod.chmod(0o600)
-    added = [key for key in example_keys if key not in old_keys]
-    removed = [key for key in old_keys if key not in example_keys]
-    print(f".env мигрирован, резервная копия: {backup.name}", flush=True)
-    if added:
-        print(f"Новые ключи: {', '.join(added)}", flush=True)
-    if removed:
-        print(f"Ключи только в старом файле: {', '.join(removed)}", flush=True)
-
-
-def _verify_install() -> None:
-    result = subprocess.run(
-        ["uv", "tool", "list"], capture_output=True, text=True, check=False
-    )
-    if TOOL_NAME not in result.stdout:
-        print(f"Пакет {TOOL_NAME} не найден после установки", flush=True)
-        sys.exit(1)
-    if not shutil.which(TOOL_NAME):
-        print(f"Команда не найдена в PATH. Добавьте {PATH_HINT} в PATH", flush=True)
-
-
-def main() -> None:
-    name, version = _read_app_info()
-    print(f"{name} v{version}", flush=True)
-    _check_pyproject()
-    _check_uv()
-    if not _is_tool_installed():
-        print(f"Пакет {TOOL_NAME} не установлен. Для установки: python run/deploy/install.py", flush=True)
-        return
-    _ensure_dev_config()
-    _sync_version()
-    subprocess.run(["uv", "cache", "clean", TOOL_NAME], check=False)
-    subprocess.run(
-        ["uv", "tool", "install", ".", "--force"], cwd=PROJECT_ROOT, check=True
-    )
-    _ensure_data_dirs()
-    _copy_translations()
-    _migrate_config()
-    _migrate_env()
-    _verify_install()
-    print("Обновление завершено", flush=True)
-
-
-if __name__ == "__main__":
-    main()
-```
-
-Новый `config.ini` и `.env` собираются по тексту example с подстановкой значений (порядок секций, ключей и комментарии шаблона сохраняются); `ConfigParser.write()` не используется как единственный способ записи.
+The template ships helpers `_check_uv`, `_check_pyproject`, `_is_tool_installed`, `_ensure_data_dirs`, `_copy_if_missing`, `_copy_translations` and `main`; preserve their behavior when adapting.
 
 ---
 
-## 04.01. Версия приложения и миграция конфигурации при обновлении
+## 03.04. update.py reference
 
-*Обязательно.*
+*Mandatory.*
 
-Название и версия приложения для отображения пользователю (в логах, консоли) хранятся в `config/config.ini` в секции `[app]` (параметры `name` и `version`). Это единый источник для всех режимов - разработки и установленного.
+Reference source - `doc/standards/templates/update.py`; copy it to `run/deploy/update.py`. Platform differences are limited to constants (`APP_DIR`, shell hints, command directory, template source, install source) and, in the Windows archive scenario, skipped repository-bound steps (stage 0 and the `pyproject.toml` check); the procedure order and code are otherwise shared by Linux and Windows. The overlay sets the constants and steps (`_lin.md` / `_win.md`, platform substitution table; Windows archive scenario - `_win.md`, 04.04, 05.05). The script is isolated (03.01) and prints through `print(message, flush=True)`.
 
-Версия в `pyproject.toml` (поле `version`) предназначена только для метаданных пакета (pip/uv) и не используется для отображения. Синхронность версий в `pyproject.toml` и `config.ini` - ответственность агента; агент предлагает обновить обе при коммите (см. основной стандарт, раздел 01.03).
+**Update order:**
+
+1. Check `pyproject.toml` and `uv`.
+2. Check that the package is installed. If not, report and exit (install with `run/deploy/install.py`).
+3. Create the dev config `config/config.ini` from `config.ini.example` when absent, substituting `name`/`version` from `pyproject.toml` (canon - 04.01, stage 0).
+4. Sync the version across `pyproject.toml`, `config/config.ini` and `config/config.ini.example` by SemVer - raise all three to the maximum value (canon - 04.01, stage 0). Non-numeric versions (`dev` and similar) - skip with a message.
+5. Clean the cache: `uv cache clean tool-name`. Without this, with an unchanged `pyproject.toml` version, `uv tool install . --force` installs the cached wheel instead of rebuilding from current sources - code changes never reach the installed package.
+6. Reinstall: `uv tool install . --force`.
+7. Update `translations.json` in the data directory (always copy from the install source).
+8. Migrate prod `config.ini` and prod `.env` by the algorithm in 04.01 (structure comparison, backups, value transfer).
+9. Verify the installation briefly (`uv tool list`, command on `PATH`) and report the result.
+
+**Contract:**
+
+- **Input** - repository root with `pyproject.toml` (direct deploy) or unpacked archive without it (Windows scenario), `uv` on `PATH`; no CLI arguments
+- **Behavior** - helpers `_pyproject_meta`, `_ensure_dev_config`, `_sync_version`, `_migrate_config`, `_migrate_env`, `_verify_install`; config migration uses `_ini_structure`, `_rebuild_ini`, `_backup`, `_atomic_write`; env migration uses `_env_keys`, `_rebuild_env`
+- **Safety** - atomic writes (temp file + `replace`); backups named `<file>.bak_YYYY-MM-DD_HH-MM` (seconds suffix on collision) are never deleted by the script; `.env` mode `0600` after every write; secrets are never printed
+- **Exit codes** - `0` success or package absent (with install hint); `1` missing `uv`/`pyproject.toml`, failed reinstall or failed post-install verification
+- **Output** - `print(message, flush=True)`; report synced version, backup names, added keys and old-only key names (never values)
+
+New `config.ini` and `.env` are assembled from the example text with substituted values (section order, key order and template comments are preserved); `ConfigParser.write()` is not the sole write method.
+
+---
+
+## 04.01. Application version and config migration on update
+
+*Mandatory.*
+
+The application name and version shown to the user (logs, console) live in `config/config.ini`, section `[app]` (`name` and `version`). This is the single source for all modes - development and installed.
+
+The version in `pyproject.toml` (`version`) is package metadata (pip/uv) only and is not displayed. Version sync between `pyproject.toml` and `config.ini` is the agent's responsibility; the agent offers to update both at commit (core standard, 01.03).
 
 ```python
 from src.config import APP_NAME, APP_VERSION
 ```
 
-Установочный скрипт `update.py` при обновлении выполняет единый алгоритм миграции. **Канон алгоритма - этот раздел**; overlay-документы (`deploy_lin_standards.md`, раздел 03.05; `deploy_win_standards.md`, раздел 05.05) содержат только платформенные пути, источник шаблонов и команды.
+The install script `update.py` runs a single migration algorithm on update. **This section is the algorithm canon**; overlay documents (`deploy_lin_standards.md`, 03.05; `deploy_win_standards.md`, 05.05) contain only platform paths, template sources and commands.
 
-**Этап 0 - синхронизация версии в репозитории (только прямой деплой из репозитория).** Версии в `config/config.ini` (параметр `version` секции `[app]`), `pyproject.toml` (поле `version`) и `config/config.ini.example` сравниваются по SemVer; максимальное значение записывается во все три файла. Нечисловые версии (`dev` и т.п.) - пропустить с сообщением. Точка входа алгоритма миграции далее - dev-конфиг `config/config.ini`. При его отсутствии - сначала создать из `config/config.ini.example`, проставив `name`/`version` из `pyproject.toml`. При деплое через архив этап отсутствует: версия зафиксирована в wheel на машине сборки.
+**Stage 0 - version sync in the repository (direct repository deploy only).** Compare versions in `config/config.ini` (`version` in `[app]`), `pyproject.toml` (`version`) and `config/config.ini.example` by SemVer; write the maximum value to all three files. Non-numeric versions (`dev` and similar) - skip with a message. The migration algorithm starts from the dev config `config/config.ini`. If it is absent, create it from `config/config.ini.example` with `name`/`version` from `pyproject.toml`. Archive deployment skips this stage: the version is fixed in the wheel on the build machine.
 
-**Этап 1 - миграция prod-`config.ini`.** Источник новой структуры - `config.ini.example`.
+**Stage 1 - prod `config.ini` migration.** The source of the new structure is `config.ini.example`.
 
-Сравнение: только набор секций и ключей (значения пользователя на решение о миграции не влияют).
+Compare section and key sets only (user values do not affect the migration decision).
 
-Если структуры совпадают:
-- без переименования обновить только `app.name` и `app.version` из источника, если отличаются
+If structures match:
+- update only `app.name` and `app.version` from the source when they differ, without renaming
 
-Если структуры отличаются:
-1. Переименовать текущий файл в `config.ini.bak_YYYY-MM-DD_HH-MM` (история накапливается; при коллизии имени - суффикс с секундами)
-2. Создать новый `config.ini` по тексту example (порядок секций/ключей и комментарии шаблона сохраняются)
-3. Для совпадающих ключей подставить значения из старого файла
-4. Для новых ключей (есть в example, нет в старом) - значение из example
-5. `app.name` и `app.version` всегда из источника, не из старого файла
-6. Ключи, которые были только в старом конфиге и отсутствуют в example - не переносить (остаются в `.bak`)
-7. В консоль: имя резервной копии, перенесенные и добавленные ключи (без секретов)
+If structures differ:
+1. Rename the current file to `config.ini.bak_YYYY-MM-DD_HH-MM` (history accumulates; on name collision add a seconds suffix)
+2. Create a new `config.ini` from the example text (section/key order and template comments preserved)
+3. Substitute old file values for matching keys
+4. For new keys (present in example, absent in old) - take the example value
+5. `app.name` and `app.version` always come from the source, never from the old file
+6. Keys present only in the old config and absent from the example - do not migrate (they remain in `.bak`)
+7. Print to console: backup name, transferred keys and added keys (no secrets)
 
-Если prod-конфига еще нет - создать его копированием example (значения `name`/`version` - из example).
+If the prod config does not exist yet, create it by copying the example (`name`/`version` from the example).
 
-**Этап 2 - миграция prod-`.env`.** Источник новой структуры - `.env.example`.
+**Stage 2 - prod `.env` migration.** The source of the new structure is `.env.example`.
 
-Сравнение: только набор ключей (значения/секреты не сравниваются и не печатаются).
+Compare key sets only (values/secrets are neither compared nor printed).
 
-Если наборы ключей совпадают - файл не трогать.
+If key sets match - leave the file untouched.
 
-Если отличаются:
-1. Переименовать текущий файл в `.env.bak_YYYY-MM-DD_HH-MM`
-2. Создать новый `.env` по ключам example
-3. Для совпадающих ключей перенести старые значения
-4. Для новых ключей - значение из example (часто пустое)
-5. Ключи, которые были только в старом `.env` - не переносить (остаются в `.bak`); сообщить список имен ключей без значений
+If they differ:
+1. Rename the current file to `.env.bak_YYYY-MM-DD_HH-MM`
+2. Create a new `.env` from the example keys
+3. Transfer old values for matching keys
+4. For new keys - take the example value (often empty)
+5. Keys present only in the old `.env` - do not migrate (they remain in `.bak`); report the list of key names without values
 
-Если prod-`.env` еще нет - скопировать example.
+If the prod `.env` does not exist yet - copy the example.
 
-**Этап 3 - `translations.json`.** Обновлять всегда копированием из источника установки.
+**Stage 3 - `translations.json`.** Always update by copying from the install source.
 
-**Правила:**
+**Rules:**
 
-- Пользовательские значения совпадающих ключей при миграции сохраняются; новая структура всегда берется из example
-- Резервные копии не удаляются скриптом
-- Запись нового файла - по шаблону example с подстановкой значений, без «голого» `ConfigParser.write()` как единственного способа сборки
-- Критичные файлы (`config.ini`, `.env`) записывать атомарно: во временный файл, затем `rename` поверх целевого (`project_standards.md`, раздел 03.01) - прерванная запись не оставляет поврежденный файл
-- Сравнение только по множеству ключей: переименование ключа = старый остается в `.bak`, новый берется из example; правка только комментариев в example миграцию не запускает
+- Preserve user values of matching keys during migration; the new structure always comes from the example
+- The script never deletes backups
+- Write the new file from the example template with value substitution, not with a bare `ConfigParser.write()` as the sole assembly method
+- Write critical files (`config.ini`, `.env`) atomically: temporary file, then `rename` over the target (`project_standards.md`, 03.01) - an interrupted write leaves no corrupted file
+- Compare key sets only: a renamed key leaves the old one in `.bak` and takes the new one from the example; comment-only example changes do not trigger migration
 
 ---
 
-## 05.01. Точка входа
+## 05.01. Entry point
 
-*Обязательно.*
+*Mandatory.*
 
-Функция `main()` не должна содержать логику напрямую. Ее задача - разобрать аргументы, инициализировать конфигурацию и делегировать выполнение:
+The `main()` function must not hold logic directly. Its job is to parse arguments, initialize configuration and delegate execution:
 
 ```python
-from src.config import PROJECT_ROOT, APP_NAME, APP_VERSION
-from src.localization import t
+import logging
 from pathlib import Path
 
-from src.logger import get_logger
+from src.config import PROJECT_ROOT, APP_NAME, APP_VERSION
+from src.localization import t
+from src.logger import console_message, get_logger
+
 
 def main() -> None:
     logger = get_logger(Path(__file__).stem, log_dir=PROJECT_ROOT / "log")
-    logger.info(t("msg.app_started", name=APP_NAME, version=APP_VERSION))
+    logger.info("Started %s v%s", APP_NAME, APP_VERSION)
+    console_message(
+        logging.INFO,
+        t("msg.app_started", name=APP_NAME, version=APP_VERSION),
+    )
     args = parse_args()
     init_config()
     run(args)
@@ -866,69 +416,69 @@ if __name__ == "__main__":
 
 ---
 
-## 05.02. Режим разработчика
+## 05.02. Developer mode
 
-*Опционально - для отладки без установки.*
+*Optional - for debugging without installation.*
 
-Для отладки без установки использовать `uv` в editable-режиме. Требуется активный venv. Команда активации venv зависит от ОС (см. overlay-документ):
+For debugging without installation use `uv` in editable mode. An active venv is required. The venv activation command depends on the OS (see the overlay):
 
 ```bash
-# активация venv (Linux: source .venv/bin/activate; Windows: .venv\Scripts\activate)
+# activate the venv (Linux: source .venv/bin/activate; Windows: .venv\Scripts\activate)
 uv pip install -e .
 ```
 
-Устанавливает пакет в "editable" режиме - изменения в коде отражаются сразу без переустановки. Код выполняется из репозитория (`.git/` на месте), поэтому `PROJECT_ROOT` указывает на корень репозитория (режим разработки).
+This installs the package in editable mode - code changes apply immediately without reinstall. Code runs from the repository (`.git/` present), so `PROJECT_ROOT` points to the repository root (development mode).
 
-**Разница между режимами `uv`:**
+**Difference between `uv` modes:**
 
-- `uv tool install .` - изолированная установка CLI-команды для повседневного использования. Пакет попадает в отдельный venv, команда доступна глобально.
-- `uv pip install -e .` - установка в текущий venv для разработки. Требует активированный venv, изменения в коде применяются сразу.
+- `uv tool install .` - isolated CLI command installation for daily use. The package goes into a separate venv, the command is globally available.
+- `uv pip install -e .` - installation into the current venv for development. Requires an activated venv; code changes apply immediately.
 
 ---
 
-## 05.03. Удаление
+## 05.03. Uninstall
 
-*Опционально.*
+*Optional.*
 
 ```bash
 uv tool uninstall tool-name
 ```
 
-Каталог данных пользователя при удалении пакета не затрагивается - пользователь удаляет его вручную при необходимости. Конкретный путь каталога данных - по ОС (см. overlay-документ).
+The user data directory is not touched when the package is removed - the user deletes it manually if needed. The exact data path depends on the OS (see the overlay).
 
 ---
 
-## 05.04. Чек-лист перед релизом
+## 05.04. Pre-release checklist
 
-*Обязательно.*
+*Mandatory.*
 
-Общие пункты (OS-специфичные пункты - в overlay-документе под целевую ОС):
+Common items (OS-specific items are in the overlay for the target OS):
 
-1. Все зависимости указаны в `pyproject.toml` с точными версиями (`==`).
-2. `requirements.txt` и `pyproject.toml` синхронизированы (одинаковые пакеты и версии).
-3. Версия в `pyproject.toml` обновлена.
-4. Секция `[app]` в `config.ini` содержит корректные `name` и `version`.
-5. `__init__.py` есть во всех импортируемых пакетах.
-6. Подмена `PROJECT_ROOT` в `config.py` использует корректное имя инструмента.
-7. Установочные скрипты используют корректное имя инструмента (`TOOL_NAME`).
-8. `.gitignore` содержит артефакты сборки (`*.egg-info/`, `dist/`, `build/`).
-9. Data-файлы (SQL, шаблоны) доступны после установки.
-10. Локфайл актуален: `uv lock --check` выполняется без расхождений.
-
----
-
-## 06.01. Связь с другими документами
-
-| Документ | Связь |
-|----------|-------|
-| `doc/standards/project_standards.md` | Основной стандарт; настоящий документ применяется поверх него (структура проекта, конфигурация, код) |
-| `deploy_lin_standards.md` / `deploy_win_standards.md` | OS-overlay: платформенные пути, установочные скрипты и команды; применяются вместе с настоящим ядром |
-| `deploy_docker_standards.md` | Смежный стандарт: инфраструктура Docker (сеть, тома, публикация портов); применяется при контейнерном развертывании вместо настоящего ядра |
-| `web_standards.md` | Смежный стандарт: веб-приложения (FastAPI + nginx); настоящее ядро к веб-приложениям не применяется (граница - `web_standards.md`, раздел 12.02) |
-| `doc/standards/_index_standards.md` | Реестр пакета стандартов и карта маршрутизации |
+1. All dependencies are listed in `pyproject.toml` with exact versions (`==`).
+2. `requirements.txt` and `pyproject.toml` are synchronized (identical packages and versions).
+3. The version in `pyproject.toml` is updated.
+4. The `[app]` section in `config.ini` contains correct `name` and `version`.
+5. `__init__.py` exists in every imported package.
+6. The `PROJECT_ROOT` swap in `config.py` uses the correct tool name.
+7. Install scripts use the correct tool name (`TOOL_NAME`).
+8. `.gitignore` contains build artifacts (`*.egg-info/`, `dist/`, `build/`).
+9. Data files (SQL, templates) are available after installation.
+10. The lockfile is current: `uv lock --check` runs clean.
 
 ---
 
-## 06.02. Версионирование
+## 06.01. Related documents
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя (см. _index_standards.md).
+| Document | Relation |
+|----------|----------|
+| `doc/standards/project_standards.md` | Core standard; this document applies on top of it (project structure, configuration, code) |
+| `deploy_lin_standards.md` / `deploy_win_standards.md` | OS overlays: platform paths, install scripts and commands; applied together with this core |
+| `deploy_docker_standards.md` | Adjacent standard: Docker infrastructure (network, volumes, port publication); applies to container deployment instead of this core |
+| `web_standards.md` | Adjacent standard: web applications (FastAPI + nginx); this core does not apply to web applications (boundary - `web_standards.md`, 12.02) |
+| `doc/standards/_index_standards.md` | Standards package registry and routing map |
+
+---
+
+## 06.02. Versioning
+
+Standards package versioning is unified for all package documents. The versioning policy, registry and routing map live in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see _index_standards.md).

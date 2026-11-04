@@ -1,0 +1,46 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.vscode/
+.claude/
+.kilo
+.cursor
+web/var/
+
+# OpenCode harness: commit custom tool plugins only
+.opencode/*
+!.opencode/plugins/
+
+# Local data directories: commit .gitkeep and tracked subdirectories only
+data/*
+!data/.gitkeep
+!data/skills/
+!data/lessons.md
+!data/memory/
+!data/registries/
+!data/journals/
+!data/state/
+log/*
+!log/.gitkeep
+debug/*
+!debug/.gitkeep
+input/*
+!input/.gitkeep
+output/*
+!output/.gitkeep
+
+# Ephemeral artifacts: ignore completely without .gitkeep
+tmp/
+
+# Deletion quarantine: ignore completely without .gitkeep
+.trash/
+
+# Archives (.arch) at any depth: ignore completely without .gitkeep
+.arch/
+
+# Transit agent questions directory
+doc/agent_questions/*
+!doc/agent_questions/.gitkeep

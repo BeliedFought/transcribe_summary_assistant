@@ -1,136 +1,136 @@
-# Задания на изменение (CR). Версия 4.16.0
+# Change Requests (CR). Version 5.0.0
 
-Канон входящих заданий на изменение (`doc/change_requests/`): назначение и место в рабочем процессе, папка и именование, скелет документа, жизненный цикл, перенос в боевую спецификацию, индекс каталога. Документ - дополнение к `project_standards.md` и применяется поверх него. Порядок принятия решений при отсутствии или неоднозначности нормы - `project_standards.md`, раздел 07.06.
+Canon for incoming change requests (`doc/change_requests/`): purpose and place in the workflow, folder and naming, document skeleton, lifecycle, transfer to a live specification, and directory index. The document supplements `project_standards.md` and applies on top of it. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 
-Канон навигационных документов (индексы) - `index_nav_standards.md`.
-
----
-
-## Оглавление
-
-**01. Назначение и место в рабочем процессе:** 01.01 Назначение - 01.02 Граница с соседними документами - 01.03 Поток исполнения
-
-**02. Папка и именование:** 02.01 Папка и коммитимость - 02.02 Именование файлов - 02.03 Индекс каталога
-
-**03. Скелет документа CR:** 03.01 Шапка - 03.02 Обязательная база - 03.03 Опциональные разделы - 03.04 Эталонный скелет
-
-**04. Жизненный цикл:** 04.01 Статусы и переходы - 04.02 Согласование и запуск исполнения - 04.03 Перенос в боевую спецификацию и прямое исполнение - 04.04 Архивация и отклонение
-
-**05. Правила текста**
-
-**06. Связь и версионирование:** 06.01 Связь с другими документами - 06.02 Версионирование
+The canon for navigation documents (indexes) is `index_nav_standards.md`.
 
 ---
 
-## 01.01. Назначение
+## Table of Contents
 
-*Обязательно.*
+**01. Purpose and place in the workflow:** 01.01 Purpose - 01.02 Boundary with adjacent documents - 01.03 Execution flow
 
-Задание на изменение (CR, change request) - входящий документ, фиксирующий проблематику до начала работы над изменением: контекст, текущее состояние со ссылками на нормы, варианты решения с достоинствами, ограничениями и рисками, рекомендацию. CR - точка старта задачи: в нем принимается решение «что делать и каким путем» - до формирования боевой спецификации и до триггера исполнения.
+**02. Folder and naming:** 02.01 Folder and committability - 02.02 File naming - 02.03 Directory index
 
----
+**03. CR document skeleton:** 03.01 Header - 03.02 Mandatory base - 03.03 Optional sections - 03.04 Reference skeleton
 
-## 01.02. Граница с соседними документами
+**04. Lifecycle:** 04.01 Statuses and transitions - 04.02 Approval and execution start - 04.03 Transfer to a live specification and direct execution - 04.04 Archiving and rejection
 
-*Обязательно.*
+**05. Text rules**
 
-- `doc/agent_questions/` - уточняющие вопросы агента в ходе диалога (`project_standards.md`, раздел 07.02); не задание на изменение
-- `doc/specs/spec_<slug>.md` - боевая спецификация исполнения: юзкейсы, решения по вопросам, затронутые компоненты, критерии приемки (раздел 07.02); CR отвечает на вопрос «что и зачем, какими путями», спека - «как делать»
-- `doc/specs/overrides.md` - реестр отклонений от стандарта (раздел 01.01.02); не задание на изменение
-- Сессии (`SESSION.md`, раздел 01.01.01) - рабочий контейнер исполнения; CR и спека могут исполняться внутри сессии, но сами сессиями не являются
+**06. Relations and versioning:** 06.01 Related documents - 06.02 Versioning
 
 ---
 
-## 01.03. Поток исполнения
+## 01.01. Purpose
 
-*Обязательно.*
+*Mandatory.*
 
-1. Проблематика фиксируется в CR: `doc/change_requests/cr_<slug>.md`
-2. CR согласовывается с пользователем: выбор варианта, ответы на открытые вопросы, статус `согласован`
-3. Крупное задание - перенос в боевую спецификацию `doc/specs/spec_<slug>.md` (тот же слаг, другой префикс - раздел 04.03); мелкое - исполнение напрямую после согласования
-4. Исполнение - по триггеру `ДЕЛАЙ` / `GO` (`project_standards.md`, раздел 07.02); ход исполнения отслеживается в спеке, не в CR
-5. Финал - архивация CR в `doc/change_requests/.arch/` (раздел 04.04)
+A change request (CR) is an incoming document that records the problem before work on a change begins: context, current state with references to norms, solution options with advantages, constraints and risks, and a recommendation. A CR is the starting point of a task: it decides "what to do and which path to take" - before a live specification is formed and before the execution trigger.
 
 ---
 
-## 02.01. Папка и коммитимость
+## 01.02. Boundary with adjacent documents
 
-*Обязательно.*
+*Mandatory.*
 
-CR живут в `doc/change_requests/`. Папка коммитится: задания - проектные артефакты с историей в git. Подпапка `.arch/` - локальный архив, из git исключена (`project_standards.md`, разделы 01.01, 06.01). Статус транзитной папки к `doc/change_requests/` не применяется: коммитится наравне с `doc/specs/`.
-
----
-
-## 02.02. Именование файлов
-
-*Обязательно.*
-
-Имя файла - `cr_<slug>.md`; `<slug>` - латинский слаг, kebab-case, без транслита (`code_standards.md`, раздел 02.01). Номера заданий не ведутся - идентификация по слагу. Уникальность слага - по каталогу целиком, включая `.arch/` (раздел 01.01). Один CR - одна проблематика; несколько независимых проблем оформляются отдельными CR.
+- `doc/agent_questions/` - agent clarifying questions during a dialog (`project_standards.md`, 07.02); not a change request
+- `doc/specs/spec_<slug>.md` - the live execution specification: use cases, answers to questions, affected components, acceptance criteria (07.02); the CR answers "what and why, by which paths", the spec answers "how to do it"
+- `doc/specs/overrides.md` - the standard deviation registry (01.01.02); not a change request
+- Sessions (`SESSION.md`, 01.01.01) - the working execution container; a CR and a spec can be executed inside a session but are not sessions themselves
 
 ---
 
-## 02.03. Индекс каталога
+## 01.03. Execution flow
 
-*Обязательно.*
+*Mandatory.*
 
-Индекс `doc/change_requests/_index_change_requests.md` обязателен при наличии каталога. Скелет, реестр и карта маршрутизации - канон `index_nav_standards.md` (разделы 03, 04, 05.01, 06). Агент актуализирует индекс при любом изменении состава: создание CR, смена статуса, перенос в спеку, архивация, отклонение. Индекс ведется вручную по этому канону; навык `glob-update-indexes` его не перегенерирует.
-
----
-
-## 03.01. Шапка
-
-*Обязательно.*
-
-Шапка - сразу после H1, маркированным списком из трех полей:
-
-- Дата: `YYYY-MM-DD` создания
-- Статус: один из раздела 04.01
-- Исполнение: краткое состояние по факту (`не начато`, идет, `завершено`)
-
-Собственный SemVer у CR не ведется: история изменений - в git, жизненный цикл - через статус.
+1. The problem is recorded in a CR: `doc/change_requests/cr_<slug>.md`
+2. The CR is agreed with the user: option selection, answers to open questions, status `согласован`
+3. A large task is transferred to a live specification `doc/specs/spec_<slug>.md` (same slug, different prefix - 04.03); a small task is executed directly after approval
+4. Execution starts on the `ДЕЛАЙ` / `GO` trigger (`project_standards.md`, 07.02); execution progress is tracked in the spec, not in the CR
+5. Final step - archive the CR in `doc/change_requests/.arch/` (04.04)
 
 ---
 
-## 03.02. Обязательная база
+## 02.01. Folder and committability
 
-*Обязательно.*
+*Mandatory.*
 
-Разделы ниже присутствуют в каждом CR.
+CRs live in `doc/change_requests/`. The folder is committed: requests are project artifacts with a git history. The `.arch/` subfolder is a local archive excluded from git (`project_standards.md`, 01.01, 06.01). The transient folder status does not apply to `doc/change_requests/`: it is committed on par with `doc/specs/`.
+
+---
+
+## 02.02. File naming
+
+*Mandatory.*
+
+The file name is `cr_<slug>.md`; `<slug>` is a Latin kebab-case slug without transliteration (`code_standards.md`, 02.01). Request numbers are not maintained - identification is by slug. Slug uniqueness is checked across the whole directory, including `.arch/` (01.01). One CR - one problem; several independent problems get separate CRs.
+
+---
+
+## 02.03. Directory index
+
+*Mandatory.*
+
+The index `doc/change_requests/_index_change_requests.md` is mandatory when the directory exists. Skeleton, registry, and routing map - the canon of `index_nav_standards.md` (03, 04, 05.01, 06). The agent updates the index on any composition change: CR creation, status change, transfer to a spec, archiving, rejection. The index is maintained manually per this canon; the `glob-update-indexes` skill does not regenerate it.
+
+---
+
+## 03.01. Header
+
+*Mandatory.*
+
+The header follows immediately after H1 as a marked list of three fields:
+
+- `Дата`: `YYYY-MM-DD` of creation
+- `Статус`: one of 04.01
+- `Исполнение`: brief factual state (`не начато`, in progress, `завершено`)
+
+A CR does not keep its own SemVer: change history is in git, lifecycle is tracked through status.
+
+---
+
+## 03.02. Mandatory base
+
+*Mandatory.*
+
+The sections below are present in every CR.
 
 **Проблематика:**
 
-- Контекст: сценарий и требования пользователя к изменению
-- Текущее состояние: как устроено сейчас, со ссылками на разделы стандартов и файлы
-- Следствия бездействия: что произойдет, если изменение не выполнить
+- Context: the scenario and user requirements for the change
+- Current state: how it works now, with references to standard sections and files
+- Consequences of inaction: what happens if the change is not made
 
 **Варианты решения:**
 
-- Каждый вариант - отдельным блоком: описание, достоинства, ограничения и риски
-- Варианты упорядочены по предпочтительности, рекомендуемый - первым
-- Рекомендация с обоснованием - в конце раздела
+- Each option is a separate block: description, advantages, constraints and risks
+- Options are ordered by preference, the recommended one first
+- A recommendation with rationale closes the section
 
-**Затрагиваемое:** файлы, документы, компоненты, на которые повлияет исполнение
+**Затрагиваемое:** files, documents, and components affected by execution
 
-**Открытые вопросы:** что нужно решить пользователю до исполнения; закрытые вопросы переносятся в текст соответствующих разделов
-
----
-
-## 03.03. Опциональные разделы
-
-*Обязательно.*
-
-Разделы для крупных или рискованных заданий; в мелких CR допустимо опускать:
-
-- Цели и non-goals: что должно быть достигнуто и что сознательно вне области задания
-- Риски исполнения и откат: чем исполнение может навредить и как вернуть исходное состояние
-- Критерии приемки: как проверить, что задание исполнено
-- Журнал согласования: записи «дата - решение - суть»; ведется при долгих согласованиях с несколькими итерациями
+**Открытые вопросы:** what the user must decide before execution; closed questions move into the text of the relevant sections
 
 ---
 
-## 03.04. Эталонный скелет
+## 03.03. Optional sections
 
-*Обязательно.*
+*Mandatory.*
+
+Sections for large or risky tasks; small CRs may omit them:
+
+- `Цели и non-goals`: what must be achieved and what is deliberately outside the task scope
+- `Риски исполнения и откат`: how execution can cause harm and how to restore the original state
+- `Критерии приемки`: how to verify that the task is executed
+- `Журнал согласования`: records "date - decision - summary"; maintained during long approvals with several iterations
+
+---
+
+## 03.04. Reference skeleton
+
+*Mandatory.*
 
 ```markdown
 # CR: <task-summary>
@@ -179,79 +179,81 @@ CR живут в `doc/change_requests/`. Папка коммитится: зад
 <!-- Опционально: цели и non-goals, риски исполнения и откат, критерии приемки, журнал согласования -->
 ```
 
----
-
-## 04.01. Статусы и переходы
-
-*Обязательно.*
-
-Статус фиксируется в шапке. Статусов ровно пять:
-
-| Статус | Смысл |
-|--------|-------|
-| `новый` | создан, ожидает обсуждения и выбора варианта |
-| `согласован` | вариант выбран, открытые вопросы закрыты пользователем |
-| `перенесен в спеку` | задание перенесено в боевую спецификацию (раздел 04.03) |
-| `исполнен напрямую` | мелкое задание исполнено без спеки (раздел 04.03) |
-| `отклонен` | пользователь отказался от исполнения |
-
-Финальные статусы - три последних; финальный CR подлежит архивации (раздел 04.04).
+The CR document language is Russian: headings, field names, and statuses stay Russian as defined in this skeleton.
 
 ---
 
-## 04.02. Согласование и запуск исполнения
+## 04.01. Statuses and transitions
 
-*Обязательно.*
+*Mandatory.*
 
-- Обсуждение CR ведется в подготовительном режиме: варианты и вопросы - без мутаций проекта (`project_standards.md`, раздел 07.02)
-- Решение пользователя фиксируется в CR: выбранный вариант, ответы на открытые вопросы, смена статуса на `согласован` с датой
-- Исполнение начинается только по триггеру `ДЕЛАЙ` / `GO` (раздел 07.02); триггер действует на одну задачу
-- Доработка согласованного CR (новые факты, изменившиеся требования) - возврат статуса в `новый` с записью причины в проблематике
+The status is recorded in the header. There are exactly five statuses:
 
----
+| Status | Meaning |
+| ------ | ------- |
+| `новый` | created, awaiting discussion and option selection |
+| `согласован` | option selected, open questions closed by the user |
+| `перенесен в спеку` | the task is transferred to a live specification (04.03) |
+| `исполнен напрямую` | a small task executed without a spec (04.03) |
+| `отклонен` | the user refused execution |
 
-## 04.03. Перенос в боевую спецификацию и прямое исполнение
-
-*Обязательно.*
-
-- Крупное задание: после согласования создается боевая спека `doc/specs/spec_<slug>.md` - тот же слаг, что у CR, другой префикс; состав спеки - раздел 07.02 `project_standards.md`; спека регистрируется в `doc/specs/_index_specs.md`. В момент переноса CR получает статус `перенесен в спеку` и строку «Перенесено в `doc/specs/spec_<slug>.md` (дата)», затем архивируется
-- Мелкое задание (один модуль, несколько точечных правок): исполняется напрямую по общим правилам; CR получает статус `исполнен напрямую` с датой, затем архивируется
-- Ход исполнения отслеживается в спеке и в рабочем диалоге, не в CR: CR - документ выбора пути, не трекер исполнения
+The final statuses are the last three; a final CR is subject to archiving (04.04).
 
 ---
 
-## 04.04. Архивация и отклонение
+## 04.02. Approval and execution start
 
-*Обязательно.*
+*Mandatory.*
 
-- Финальный CR переносится в `doc/change_requests/.arch/` сразу при достижении финального статуса; правило «Архивация вместо удаления» - `project_standards.md`, раздел 01.01
-- Перенос целиком, без переименования; строка CR убирается из `_index_change_requests.md` (правило индексации `.arch/` - раздел 01.01)
-- Слаг архивного CR учитывается при проверке уникальности новых
-- Отклоненный CR перед архивацией дополняется причиной отказа - в проблематику или журнал согласования
-
----
-
-## 05. Правила текста
-
-*Обязательно.*
-
-- Язык - русский; стиль - `project_standards.md` (разделы 04.02, 04.03): по факту, без оценок и историй, без эмодзи и восклицательных знаков, тире - только дефис
-- Любая ссылка на норму - с указанием документа и раздела; утверждение о текущем поведении кода - с указанием файла
-- Варианты решения описываются сравнимо - одинаковый состав атрибутов (описание, достоинства, ограничения и риски), чтобы выбор был по существу
-- Проблематика отделяется от решения: проблематика и варианты не смешиваются; рекомендация - в конце раздела вариантов
+- CR discussion happens in preparation mode: options and questions without project mutations (`project_standards.md`, 07.02)
+- The user decision is recorded in the CR: selected option, answers to open questions, status change to `согласован` with a date
+- Execution starts only on the `ДЕЛАЙ` / `GO` trigger (07.02); the trigger applies to one task
+- Revision of an approved CR (new facts, changed requirements) returns the status to `новый` with a reason recorded in the problem statement
 
 ---
 
-## 06.01. Связь с другими документами
+## 04.03. Transfer to a live specification and direct execution
 
-| Документ | Связь |
-|----------|-------|
-| `project_standards.md` | основа: рабочий процесс и триггеры (раздел 07.02), размещение документов (01.01), .gitignore (06.01), стиль текста (04.02, 04.03) |
-| `index_nav_standards.md` | канон индекса `_index_change_requests.md` (скелет, реестр, карта маршрутизации) |
-| `code_standards.md` | правила слагов (раздел 02.01) |
+*Mandatory.*
+
+- Large task: after approval a live spec `doc/specs/spec_<slug>.md` is created - the same slug as the CR, a different prefix; spec composition - `project_standards.md`, 07.02; the spec is registered in `doc/specs/_index_specs.md`. At transfer the CR gets status `перенесен в спеку` and the line "Перенесено в `doc/specs/spec_<slug>.md` (дата)", then is archived
+- Small task (one module, several point edits): executed directly per the general rules; the CR gets status `исполнен напрямую` with a date, then is archived
+- Execution progress is tracked in the spec and the working dialog, not in the CR: the CR is a path-selection document, not an execution tracker
 
 ---
 
-## 06.02. Версионирование
+## 04.04. Archiving and rejection
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и правила актуализации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя (см. `_index_standards.md`).
+*Mandatory.*
+
+- A final CR is moved to `doc/change_requests/.arch/` immediately upon reaching a final status; the "Archive instead of delete" rule - `project_standards.md`, 01.01
+- Transfer is complete, without renaming; the CR row is removed from `_index_change_requests.md` (indexing rule for `.arch/` - 01.01)
+- The archived CR slug is considered when checking the uniqueness of new ones
+- A rejected CR is supplemented with the rejection reason before archiving - in the problem statement or the approval journal
+
+---
+
+## 05. Text rules
+
+*Mandatory.*
+
+- Language - Russian; style - `project_standards.md` (04.02, 04.03): factual, without evaluations and stories, without emoji and exclamation marks, dashes - hyphen only
+- Any reference to a norm states the document and section; a statement about current code behavior states the file
+- Solution options are described comparably - the same attribute composition (description, advantages, constraints and risks) so the choice is substantive
+- The problem statement is separated from the solution: problem and options are not mixed; the recommendation closes the options section
+
+---
+
+## 06.01. Related documents
+
+| Document | Relation |
+| -------- | -------- |
+| `project_standards.md` | basis: workflow and triggers (07.02), document placement (01.01), .gitignore (06.01), text style (04.02, 04.03) |
+| `index_nav_standards.md` | canon for the `_index_change_requests.md` index (skeleton, registry, routing map) |
+| `code_standards.md` | slug rules (02.01) |
+
+---
+
+## 06.02. Versioning
+
+Standards package versioning is unified for all package documents. Versioning policy, registry, and update rules - in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see `_index_standards.md`).

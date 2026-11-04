@@ -1,204 +1,206 @@
-# Стандарт оформления документов установки ПО. Версия 4.16.0
+# Software Installation Document Standards. Version 5.0.0
 
-Единый шаблон для документов, описывающих установку и настройку программного обеспечения. Каждый документ - один `.md`-файл с bash-блоками. Необязательные разделы пропускать, не оставляя пустых заголовков.
+A single template for documents describing software installation and configuration. Each document is one `.md` file with bash blocks. Skip optional sections without leaving empty headings.
 
-Стандарт предназначен для документационных репозиториев, в которых описывается настройка и установка программного обеспечения или системы. Каждый документ покрывает одно приложение или один компонент инфраструктуры и следует единой структуре разделов. Репозиторий на основе этого стандарта содержит набор таких документов, обеспечивая единообразие оформления и воспроизводимость процедур установки.
+The standard is intended for documentation repositories that describe software or system setup and installation. Each document covers one application or infrastructure component and follows a single section structure. A repository based on this standard contains a set of such documents, providing uniform formatting and reproducible installation procedures.
 
-Является дополнением к `doc/standards/project_standards.md` и применяется поверх него. Все требования основного стандарта остаются в силе, кроме случаев, явно описанных в данном документе.
-
----
-
-## Оглавление
-
-**01. Общие правила:** 01.01 Общие правила оформления
-
-**02. Каталог разделов:** 02.01 Каталог разделов (02.01.01 Заголовок - 02.01.02 Описание - 02.01.03 Зависимости - 02.01.04 Установка - 02.01.05 Запуск - 02.01.06 Проверка - 02.01.07 Удаление - 02.01.08 Конфигурация - 02.01.09 Решение проблем - 02.01.10 Обновление - 02.01.11 Использование - 02.01.12 Ссылки)
-
-**03. Схема:** 03.01 Справочная схема
-
-**04. Связь и версионирование:** 04.01 Связь с другими документами - 04.02 Версионирование
+It supplements `doc/standards/project_standards.md` and applies on top of it. All core standard requirements remain in force unless this document explicitly overrides them. Installation documents are Russian human-contour documents; the required section names stay Russian as defined below.
 
 ---
 
-## 01.01. Общие правила оформления
+## Table of Contents
 
-*Обязательно.*
+**01. General rules:** 01.01 General formatting rules
 
-- Все команды - только внутри bash-блоков (тройные обратные кавычки с `bash`), за исключением раздела «Ссылки»
-- Комментарии внутри блоков - лаконичные, на русском, с заглавной буквы, без эмодзи
-- Привилегированные команды (pacman, sed системных файлов, systemctl) - через `sudo`, с комментарием о необходимости root
-- Не использовать захардкоженные имена пользователей и hostnames; применять `"$(whoami)"` и `"$(hostname)"`
-- Пакеты из официальных репозиториев устанавливать через `pacman`, из AUR - через `yay`
-- Необязательные разделы без содержимого пропускать, не оставляя пустых заголовков
-- Не использовать разметку Obsidian (callouts, ссылки `[[...]]`)
+**02. Section catalog:** 02.01 Section catalog (02.01.01 Heading - 02.01.02 Description - 02.01.03 Dependencies - 02.01.04 Installation - 02.01.05 Launch - 02.01.06 Verification - 02.01.07 Removal - 02.01.08 Configuration - 02.01.09 Troubleshooting - 02.01.10 Update - 02.01.11 Usage - 02.01.12 References)
+
+**03. Scheme:** 03.01 Reference scheme
+
+**04. Relations and versioning:** 04.01 Related documents - 04.02 Versioning
 
 ---
 
-## 02.01. Каталог разделов
+## 01.01. General formatting rules
 
-*Обязательно.*
+*Mandatory.*
 
-Разделы целевого документа следуют строго в указанном порядке. Нумерация ниже - для целевого документа установки.
+- All commands are inside bash blocks only (triple backticks with `bash`), except in the `Ссылки` section
+- Comments inside blocks are concise, Russian, capitalized, without emoji
+- Privileged commands (pacman, system file sed, systemctl) go through `sudo`, with a comment about the root requirement
+- Do not use hardcoded user names and hostnames; use `"$(whoami)"` and `"$(hostname)"`
+- Install packages from official repositories through `pacman`, from AUR through `yay`
+- Skip optional sections without content, without leaving empty headings
+- Do not use Obsidian markup (callouts, `[[...]]` links)
 
-### 02.01.01. Заголовок
+---
 
-*Обязательно.*
+## 02.01. Section catalog
+
+*Mandatory.*
+
+Target document sections follow strictly in the specified order. The numbering below is for the target installation document.
+
+### 02.01.01. Heading
+
+*Mandatory.*
 
 ```
 # <app_name>
 ```
 
-H1 - название приложения в том виде, в котором оно используется.
+The H1 is the application name as it is used; the target section is `Заголовок`.
 
-### 02.01.02. Описание
+### 02.01.02. Description
 
-*Обязательно.*
+*Mandatory.*
 
-Краткое назначение ПО, 1-3 предложения. Размещается сразу после заголовка, без заголовка H2.
+Target section name: `Описание`. A brief software purpose, 1-3 sentences. Placed immediately after the heading, without an H2.
 
-### 02.01.03. Зависимости
+### 02.01.03. Dependencies
 
-*Опционально.*
+*Optional.*
 
-Заголовок: `## Зависимости`.
+Heading: `## Зависимости`.
 
-Требуемые пакеты, среды выполнения, включенные репозитории. Указывать только если для работы нужны дополнительные компоненты, не вытягиваемые автоматически как зависимости.
+Required packages, runtimes, enabled repositories. State only when additional components are needed that are not pulled in automatically as dependencies.
 
-### 02.01.04. Установка
+### 02.01.04. Installation
 
-*Обязательно.*
+*Mandatory.*
 
-Заголовок: `## Установка (<mode>)`.
+Heading: `## Установка (<mode>)`.
 
-Режим установки указывается в скобках в заголовке раздела.
+The installation mode is stated in parentheses in the section heading.
 
-Допустимые режимы:
+Allowed modes:
 
-| Режим | Менеджер пакетов |
-| --- | --- |
-| `pacman` | Официальные репозитории |
-| `AUR` | AUR через yay |
-| `makepkg` | Сборка из AUR вручную |
-| `npm` | npm (глобальная установка) |
+| Mode | Package manager |
+| ---- | --------------- |
+| `pacman` | Official repositories |
+| `AUR` | AUR through yay |
+| `makepkg` | Manual AUR build |
+| `npm` | npm (global installation) |
 | `pip` | pip (global/user) |
 | `Flatpak` | Flatpak |
-| `curl` | Загрузка установочного скрипта |
-| `GUI` | Графический установщик |
+| `curl` | Installation script download |
+| `GUI` | Graphical installer |
 
-Правила:
+Rules:
 
-- Для собственных инструментов проекта, устанавливаемых по deploy-стандарту (системный инструмент через `uv tool`), раздел установки описывает шаги `deploy_standards.md` и платформенных overlay-документов; режимы пакетных менеджеров таблицы - для сторонних приложений
-- Если приложение можно установить из нескольких источников - каждый способ в отдельном разделе `## Установка (<mode>)`
-- Дополнительные пакеты (шрифты, плагины), необходимые для полноценной работы, включать в тот же раздел отдельными блоками с комментариями
-- Группы связанных утилит (дисковые утилиты, шрифты) - все пакеты в одном блоке; при разных источниках - несколько блоков
-- Если приложение требует запуска системного сервиса, `systemctl enable --now` включать в этот же блок установки
-- Для сервисов пользователя - `systemctl --user enable --now` аналогично в блоке установки
-- Если приложению требуется членство в группе, `usermod -aG` включать в блок установки с комментарием о необходимости перелогина
+- For project tools installed per the deploy standard (a system tool through `uv tool`), the installation section describes the steps of `deploy_standards.md` and the platform overlay documents; the package manager modes in the table are for third-party applications
+- If an application can be installed from several sources, each method gets a separate `## Установка (<mode>)` section
+- Additional packages (fonts, plugins) required for full operation are included in the same section as separate blocks with comments
+- Groups of related utilities (disk utilities, fonts) - all packages in one block; with different sources - several blocks
+- If an application requires a system service, `systemctl enable --now` is included in the same installation block
+- For user services - `systemctl --user enable --now` likewise in the installation block
+- If the application requires group membership, `usermod -aG` is included in the installation block with a comment about the required re-login
 
-### 02.01.05. Запуск
+### 02.01.05. Launch
 
-*Обязательно.*
+*Mandatory.*
 
-Заголовок: `## Запуск`.
+Heading: `## Запуск`.
 
-Команда запуска приложения или ссылка на способ запуска (GUI-приложения через меню, сервисы через systemctl).
+The application launch command or a reference to the launch method (GUI applications through the menu, services through systemctl).
 
-### 02.01.06. Проверка
+### 02.01.06. Verification
 
-*Обязательно.*
+*Mandatory.*
 
-Заголовок: `## Проверка`.
+Heading: `## Проверка`.
 
-Команда проверки версии, статуса или работоспособности. Должна давать однозначный ответ: установлен ли пакет, какая версия.
+A command that verifies the version, status, or operability. It must give an unambiguous answer: whether the package is installed and which version.
 
-Правила:
+Rules:
 
-- Предпочтительный способ - `--version`
-- Если приложение не поддерживает `--version` - `pacman -Q <package>`
-- Для сервисов - `systemctl status <service>`
-- Для загружаемых модулей - `lsmod | grep <module>`
+- The preferred method is `--version`
+- If the application does not support `--version` - `pacman -Q <package>`
+- For services - `systemctl status <service>`
+- For loadable modules - `lsmod | grep <module>`
 
-### 02.01.07. Удаление
+### 02.01.07. Removal
 
-*Обязательно.*
+*Mandatory.*
 
-Заголовок: `## Удаление`.
+Heading: `## Удаление`.
 
-Команда удаления пакета. Использовать `pacman -Rns` (или `yay -Rns` для AUR), чтобы удалить пакет, ненужные зависимости и конфиги.
+The package removal command. Use `pacman -Rns` (or `yay -Rns` for AUR) to remove the package, unneeded dependencies, and configs.
 
-Правила:
+Rules:
 
-- Если конфиги хранятся в пользовательских директориях - добавить команды их очистки (`~/.config/`, `~/.local/share/`, `~/.cache/`)
+- If configs are stored in user directories, add their cleanup commands (`~/.config/`, `~/.local/share/`, `~/.cache/`)
 
-### 02.01.08. Конфигурация
+### 02.01.08. Configuration
 
-*Обязательно.*
+*Mandatory.*
 
-Заголовок: `## Конфигурация`.
+Heading: `## Конфигурация`.
 
-Стандартные пути хранения конфигурационных файлов. Указывать все релевантные расположения.
+Standard configuration file paths. State all relevant locations.
 
-Типовые пути:
+Typical paths:
 
-| Расположение | Назначение |
-| --- | --- |
-| `~/.config/<app>/` | Пользовательские конфиги (XDG) |
-| `~/.local/share/<app>/` | Пользовательские данные |
-| `~/.cache/<app>/` | Кэш |
-| `/etc/<app>/` | Системные конфиги |
-| `~/.<app>rc` | RC-файл в домашней директории |
-| `~/.<app>/` | Скрытая директория в домашней директории (устаревший формат) |
+| Location | Purpose |
+| -------- | ------- |
+| `~/.config/<app>/` | User configs (XDG) |
+| `~/.local/share/<app>/` | User data |
+| `~/.cache/<app>/` | Cache |
+| `/etc/<app>/` | System configs |
+| `~/.<app>rc` | RC file in the home directory |
+| `~/.<app>/` | Hidden directory in the home directory (legacy format) |
 
-Правила:
+Rules:
 
-- Если конфигурация требует настроек под целевое окружение (Wayland, KDE, NVIDIA) - приводить их здесь с пояснением
-- Wrapper-скрипты размещать в `~/.local/bin/`
-- .desktop файлы - в `~/.local/share/applications/`
-- Автозапуск - в `~/.config/autostart/`
-- Если для работы требуется кастомный systemd-сервис - его создание включать в этот раздел
+- If the configuration requires target environment settings (Wayland, KDE, NVIDIA), state them here with an explanation
+- Place wrapper scripts in `~/.local/bin/`
+- `.desktop` files go to `~/.local/share/applications/`
+- Autostart goes to `~/.config/autostart/`
+- If a custom systemd service is required, include its creation in this section
 
-### 02.01.09. Решение проблем
+### 02.01.09. Troubleshooting
 
-*Опционально.*
+*Optional.*
 
-Заголовок: `## Решение проблем`.
+Heading: `## Решение проблем`.
 
-Известные проблемы и их решение в целевом окружении. Каждый фикс - отдельный подраздел `### <symptom>` с описанием симптома и решением.
+Known problems and their solutions in the target environment. Each fix is a separate `### <symptom>` subsection with a symptom description and solution.
 
-### 02.01.10. Обновление
+### 02.01.10. Update
 
-*Опционально.*
+*Optional.*
 
-Заголовок: `## Обновление`.
+Heading: `## Обновление`.
 
-Указывать только если способ обновления отличается от стандартного `pacman -Syu` / `yay -Syu`.
+State only when the update method differs from the standard `pacman -Syu` / `yay -Syu`.
 
-### 02.01.11. Использование
+### 02.01.11. Usage
 
-*Опционально.*
+*Optional.*
 
-Заголовок: `## Использование`.
+Heading: `## Использование`.
 
-Примеры типичных команд, алиасы, шорткаты. Для CLI/TUI-утилит и приложений с неочевидным управлением.
+Examples of typical commands, aliases, shortcuts. For CLI/TUI utilities and applications with non-obvious controls.
 
-Правила:
+Rules:
 
-- Одиночные команды - в одном bash-блоке
-- Многошаговые процедуры - отдельный bash-блок с комментариями-шагами
+- Single commands go in one bash block
+- Multi-step procedures go in a separate bash block with step comments
 
-### 02.01.12. Ссылки
+### 02.01.12. References
 
-*Опционально.*
+*Optional.*
 
-Заголовок: `## Ссылки`.
+Heading: `## Ссылки`.
 
-Полезные ссылки на документацию, Wiki, AUR-страницы. Оформлять как обычный список, не как bash-блок.
+Useful links to documentation, Wiki pages, AUR pages. Format as a regular list, not a bash block.
 
 ---
 
-## 03.01. Справочная схема
+## 03.01. Reference scheme
 
-Порядок разделов целевого документа:
+*Mandatory.*
+
+Target document section order:
 
 ```
 # <app_name>
@@ -216,7 +218,7 @@ H1 - название приложения в том виде, в котором
 ## Ссылки                   (опционально)
 ```
 
-Минимальный документ (только обязательные разделы):
+Minimal document (mandatory sections only):
 
 ````
 # <app_name>
@@ -256,15 +258,15 @@ sudo pacman -Rns <package>
 
 ---
 
-## 04.01. Связь с другими документами
+## 04.01. Related documents
 
-| Документ | Связь |
-|----------|-------|
-| `doc/standards/project_standards.md` | Основной стандарт; настоящий документ применяется поверх него (документация и комментарии) |
-| `doc/standards/repo_info_doc_standards.md` | Канон README и человеческих документов; граница между README и документами установки |
+| Document | Relation |
+| -------- | -------- |
+| `doc/standards/project_standards.md` | Core standard; this document applies on top of it (documentation and comments) |
+| `doc/standards/repo_info_doc_standards.md` | README and human document canon; boundary between README and installation documents |
 
 ---
 
-## 04.02. Версионирование
+## 04.02. Versioning
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя (см. _index_standards.md).
+Standards package versioning is unified for all package documents. Versioning policy, registry, and routing map - in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see `_index_standards.md`).

@@ -1,135 +1,135 @@
-# Рантайм-данные навыков. Версия 4.16.0
+# Skill Runtime Data Standards. Version 5.0.0
 
-Документ канонизирует хранение данных, которые навыки создают и ведут при выполнении: реестры-справочники, журналы, маркеры состояния, кэш. Принцип: навык - ядро, не хранилище; каталог навыка содержит только статический пакет, рантайм-данные живут в зонах репозитория. Правила едины для обоих форматов навыков (plain и Anthropic) и всех типов (`hub_loc`, `hub_glob`, `pr_glob`, `pr_loc`). Документ - дополнение к `project_standards.md` и применяется поверх него вместе со стандартами навыков.
-
----
-
-## Оглавление
-
-**01. Основы:** 01.01 Навык - ядро, не хранилище - 01.02 Классы рантайм-данных - 01.03 Машинная специфичность
-
-**02. Зоны:** 02.01 Раскладка зон - 02.02 Именование - 02.03 Создание при первой записи и жизненный цикл
-
-**03. Формат файлов:** 03.01 Маркер владения - 03.02 Реестр - 03.03 Журнал - 03.04 Состояние
-
-**04. Соответствие и границы:** 04.01 Полная таблица соответствия - 04.02 Границы с соседними механизмами
-
-**05. Запреты**
-
-**06. Связь и версионирование:** 06.01 Связь с другими документами - 06.02 Версионирование
+This document canonizes storage of data that skills create and maintain during execution: registries, journals, state markers, and cache. Principle: a skill is an engine, not a storage; the skill directory contains only a static package, while runtime data lives in repository zones. The rules are uniform for all skill types (`hub_loc`, `hub_glob`, `pr_glob`, `pr_loc`). The document supplements `project_standards.md` and applies on top of it together with the skill standards.
 
 ---
 
-## 01.01. Навык - ядро, не хранилище
+## Table of Contents
 
-*Обязательно.*
+**01. Fundamentals:** 01.01 Skill is an engine, not a storage - 01.02 Runtime data classes - 01.03 Machine specificity
 
-Каталог навыка - статический пакет: инструкция, документация, шаблоны, код. Для формата Anthropic - `SKILL.md`, `reference.md`, `examples.md`, `templates/`, `scripts/` (`skill_anthropic_standards.md`, раздел 01.04); для plain-формата - один файл навыка (`skill_plain_standards.md`, раздел 01.02). Рантайм-данные - накопители и результаты выполнения - в каталоге навыка и в теле навыка не хранятся никогда: правило действует для всех типов и обоих форматов, исключений нет.
+**02. Zones:** 02.01 Zone layout - 02.02 Naming - 02.03 Creation on first write and lifecycle
 
-Следствия:
+**03. File format:** 03.01 Ownership marker - 03.02 Registry - 03.03 Journal - 03.04 State
 
-- навык переносим копированием каталога в любой репозиторий и готов к работе без очистки - самодостаточность пакета (`skill_anthropic_standards.md`, раздел 03.03) распространяется и на данные: состояние навыка не путешествует с ним;
-- нужные зоны и файлы данных навык создает сам при первой записи в репозитории-приемнике;
-- пути к данным в теле навыка и в скриптах - от корня репозитория (при работе в сессии - от корня сессии), не от каталога навыка; `${CLAUDE_SKILL_DIR}` - только для ресурсов самого пакета;
-- начальные шаблоны файлов данных навык несет в `templates/` своего каталога (для plain-формата - в теле как нерасполнимая схема) и материализует при первом запуске.
+**04. Conformance and boundaries:** 04.01 Full conformance table - 04.02 Boundaries with adjacent mechanisms
 
-## 01.02. Классы рантайм-данных
+**05. Prohibitions**
 
-*Обязательно.*
-
-| Класс | Что это | Примеры |
-| ----- | ------- | ------- |
-| Реестр | справочник сущностей, обновляемый идемпотентно | переменные машин, инвентарь, маппинги, списки кандидатов |
-| Журнал | хроника значимых событий, записи добавляются | история запусков, примененные изменения, факты обслуживания |
-| Состояние | маркеры идемпотентности и курсоры | «применено», last run, версия примененного изменения |
-| Кэш | пересчитываемые данные | промежуточные выгрузки, разобранные снимки |
-
-Реестр, журнал и состояние - знания, живущие в git (зоны - раздел 02.01); кэш - ускоритель, живущий вне коммита. Остальные классы рантайма (снимки `diag/`, разовые артефакты `tmp/`, продукты `output/`, бэкапы, витрина) живут по существующим нормам основного стандарта - полная таблица соответствия в разделе 04.01.
-
-## 01.03. Машинная специфичность
-
-*Обязательно.*
-
-Данные классов «реестр», «журнал», «состояние» делятся по уровню:
-
-- **общий уровень** - значение одинаково в любом клоне репозитория: инвентарь всех машин, справочники проекта; пишется напрямую в зону;
-- **уровень хоста** - значение верно только на одной машине: переменные этого хоста, примененное на нем состояние, хроника его запусков; пишется в подпапку `<hostname>` внутри зоны.
-
-Правила:
-
-- путь машинно-специфичных данных - `data/<zone>/<hostname>/<domain>.md`;
-- имя подпапки - короткое имя хоста (`hostname` без домена), латиница, kebab-case;
-- машина пишет только в подпапку своего хоста, чужие не трогает; читает любые - инвентарь и состояние всех машин видны с любого клона, пути хостов не пересекаются, коммиты разных машин не конфликтуют;
-- кэш уровня хоста не имеет: он вне git и по определению локален для машины;
-- снимки состояния конфигурирующих навыков в `diag/` (`skill_anthropic_standards.md`, раздел 03.05) - существующий канон, реорганизации настоящим документом не подлежит.
+**06. Relations and versioning:** 06.01 Related documents - 06.02 Versioning
 
 ---
 
-## 02.01. Раскладка зон
+## 01.01. Skill is an engine, not a storage
 
-*Обязательно.*
+*Mandatory.*
+
+A skill directory is a static package: instruction, documentation, templates, code. For the Anthropic format - `SKILL.md`, `reference.md`, `examples.md`, `templates/`, `scripts/` (`skill_anthropic_standards.md`, 01.04). Runtime data - accumulators and execution results - is never stored in the skill directory or in the skill body: the rule applies to all types, with no exceptions.
+
+Consequences:
+
+- a skill transfers by copying the directory into any repository and is ready to work without cleanup - package self-sufficiency (`skill_anthropic_standards.md`, 03.03) extends to data: skill state does not travel with the skill;
+- the skill creates the required data zones and files itself on the first write in the receiving repository;
+- data paths in the skill body and scripts are relative to the repository root (in a session - to the session root), not to the skill directory; `${CLAUDE_SKILL_DIR}` is only for the package's own resources;
+- the skill carries initial data file templates in `templates/` of its directory and materializes them on the first run.
+
+## 01.02. Runtime data classes
+
+*Mandatory.*
+
+| Class | What it is | Examples |
+| ----- | ---------- | -------- |
+| Registry | A directory of entities, updated idempotently | machine variables, inventory, mappings, candidate lists |
+| Journal | A chronicle of significant events, records are appended | run history, applied changes, maintenance facts |
+| State | Idempotency markers and cursors | "applied", last run, version of the applied change |
+| Cache | Recomputable data | intermediate exports, parsed snapshots |
+
+Registry, journal, and state are knowledge living in git (zones - 02.01); cache is an accelerator living outside commits. Other runtime classes (`diag/` snapshots, `tmp/` one-off artifacts, `output/` products, backups, the mart) follow the existing core standard rules - the full conformance table is in 04.01.
+
+## 01.03. Machine specificity
+
+*Mandatory.*
+
+Data of the "registry", "journal", and "state" classes is divided by level:
+
+- **shared level** - the value is the same in any repository clone: inventory of all machines, project directories; written directly to the zone;
+- **host level** - the value is valid on one machine only: variables of this host, state applied on it, the chronicle of its runs; written to the `<hostname>` subfolder inside the zone.
+
+Rules:
+
+- the path of machine-specific data is `data/<zone>/<hostname>/<domain>.md`;
+- the subfolder name is the short host name (`hostname` without the domain), Latin, kebab-case;
+- a machine writes only to its own host subfolder and does not touch others; it reads any - the inventory and state of all machines are visible from any clone, host paths do not overlap, and commits from different machines do not conflict;
+- host-level cache does not exist: it is outside git and local to the machine by definition;
+- state snapshots of configuring skills in `diag/` (`skill_anthropic_standards.md`, 03.05) are an existing canon and are not reorganized by this document.
+
+---
+
+## 02.01. Zone layout
+
+*Mandatory.*
 
 ```text
 data/
-├── registries/                  # реестры-справочники
-│   ├── <domain>.md               # общий уровень
+├── registries/                  # entity registries
+│   ├── <domain>.md               # shared level
 │   └── <hostname>/
-│       └── <domain>.md           # уровень хоста
-├── journals/                    # журналы-хроники (та же двухуровневость)
+│       └── <domain>.md           # host level
+├── journals/                    # event journals (same two levels)
 │   ├── <domain>.md
 │   └── <hostname>/
 │       └── <domain>.md
-├── state/                       # маркеры состояния (та же двухуровневость)
+├── state/                       # state markers (same two levels)
 │   ├── <domain>.md
 │   └── <hostname>/
 │       └── <domain>.md
-└── cache/                       # пересчитываемое, вне коммита
+└── cache/                       # recomputable, outside commits
     └── <skill-name>/
 ```
 
-- `registries/`, `journals/`, `state/` коммитятся - исключения `!data/registries/`, `!data/journals/`, `!data/state/` в `.gitignore` (`project_standards.md`, раздел 06.01); подпапки хостов покрываются этими же паттернами;
-- `cache/<skill-name>/` не коммитится - остается в игнорируемом `data/`; содержимое можно удалить в любой момент без потери знаний;
-- при работе в сессии (`project_standards.md`, раздел 01.01.01) зоны те же, но в `data/` папки сессии.
+- `registries/`, `journals/`, and `state/` are committed - exceptions `!data/registries/`, `!data/journals/`, `!data/state/` in `.gitignore` (`project_standards.md`, 06.01); host subfolders are covered by the same patterns;
+- `cache/<skill-name>/` is not committed - it stays in the ignored `data/`; its content can be deleted at any time without losing knowledge;
+- in a session (`project_standards.md`, 01.01.01) the zones are the same, but under the session `data/` folder.
 
-## 02.02. Именование
+## 02.02. Naming
 
-*Обязательно.*
+*Mandatory.*
 
-| Сущность | Правило | Пример |
-| -------- | ------- | ------ |
-| Файл зоны | слаг домена содержания, kebab-case, латиница, без транслита | `machines.md`, `pip-mirrors.md` |
-| Подпапка хоста | короткое имя хоста, kebab-case | `pchm02` |
-| Приватная хроника навыка без выделенного домена | файл с именем навыка | `journals/glob-cfg-pip.md` |
-| Каталог кэша | имя навыка | `cache/glob-cfg-pip/` |
+| Entity | Rule | Example |
+| ------ | ---- | ------- |
+| Zone file | content domain slug, kebab-case, Latin, no transliteration | `machines.md`, `pip-mirrors.md` |
+| Host subfolder | short host name, kebab-case | `pchm02` |
+| Private skill chronicle without a dedicated domain | file named after the skill | `journals/glob-cfg-pip.md` |
+| Cache directory | skill name | `cache/glob-cfg-pip/` |
 
-Домен называет содержание, а не навыка: файл понятен без знания о том, кто его ведет; владелец фиксируется маркером (раздел 03.01). Один домен - один файл на уровень; дробление на `<domain>_<subdomain>.md` - при реальной необходимости. Реестр всех машин и реестр одного хоста - разные уровни одного домена: `registries/machines.md` и `registries/<hostname>/env.md`.
+The domain names the content, not the skill: the file is understandable without knowing who maintains it; the owner is fixed by the marker (03.01). One domain - one file per level; splitting into `<domain>_<subdomain>.md` only when really necessary. The registry of all machines and the registry of one host are different levels of the same domain: `registries/machines.md` and `registries/<hostname>/env.md`.
 
-## 02.03. Создание при первой записи и жизненный цикл
+## 02.03. Creation on first write and lifecycle
 
-*Обязательно.*
+*Mandatory.*
 
-- Зоны создаются при первой записи, не при инициализации проекта: `data/registries/` возникает, когда первый навык ведет первый реестр; репозиторий может жить без зон неограниченно долго.
-- Начальный шаблон файла - в `templates/` навыка; при первом запуске навык материализует его в зону, повторные запуски мержат по правилам формата (разделы 03.02-03.04).
-- Устаревшее содержание зон архивируется по общим правилам `.arch/` (`project_standards.md`, раздел 01.01).
-- Зоны не обслуживаются индексами: реестр - сам себе реестр, навигация - именами зон и доменов; индексы `_index_*.md` навигируют статические каталоги (`index_nav_standards.md`).
+- Zones are created on the first write, not at project initialization: `data/registries/` appears when the first skill maintains the first registry; a repository can live without zones indefinitely.
+- The initial file template is in the skill `templates/`; on the first run the skill materializes it into the zone, and subsequent runs merge per the format rules (03.02-03.04).
+- Outdated zone content is archived per the general `.arch/` rules (`project_standards.md`, 01.01).
+- Zones are not served by indexes: a registry is its own registry, navigation uses zone and domain names; `_index_*.md` indexes navigate static directories (`index_nav_standards.md`).
 
 ---
 
-## 03.01. Маркер владения
+## 03.01. Ownership marker
 
-*Обязательно.*
+*Mandatory.*
 
-Первая строка каждого файла зон - маркер владения (развитие `skill_anthropic_standards.md`, раздел 03.06):
+The first line of every zone file is an ownership marker (an extension of `skill_anthropic_standards.md`, 03.06):
 
 ```markdown
 <!-- generated-by: <skill-or-domain> -->
 ```
 
-Маркер отличает генерируемый файл от пользовательского: файл с маркером обслуживается владельцем и перезаписывается или мержится им свободно; файл без маркера считается пользовательским - перезапись только с явным флагом (раздел 03.06 там же). Внутри подпапки хоста маркер называет владельца, а не хоста: хост виден в пути.
+The marker distinguishes a generated file from a user file: a file with a marker is maintained by its owner and is freely overwritten or merged by it; a file without a marker is considered user-owned - overwrite only with an explicit flag (03.06 there). Inside a host subfolder the marker names the owner, not the host: the host is visible in the path.
 
-## 03.02. Формат реестра
+## 03.02. Registry format
 
-*Обязательно.*
+*Mandatory.*
 
 ```markdown
 <!-- generated-by: <owner> -->
@@ -141,12 +141,12 @@ data/
 | ---- | -------- | ---- | -------- |
 ```
 
-- Реестр - Markdown-таблица; строки мержатся идемпотентно по ключу: повторная запись обновляет значение и дату, не создавая дублей.
-- Реестр хранит текущее состояние справочника; история изменений, если нужна, - в журнале того же домена.
+- A registry is a Markdown table; rows are merged idempotently by key: a repeated write updates the value and date without creating duplicates.
+- The registry stores the current state of the directory; the change history, if needed, is in the journal of the same domain.
 
-## 03.03. Формат журнала
+## 03.03. Journal format
 
-*Обязательно.*
+*Mandatory.*
 
 ```markdown
 <!-- generated-by: <owner> -->
@@ -158,12 +158,12 @@ data/
 - результат: <outcome>
 ```
 
-- Новые записи добавляются сверху файла.
-- Одна запись - одно событие; нарратив и многоабзацный текст запрещены (по образцу тематических файлов памяти - `memory_standards.md`, раздел 04.02).
+- New records are added at the top of the file.
+- One record - one event; narrative and multi-paragraph text are forbidden (following the pattern of memory topic files - `memory_standards.md`, 04.02).
 
-## 03.04. Формат состояния
+## 03.04. State format
 
-*Обязательно.*
+*Mandatory.*
 
 ```markdown
 <!-- generated-by: <owner> -->
@@ -173,72 +173,71 @@ data/
 | ------- | -------- | ---- |
 ```
 
-- Строки мержатся идемпотентно по элементу; формат таблицы - как у снимка примененного состояния (`skill_anthropic_standards.md`, раздел 03.05).
-- Состояние фиксирует примененные факты, а не планы; план - в задаче или спецификации.
+- Rows are merged idempotently by item; the table format is the same as the applied-state snapshot (`skill_anthropic_standards.md`, 03.05).
+- State records applied facts, not plans; a plan belongs to a task or specification.
 
 ---
 
-## 04.01. Полная таблица соответствия
+## 04.01. Full conformance table
 
-*Обязательно.*
+*Mandatory.*
 
-Каждому классу рантайма - одно место. Сегмент `[<hostname>/]` - уровень хоста при машинной специфичности (раздел 01.03). Классы вне зон живут по существующим нормам и настоящим документом не переучиваются:
+Each runtime class has one place. The segment `[<hostname>/]` is the host level for machine specificity (01.03). Classes outside the zones live by existing rules and are not retaught by this document:
 
-| Класс | Место | Git | Канон |
+| Class | Place | Git | Canon |
 | ----- | ----- | --- | ----- |
-| Реестр | `data/registries/[<hostname>/]<domain>.md` | да | этот документ |
-| Журнал | `data/journals/[<hostname>/]<domain>.md` | да | этот документ |
-| Состояние (маркеры выполнения навыков) | `data/state/[<hostname>/]<domain>.md` | да | этот документ |
-| Кэш | `data/cache/<skill-name>/` | нет | этот документ |
-| Снимок примененных настроек среды (конфигурирующие навыки) | `diag/` | да | `skill_anthropic_standards.md` (03.05) |
-| Урок (переносимый опыт) | `data/lessons.md` | да | `project_standards.md` (01.01.07) |
-| Разовый артефакт (выгрузка, снимок на разбор, скриншот, лок, pid) | `tmp/<domain>/` | нет | `project_standards.md` (01.01.04) |
-| Продукт для пользователя (отчет, файл-результат) | `output/` | нет | `project_standards.md` (01.01) |
-| Бэкап | `data/backup/<task>/` | нет | `project_standards.md` (01.01) |
-| Накопленный датасет (витрина) | `data/mart_<domain>.sqlite` | нет | `project_standards.md` (01.01.03) |
-| Технический лог выполнения | файлом не пишется - stdout скрипта | - | `skill_anthropic_standards.md` (03.03) |
-| Рантайм веб-подсистемы | `web/var/` | нет | `web_standards.md` (02.07) |
+| Registry | `data/registries/[<hostname>/]<domain>.md` | yes | this document |
+| Journal | `data/journals/[<hostname>/]<domain>.md` | yes | this document |
+| State (skill execution markers) | `data/state/[<hostname>/]<domain>.md` | yes | this document |
+| Cache | `data/cache/<skill-name>/` | no | this document |
+| Applied environment settings snapshot (configuring skills) | `diag/` | yes | `skill_anthropic_standards.md` (03.05) |
+| Lesson (transferable experience) | `data/lessons.md` | yes | `project_standards.md` (01.01.07) |
+| One-off artifact (export, snapshot for analysis, screenshot, lock, pid) | `tmp/<domain>/` | no | `project_standards.md` (01.01.04) |
+| User product (report, result file) | `output/` | no | `project_standards.md` (01.01) |
+| Backup | `data/backup/<task>/` | no | `project_standards.md` (01.01) |
+| Accumulated dataset (mart) | `data/mart_<domain>.sqlite` | no | `project_standards.md` (01.01.03) |
+| Technical execution log | not written to a file - script stdout | - | `skill_anthropic_standards.md` (03.03) |
+| Web subsystem runtime | `web/var/` | no | `web_standards.md` (02.07) |
 
-## 04.02. Границы с соседними механизмами
+## 04.02. Boundaries with adjacent mechanisms
 
-*Обязательно.*
+*Mandatory.*
 
-- Память агентов `data/memory/` (`memory_standards.md`) - закрытый перечень; рантайм-данные навыков - не память: память хранит контекст агента, зоны - данные задач.
-- Журнал уроков `data/lessons.md` - существующий канон (`project_standards.md`, 01.01.07); в `journals/` не переносится.
-- Снимки в `diag/` по 03.05 - существующий канон конфигурирующих навыков; новым навыкам без каркаса 03.05 состояние ведется в `data/state/`.
-- `config/` и `.env` (`project_standards.md`, 01.02) - параметры работы кода, не накопители навыков.
-- Индексы `_index_*.md` (`index_nav_standards.md`) - навигация по статическим каталогам; зоны реестров индексами не обслуживаются.
-- Рантайм веб-подсистемы `web/var/` (`web_standards.md`, 02.07) - отдельный канон, настоящим не затрагивается.
-
----
-
-## 05.01. Запреты
-
-*Обязательно.*
-
-| Запрет | Правильно |
-| ------ | --------- |
-| Рантайм-данные в каталоге навыка: реестры, журналы, состояние, кэш, обновляемые списки | Зоны репозитория (раздел 02.01); каталог навыка - статический пакет |
-| Мутабельные данные в теле навыка и в `templates/` пары форматов («обновляемый артефакт», список кандидатов, счетчик) | Реестр `data/registries/<domain>.md` с маркером владения; тело и `templates/` - только статические |
-| Запись в подпапку чужого хоста | Только `<hostname>` своего хоста (раздел 01.03) |
-| Кэш и разовые артефакты в зонах коммита (`registries/`, `journals/`, `state/`) | Кэш - `cache/<skill-name>/`, разовое - `tmp/<domain>/` |
-| Рантайм-данные в памяти, журнале уроков, снимке `diag/` (вне каркаса 03.05) | Зоны; границы - раздел 04.02 |
-| Бэкапы внутри зон | `data/backup/<task>/` |
+- Agent memory `data/memory/` (`memory_standards.md`) is a closed list; skill runtime data is not memory: memory stores agent context, zones store task data.
+- The lesson journal `data/lessons.md` is an existing canon (`project_standards.md`, 01.01.07); it is not moved into `journals/`.
+- Snapshots in `diag/` per 03.05 are the existing canon of configuring skills; new skills without the 03.05 skeleton keep state in `data/state/`.
+- `config/` and `.env` (`project_standards.md`, 01.02) are code operation parameters, not skill accumulators.
+- `_index_*.md` indexes (`index_nav_standards.md`) navigate static directories; registry zones are not served by indexes.
+- Web subsystem runtime `web/var/` (`web_standards.md`, 02.07) is a separate canon not affected by this document.
 
 ---
 
-## 06.01. Связь с другими документами
+## 05.01. Prohibitions
 
-| Документ | Связь |
-| -------- | ----- |
-| `project_standards.md` | `data/` (01.01), сессии (01.01.01), `tmp/` (01.01.04), уроки (01.01.07), шаблон `.gitignore` (06.01) |
-| `skill_plain_standards.md` | плоские навыки: расположение (01.02), антипаттерны (03.02), чеклист (04.02) |
-| `skill_anthropic_standards.md` | каталог навыка (01.04), самодостаточность пакета (03.03), снимок конфигурирующих навыков (03.05), маркер владения (03.06), антипаттерны (05.01), чеклист (05.03) |
-| `memory_standards.md` | граница памяти и зон рантайм-данных (01.03) |
-| `web_standards.md` | рантайм веб-подсистемы `web/var/` (02.07) - вне настоящего канона |
-| `index_nav_standards.md` | индексы репозитория, включая `data/skills/_index_skills_pl.md`; зоны рантайм-данных в индексы не входят |
-| `doc/standards/_index_standards.md` | реестр пакета и карта маршрутизации |
+*Mandatory.*
 
-## 06.02. Версионирование
+| Prohibition | Correct |
+| ----------- | ------- |
+| Runtime data in the skill directory: registries, journals, state, cache, updatable lists | Repository zones (02.01); the skill directory is a static package |
+| Mutable data in the skill body and `templates/` ("updatable artifact", candidate list, counter) | Registry `data/registries/<domain>.md` with an ownership marker; body and `templates/` are static only |
+| Writing to another host's subfolder | Only your own `<hostname>` (01.03) |
+| Cache and one-off artifacts in commit zones (`registries/`, `journals/`, `state/`) | Cache in `cache/<skill-name>/`, one-off data in `tmp/<domain>/` |
+| Runtime data in memory, the lesson journal, or a `diag/` snapshot (outside the 03.05 skeleton) | Zones; boundaries - 04.02 |
+| Backups inside zones | `data/backup/<task>/` |
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя.
+---
+
+## 06.01. Related documents
+
+| Document | Relation |
+| -------- | -------- |
+| `project_standards.md` | `data/` (01.01), sessions (01.01.01), `tmp/` (01.01.04), lessons (01.01.07), `.gitignore` template (06.01) |
+| `skill_anthropic_standards.md` | skill directory (01.04), package self-sufficiency (03.03), configuring skill snapshot (03.05), ownership marker (03.06), anti-patterns (05.01), checklist (05.03) |
+| `memory_standards.md` | boundary between memory and runtime data zones (01.03) |
+| `web_standards.md` | web subsystem runtime `web/var/` (02.07) - outside this canon |
+| `index_nav_standards.md` | repository indexes, including `data/skills/_index_skills_pl.md`; runtime data zones are not part of indexes |
+| `doc/standards/_index_standards.md` | package registry and routing map |
+
+## 06.02. Versioning
+
+Standards package versioning is unified for all package documents. Versioning policy, registry, and routing map - in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request.

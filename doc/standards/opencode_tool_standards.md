@@ -1,123 +1,123 @@
-# Стандарт написания кастомных tools для opencode. Версия 4.16.0
+# OpenCode Custom Tool Standards. Version 5.0.0
 
-Документ описывает правила создания кастомных tools для opencode: расположение и именование, регистрацию через плагин, схему аргументов, поле `description`, тонкую обертку с внешним скриптом, вывод и ошибки для агента, права и работу с мутациями. Является дополнением к `doc/standards/project_standards.md` и применяется поверх него.
+This document defines rules for creating custom tools for opencode: location and naming, registration through a plugin, argument schema, `description` field, thin wrapper over an external script, output and errors for the agent, permissions, and mutations. It supplements `doc/standards/project_standards.md` and applies on top of it.
 
-Смежный документ - `doc/standards/skill_anthropic_standards.md` (навыки формата SKILL.md). Выбор между кастомным tool и навыком - раздел 01.02. Форма файла плагина opencode (экспорт, события, очистка) - `doc/standards/code_standards.md` (раздел 03.05). Все требования основного стандарта остаются в силе, кроме случаев, явно описанных в данном документе.
-
----
-
-## Оглавление
-
-**01. Основы:** 01.01 Назначение и применимость - 01.02 Выбор между tool и skill - 01.03 Расположение - 01.04 Именование
-
-**02. Контракт:** 02.01 Регистрация tool - 02.02 Аргументы и схема - 02.03 Поле description
-
-**03. Реализация:** 03.01 Тонкая обертка и внешний скрипт - 03.02 Вывод для агента - 03.03 Ошибки
-
-**04. Безопасность:** 04.01 Права (permissions) - 04.02 Мутации и детерминизм
-
-**05. Прочее:** 05.01 Антипаттерны - 05.02 Пример - 05.03 Чеклист автора
-
-**06. Связь и версионирование:** 06.01 Связь с другими документами - 06.02 Версионирование
+Adjacent document - `doc/standards/skill_anthropic_standards.md` (SKILL.md skills). Choosing between a custom tool and a skill - 01.02. The opencode plugin file shape (exports, events, cleanup) - `doc/standards/code_standards.md` (03.05). All core standard requirements remain in force unless this document explicitly overrides them.
 
 ---
 
-## 01.01. Назначение и применимость
+## Table of Contents
 
-*Обязательно.*
+**01. Fundamentals:** 01.01 Purpose and applicability - 01.02 Choosing between tool and skill - 01.03 Location - 01.04 Naming
 
-Кастомный tool - функция, которую модель opencode вызывает в диалоге наравне со встроенными инструментами (`shell`, `read`, `edit`, `grep` и другими). Модель видит три элемента контракта: имя, описание и схему аргументов; реализация ей недоступна. Tool дает доступ к детерминированной операции без загрузки методики и без импровизации через `shell`.
+**02. Contract:** 02.01 Tool registration - 02.02 Arguments and schema - 02.03 `description` field
 
-Основной целевой инструмент настоящего стандарта - **opencode версии 2**; первоисточник контракта - страница Plugins документации opencode (раздел Tools, `https://opencode.ai/v2/docs/build/plugins`). Инструменты с иным контрактом (MCP-серверы, инструменты других агентов) этим документом не регламентируются, связь с ними - разделы 01.02, 01.03.
+**03. Implementation:** 03.01 Thin wrapper and external script - 03.02 Output for the agent - 03.03 Errors
 
-Контракт V1 (хелпер `tool()` из `@opencode-ai/plugin` в каталоге `.opencode/tools/`) в V2 не исполняется: реализации плагинов V1 в V2 не работают. Материал V1 применим только как вход для миграции; новые tools пишутся по контракту V2 (раздел 02.01).
+**04. Security:** 04.01 Permissions - 04.02 Mutations and determinism
 
-Настоящий стандарт применять, когда:
+**05. Other:** 05.01 Anti-patterns - 05.02 Example - 05.03 Author checklist
 
-- создается кастомный tool в проекте (`.opencode/plugins/`) или личный tool (`~/.config/opencode/plugins/`);
-- проектируется обертка над существующим скриптом проекта для вызова агентом;
-- ревизируется или дорабатывается существующий кастомный tool;
-- tool переносится с контракта V1 на V2.
-
-Стандарт не применяется к: встроенным tools opencode, MCP-серверам (готовая внешняя спецификация; подключение - конфигурация, не разработка), прочим плагинам opencode вне регистрации tools.
+**06. Relations and versioning:** 06.01 Related documents - 06.02 Versioning
 
 ---
 
-## 01.02. Выбор между tool и skill
+## 01.01. Purpose and applicability
 
-*Обязательно.*
+*Mandatory.*
 
-Tool и skill решают разные задачи и не дублируют друг друга:
+A custom tool is a function that the opencode model calls in a dialog on par with built-in tools (`shell`, `read`, `edit`, `grep`, and others). The model sees three contract elements: name, description, and argument schema; the implementation is not available to it. A tool provides access to a deterministic operation without loading a method and without improvising through `shell`.
 
-| Аспект | Кастомный tool | Навык (SKILL.md) |
-| ------ | -------------- | ---------------- |
-| Суть | Жесткий контракт: имя, схема аргументов, детерминированная реализация | Методика: инструкция, ресурсы, примеры |
-| Что видит модель | Имя, `description`, схему аргументов | `name`, `description`, при активации - тело и ресурсы |
-| Свобода агента | Только аргументы из схемы | Вся последовательность действий по инструкции |
-| Нагрузка на контекст | Описание и схема - постоянно | Метаданные - постоянно, тело - при активации |
-| Права | Адресный permission-gating по имени tool (раздел 04.01) | Права действуют на tool активации навыка (`skill`) и tools, вызываемые его инструкцией |
+The primary target tool of this standard is **opencode version 2**; the contract primary source is the Plugins page of the opencode documentation (Tools section, `https://opencode.ai/v2/docs/build/plugins`). Tools with another contract (MCP servers, tools of other agents) are not regulated by this document; their relation - 01.02, 01.03.
 
-Навык с детерминированным скриптом (`skill_anthropic_standards.md`, раздел 03.03) - дефолтный способ упаковки операций проекта: он переносит и контракт, и методику, и примеры. Кастомный tool оправдан, когда:
+The V1 contract (the `tool()` helper from `@opencode-ai/plugin` in `.opencode/tools/`) does not execute in V2: V1 plugin implementations do not work in V2. V1 material is usable only as migration input; new tools are written to the V2 contract (02.01).
 
-- операция вызывается часто, и загрузка тела навыка каждый раз избыточна;
-- нужна строгая типизация аргументов: ошибка вызова ловится схемой до исполнения;
-- нужен адресный permission-gating: `allow` / `ask` / `deny` по имени tool;
-- операция - часть обвязки репозитория (проверки, сборка, генерация), а не сценарий с методикой.
+Apply this standard when:
 
-Признак дублирования: если tool оборачивает скрипт, который уже обернут навыком, и не добавляет ни gating, ни типизацию - tool не нужен. Один сценарий - одна единица: либо навык, либо tool; связка «skill рассказывает когда, tool исполняет как» допустима, если методика реально нужна.
+- a custom tool is created in a project (`.opencode/plugins/`) or a personal tool (`~/.config/opencode/plugins/`);
+- a wrapper over an existing project script is designed for agent invocation;
+- an existing custom tool is reviewed or improved;
+- a tool is migrated from the V1 contract to V2.
 
-MCP-сервер - выбор, когда функциональность уже есть в готовом сервере или нужна за пределами opencode. Если операция завязана на код и данные проекта, свой tool предпочтительнее: меньше внешних зависимостей, контрактом управляет репозиторий.
+The standard does not apply to: built-in opencode tools, MCP servers (a ready external specification; connection is configuration, not development), and other opencode plugins outside tool registration.
 
 ---
 
-## 01.03. Расположение
+## 01.02. Choosing between tool and skill
 
-*Обязательно.*
+*Mandatory.*
 
-В V2 кастомные tools регистрирует плагин opencode. Проектные плагины обнаруживаются в каталоге `.opencode/plugins/` автоматически (прямые файлы `.ts` / `.js` и каталоги-пакеты плагинов); дополнительно плагин подключается записью в массиве `plugins` файла `opencode.json(c)`.
+Tool and skill solve different tasks and do not duplicate each other:
 
-| Область | Каталог | Хранение |
-| ------- | ------- | -------- |
-| Проектные плагины | `<repo>/.opencode/plugins/` | В репозитории, коммитятся вместе с проектом |
-| Личные плагины | `~/.config/opencode/plugins/` | Вне репозиториев, на машине |
+| Aspect | Custom tool | Skill (SKILL.md) |
+| ------ | ----------- | ---------------- |
+| Essence | Hard contract: name, argument schema, deterministic implementation | Method: instruction, resources, examples |
+| What the model sees | Name, `description`, argument schema | `name`, `description`, and on activation - body and resources |
+| Agent freedom | Only arguments from the schema | The whole action sequence per the instruction |
+| Context load | Description and schema - always | Metadata - always, body - on activation |
+| Permissions | Targeted permission gating by tool name (04.01) | Permissions apply to the skill activation tool (`skill`) and the tools called by its instruction |
 
-Правила:
+A skill with a deterministic script (`skill_anthropic_standards.md`, 03.03) is the default way to package project operations: it carries the contract, the method, and the examples. A custom tool is justified when:
 
-- Проектный плагин с tools (завязан на код, скрипты и данные репозитория) - только в `.opencode/plugins/` этого репозитория. Личный плагин (не зависит от репозитория) - в `~/.config/opencode/plugins/`.
-- Один плагин - один домен: плагин регистрирует группу однородных tools домена и задает неймспейс (раздел 01.04).
-- Исходники внешних скриптов, вызываемых tool, хранятся в структуре проекта (`run/`, `src/` - по основному стандарту), а не внутри `.opencode/plugins/`; в каталоге плагинов - только код регистрации контрактов.
-- В не-runnable репозитории (хаб стандартов) каталогов `run/` и `src/` нет: исполняемый скрипт tool размещается в `scripts/` пакета навыка или как исходник в `templates/`; в производных проектах - `run/` или `src/`.
-- Каталог `.opencode/tools/` - точка регистрации контракта V1; в V2 она не используется. Новые tools в `.opencode/tools/` не создаются.
-- Имя инструмента задает поле `name` в определении, а не имя файла; имя файла плагина несет `id` плагина (раздел 01.04).
-- Кастомный tool с эффективным именем встроенного переопределяет его - **запрещено** без явного запроса пользователя; для отключения встроенного tool используется запись в `permissions`, а не переопределение (раздел 04.01).
-- Кросс-инструментная логика (валидация аргументов, защита путей, подстановка env, модификация вызовов всех tools) - в плагине через хуки `ctx.tool.hook("execute.before")` / `ctx.tool.hook("execute.after")`, а не в каждом tool. Признак выноса: правило нужно всем tools сразу.
-- Логирование из плагина - структурированное, без засорения результата tool; `console.log` плагина в результат вызова не попадает, диагностика - `console.error` (`code_standards.md`, раздел 03.05).
+- the operation is called often, and loading the skill body every time is excessive;
+- strict argument typing is needed: an invocation error is caught by the schema before execution;
+- targeted permission gating is needed: `allow` / `ask` / `deny` by tool name;
+- the operation is part of repository plumbing (checks, build, generation), not a scenario with a method.
 
----
+A duplication sign: if a tool wraps a script already wrapped by a skill and adds neither gating nor typing, the tool is not needed. One scenario - one unit: either a skill or a tool; the "skill tells when, tool executes how" combination is allowed when the method is really needed.
 
-## 01.04. Именование
-
-*Обязательно.*
-
-| Объект | Правило | Пример |
-| ------ | ------- | ------ |
-| Плагин (`id`) | Латиница, строчные, домен от общего к частному; допустим точечный префикс | `reports`, `db`, `company.guard` |
-| Tool (`name`) | Латиница, `snake_case`, глагол + объект | `run_report`, `check_connection` |
-| Неймспейс | `editor.namespace` или `options.namespace`; префикс домена для группы tools | `reports`, `db`, `etl` |
-| Эффективное имя | `<namespace>_<name>`, если неймспейс задан; иначе `name` | `reports_run_report` |
-| Аргументы | `snake_case`, однозначные, с уточнителем вместо голого существительного | `report_name`, `source_db`, не `name`, не `db` |
-
-Точки в неймспейсе и недопустимые символы в имени opencode заменяет на `_`. Эффективное имя - то, по которому tool виден модели и на которое ссылаются права (раздел 04.01).
-
-Имя должно различать tool среди соседних: пересекающиеся имена и назначения путают модель при выборе. Имя отражает операцию, а не реализацию: `search_logs`, а не `grep_wrapper`.
+An MCP server is the choice when the functionality already exists in a ready server or is needed outside opencode. If the operation is tied to project code and data, a custom tool is preferable: fewer external dependencies, and the repository controls the contract.
 
 ---
 
-## 02.01. Регистрация tool
+## 01.03. Location
 
-*Обязательно.*
+*Mandatory.*
 
-Единственный канонический вид - плагин из пакета `@opencode/plugin`, который в `setup` регистрирует tools через синхронный трансформ `ctx.tool.transform`:
+In V2 custom tools are registered by an opencode plugin. Project plugins are discovered in `.opencode/plugins/` automatically (direct `.ts` / `.js` files and plugin package directories); additionally a plugin is connected by an entry in the `plugins` array of `opencode.json(c)`.
+
+| Scope | Directory | Storage |
+| ----- | --------- | ------- |
+| Project plugins | `<repo>/.opencode/plugins/` | In the repository, committed with the project |
+| Personal plugins | `~/.config/opencode/plugins/` | Outside repositories, on the machine |
+
+Rules:
+
+- A project plugin with tools (tied to repository code, scripts, and data) lives only in `.opencode/plugins/` of that repository. A personal plugin (repository-independent) lives in `~/.config/opencode/plugins/`.
+- One plugin - one domain: the plugin registers a group of homogeneous domain tools and sets a namespace (01.04).
+- External script sources called by the tool are stored in the project structure (`run/`, `src/` per the core standard), not inside `.opencode/plugins/`; the plugin directory contains only contract registration code.
+- In a non-runnable repository (the standards hub) there are no `run/` and `src/` directories: an executable tool script is placed in `doc/skills/<name>/scripts/` or another repository script location; in derivative projects - `run/` or `src/`.
+- `.opencode/tools/` is the V1 contract registration point; it is not used in V2. New tools are not created in `.opencode/tools/`.
+- The tool name is set by the `name` field in the definition, not by the file name; the plugin file name carries the plugin `id` (01.04).
+- A custom tool with the effective name of a built-in tool overrides it - **forbidden** without an explicit user request; to disable a built-in tool use a `permissions` entry, not an override (04.01).
+- Cross-tool logic (argument validation, path protection, env substitution, modification of all tool calls) lives in the plugin through `ctx.tool.hook("execute.before")` / `ctx.tool.hook("execute.after")` hooks, not in each tool. The extraction sign: the rule is needed by all tools at once.
+- Plugin logging is structured and does not pollute the tool result; plugin `console.log` does not reach the call result, diagnostics use `console.error` (`code_standards.md`, 03.05).
+
+---
+
+## 01.04. Naming
+
+*Mandatory.*
+
+| Object | Rule | Example |
+| ------ | ---- | ------- |
+| Plugin (`id`) | Latin, lowercase, domain from general to specific; a dot prefix is allowed | `reports`, `db`, `company.guard` |
+| Tool (`name`) | Latin, `snake_case`, verb + object | `run_report`, `check_connection` |
+| Namespace | `editor.namespace` or `options.namespace`; domain prefix for a tool group | `reports`, `db`, `etl` |
+| Effective name | `<namespace>_<name>` when a namespace is set; otherwise `name` | `reports_run_report` |
+| Arguments | `snake_case`, unambiguous, with a qualifier instead of a bare noun | `report_name`, `source_db`, not `name`, not `db` |
+
+opencode replaces dots in the namespace and invalid characters in the name with `_`. The effective name is what the model sees and what permissions reference (04.01).
+
+The name must distinguish the tool among neighbors: overlapping names and purposes confuse the model when choosing. The name reflects the operation, not the implementation: `search_logs`, not `grep_wrapper`.
+
+---
+
+## 02.01. Tool registration
+
+*Mandatory.*
+
+The only canonical form is a plugin from the `@opencode/plugin` package that registers tools in `setup` through the synchronous `ctx.tool.transform` transform:
 
 ```typescript
 import { Plugin } from "@opencode/plugin"
@@ -126,21 +126,21 @@ export default Plugin.define({
   id: "reports",
   setup(ctx) {
     ctx.tool.transform((editor) => {
-      editor.namespace({ name: "reports", description: "Tools каталога отчетов проекта" })
+      editor.namespace({ name: "reports", description: "Project report catalog tools" })
       editor.add({
         name: "run_report",
-        description: "Краткое описание назначения и применимости (раздел 02.03)",
+        description: "Brief description of purpose and applicability (02.03)",
         input: {
           type: "object",
           properties: {
-            report_name: { type: "string", description: "Имя отчета из каталога отчетов проекта" }
+            report_name: { type: "string", description: "Report name from the project report catalog" }
           },
           required: ["report_name"],
           additionalProperties: false
         },
         options: { codemode: true },
         async execute(input, context) {
-          // только запуск внешнего скрипта и формирование ответа
+          // run the external script and shape the response only
         }
       })
     })
@@ -148,61 +148,61 @@ export default Plugin.define({
 })
 ```
 
-Правила:
+Rules:
 
-- Определение tool: `name`, `description`, `input` (схема аргументов), `execute`, опционально `output` (схема структурированного результата) и `options`.
-- `options`: `namespace` (имя группы, если не задано через `editor.namespace`), `codemode` (доступность tool в Code Mode), `permission` (имя действия прав, если оно должно отличаться от эффективного имени tool).
-- Трансформ синхронный и переигрываемый: внутри колбэка - только регистрация, без ввода-вывода, обращений к сети и одноразовых побочных эффектов. Внешние данные загружаются до регистрации и захватываются в колбэк; при изменении данных вызывается `ctx.tool.reload()`.
-- Реализация получает `input` (проверен схемой) и `context`: `sessionID`, `agent`, `messageID`, `id`, `signal`, `progress`. Рабочий каталог и корень проекта берутся из `ctx.location` (`ctx.location.directory`, `ctx.location.project.canonical`) в `setup`; **требовать от модели путь к проекту параметром запрещено**.
-- `context.signal` - `AbortSignal` для отменяемых операций; передавать в `fetch` и в запуск дочерних процессов, чтобы остановка сессии останавливала работу.
-- `context.progress(metadata)` - промежуточный статус для интерфейса; в результат tool не попадает.
-- Результат - объект `Tool.Result`: `content` (строка или части `text` / `file`, раздел 03.02), `output` (структурированные данные, соответствующие схеме `output`), `metadata` (служебные данные для клиента, модели не показываются).
-- Обертка не содержит бизнес-логики (раздел 03.01) и не создает побочных эффектов сверх вызова скрипта.
-- Схема аргументов - JSON Schema; допустимая альтернатива - Standard Schema (Zod) или Effect Schema (раздел 02.02).
-- `editor.update` / `editor.remove` / `editor.list` / `editor.get` - для правки и снятия ранее зарегистрированных tools; регистрация живет, пока жив плагин, и снимается при его выгрузке.
-
----
-
-## 02.02. Аргументы и схема
-
-*Обязательно.*
-
-- Схема аргументов (`input`) - JSON Schema объекта: `type: "object"`, `properties`, `required`, `additionalProperties: false`; у каждого поля - ключ `description`.
-- Допустимая альтернатива JSON Schema - Standard Schema (Zod) или Effect Schema; в этом случае описания полей задаются через `.describe()`. Канон - JSON Schema: совпадает с документацией opencode и не требует зависимости.
-- Описание аргумента читает модель: формат, единицы, допустимые значения.
-- Минимум обязательных аргументов: только то, чего модель не может знать сама (имя отчета, идентификатор сущности). Все остальное - дефолты внутри реализации.
-- Составные схемы (`enum`, `oneOf`) описывать в `description` поля перечислением допустимых значений.
-- Пример корректного вызова - в `description` поля или tool, если формат входа неочевиден.
-- Запрещено: аргументы-флаги, дублирующие права (секреты, подтверждение деструктивности - не аргументы, а записи в `permissions`, раздел 04.01); аргументы контекста сессии и пути к проекту (раздел 02.01).
+- Tool definition: `name`, `description`, `input` (argument schema), `execute`, optionally `output` (structured result schema) and `options`.
+- `options`: `namespace` (group name when not set through `editor.namespace`), `codemode` (tool availability in Code Mode), `permission` (permission action name when it must differ from the tool effective name).
+- The transform is synchronous and replayable: inside the callback - registration only, without I/O, network access, and one-time side effects. External data is loaded before registration and captured in the callback; when data changes, call `ctx.tool.reload()`.
+- The implementation receives `input` (schema-validated) and `context`: `sessionID`, `agent`, `messageID`, `id`, `signal`, `progress`. The working directory and project root come from `ctx.location` (`ctx.location.directory`, `ctx.location.project.canonical`) in `setup`; **requiring the project path from the model as a parameter is forbidden**.
+- `context.signal` is an `AbortSignal` for cancellable operations; pass it to `fetch` and child process launches so session stop stops the work.
+- `context.progress(metadata)` is an intermediate status for the interface; it does not reach the tool result.
+- The result is a `Tool.Result` object: `content` (a string or `text` / `file` parts, 03.02), `output` (structured data matching the `output` schema), `metadata` (service data for the client, not shown to the model).
+- The wrapper contains no business logic (03.01) and creates no side effects beyond the script call.
+- The argument schema is JSON Schema; an acceptable alternative is Standard Schema (Zod) or Effect Schema (02.02).
+- `editor.update` / `editor.remove` / `editor.list` / `editor.get` edit and remove previously registered tools; a registration lives as long as the plugin and is removed when the plugin unloads.
 
 ---
 
-## 02.03. Поле description
+## 02.02. Arguments and schema
 
-*Обязательно.*
+*Mandatory.*
 
-`description` - главный фактор выбора tool моделью; писать для модели, не для человека. Канон:
-
-- что делает tool, затем когда применять и когда не применять;
-- что возвращает и в каком объеме;
-- ограничения: read-only или мутация, требования к окружению, стоимость вызова;
-- конкретные формулировки из реальных запросов пользователя;
-- без маркетинга («powerful», «easy to use») и без пересказа реализации.
-
-| Плохо | Хорошо |
-| ----- | ------ |
-| `Runs a report` | `Генерирует отчет по имени из каталога отчетов проекта: HTML, Excel и JSON в output/. Use when the user asks for готовый отчет по имени. Не выполняет ad-hoc SQL - для этого execute_mssql` |
-| `Database tool` | `Проверяет соединения со всеми БД из секций db_* конфига и выводит статус каждой. Read-only. Use when diagnosing connectivity before queries` |
-
-Формулировка - часть контракта: при повторяющихся ошибочных вызовах модели править `description` tool и `description` полей схемы, а не усложнять реализацию (см. чеклист, раздел 05.03).
+- The argument schema (`input`) is a JSON Schema object: `type: "object"`, `properties`, `required`, `additionalProperties: false`; every field has a `description` key.
+- An acceptable alternative to JSON Schema is Standard Schema (Zod) or Effect Schema; in this case field descriptions are set through `.describe()`. The canon is JSON Schema: it matches opencode documentation and needs no dependency.
+- The model reads the argument description: format, units, allowed values.
+- Minimum required arguments: only what the model cannot know itself (report name, entity identifier). Everything else gets defaults inside the implementation.
+- Composite schemas (`enum`, `oneOf`) are described in the field `description` by listing allowed values.
+- A correct call example goes in the field or tool `description` when the input format is non-obvious.
+- Forbidden: flag arguments duplicating permissions (secrets, destructive confirmation are not arguments but `permissions` entries, 04.01); session context arguments and project path arguments (02.01).
 
 ---
 
-## 03.01. Тонкая обертка и внешний скрипт
+## 02.03. `description` field
 
-*Обязательно.*
+*Mandatory.*
 
-Определение tool - TypeScript, логика - язык проекта. Обертка делает ровно три вещи: описывает контракт, запускает внешний скрипт, формирует ответ.
+`description` is the main factor in tool selection by the model; write for the model, not for a human. Canon:
+
+- what the tool does, then when to apply it and when not to;
+- what it returns and in what volume;
+- constraints: read-only or mutation, environment requirements, call cost;
+- concrete wording from real user requests;
+- no marketing ("powerful", "easy to use") and no implementation retelling.
+
+| Bad | Good |
+| --- | ---- |
+| `Runs a report` | `Generates a report by name from the project report catalog as HTML, Excel, and JSON in output/. Use when the user asks for a ready report by name. Does not run ad-hoc SQL - use execute_mssql for that` |
+| `Database tool` | `Checks connections to all databases from the db_* config sections and prints each status. Read-only. Use when diagnosing connectivity before queries` |
+
+Wording is part of the contract: on repeated model invocation errors, fix the tool `description` and schema field descriptions, not the implementation (see checklist, 05.03).
+
+---
+
+## 03.01. Thin wrapper and external script
+
+*Mandatory.*
+
+The tool definition is TypeScript, the logic is in the project language. The wrapper does exactly three things: describes the contract, runs the external script, and shapes the response.
 
 ```typescript
 import { Plugin } from "@opencode/plugin"
@@ -217,14 +217,14 @@ export default Plugin.define({
   setup(ctx) {
     const projectDir = ctx.location.directory
     ctx.tool.transform((editor) => {
-      editor.namespace({ name: "reports", description: "Tools каталога отчетов проекта" })
+      editor.namespace({ name: "reports", description: "Project report catalog tools" })
       editor.add({
         name: "run_report",
-        description: "См. раздел 02.03",
+        description: "See section 02.03",
         input: {
           type: "object",
           properties: {
-            report_name: { type: "string", description: "Имя отчета из каталога отчетов" }
+            report_name: { type: "string", description: "Report name from the report catalog" }
           },
           required: ["report_name"],
           additionalProperties: false
@@ -241,57 +241,57 @@ export default Plugin.define({
 })
 ```
 
-Правила:
+Rules:
 
-- Вся логика - во внешнем скрипте проекта (`run/`, `src/`); обертка без бизнес-логики. Скрипт тестируем и переиспользуем независимо от opencode.
-- Скрипт не зависит от текущего рабочего каталога - только на переданные аргументы и путь от `ctx.location`.
-- Вывод и текст скриптов - по основному стандарту: строки `YYYY-MM-DD HH:MM:SS [marker] сообщение`, монохромный stdout без ANSI-цветов и рамок, маркеры `[!]` / `[i]` / `[*]`, текст по разделу 04.03 (русский, без точки в конце сообщений, без `ё`/`Ё`, тире - только дефис-минус), коды завершения 0 / 1 / 2 (`project_standards.md`, разделы 04.02 - 04.04, 05.03); формат вывода - раздел 03.02 этого документа.
-- Зависимости скрипта - в зависимостях проекта (`requirements.txt`); плагин зависимости не добавляет.
-- Запуск процесса - средствами рантайма плагина (`node:child_process`, `Bun.spawn` и подобные) с передачей `context.signal`; в V2 хелпер `Bun.$` плагину не предоставляется, процесс управляется кодом плагина.
-- Шум скрипта (стектрейсы, прогресс, тайминги) фильтрует обертка: успех - краткая отметка, полный вывод - только при ненулевом коде завершения.
-
----
-
-## 03.02. Вывод для агента
-
-*Обязательно.*
-
-Результат tool - объект `Tool.Result`:
-
-- `content` - то, что видит модель: строка или части `{ type: "text", text }` и `{ type: "file", uri, mime, name? }` для артефактов; основной канал ответа.
-- `output` - структурированные данные, соответствующие схеме `output` определения; для программной обработки и вызовов из Code Mode.
-- `metadata` - служебные данные для клиента; модели не показываются.
-
-Поля `content` читает модель для выбора следующего шага; проектировать ответ под нее, а не под человека:
-
-- только высокосигнальные данные; без технических идентификаторов (uuid, mime-типы), если они не нужны в цепочке вызовов; человекочитаемые имена вместо суррогатных ключей, когда выбор объекта идет по смыслу;
-- усечение - обязанность обертки, не модели: разумные дефолты объема, ориентир - до 25 тыс. токенов на ответ; полный объем - в файл-артефакт с путем в ответе (часть `file`);
-- режимы `concise` / `detailed` - если одному tool нужны оба; идентификаторы для последующих вызовов - только в `detailed`;
-- структура ответа стабильна между вызовами: одинаковые поля в одинаковом порядке - модель опирается на формат;
-- пагинация или фильтр аргументами - для потенциально больших выборок, до запроса, а не после;
-- промежуточный статус длительной операции отдается через `context.progress`, а не отдельными вызовами tool.
+- All logic is in the external project script (`run/`, `src/`); the wrapper has no business logic. The script is testable and reusable independently of opencode.
+- The script does not depend on the current working directory - only on passed arguments and the path from `ctx.location`.
+- Script output and text follow the core standard: lines `YYYY-MM-DD HH:MM:SS [marker] message`, monochrome stdout without ANSI colors and frames, markers `[!]` / `[i]` / `[*]`, text per 04.03 (Russian, no trailing period in messages, no diaeresis letter, dashes - hyphen-minus only), exit codes 0 / 1 / 2 (`project_standards.md`, 04.02-04.04, 05.03); output format - 03.02 of this document.
+- Script dependencies are in the project dependencies (`requirements.txt`); the plugin adds no dependencies.
+- Process launch uses plugin runtime facilities (`node:child_process`, `Bun.spawn`, and similar) with `context.signal` passed; in V2 the `Bun.$` helper is not provided to the plugin, the process is managed by plugin code.
+- Script noise (stack traces, progress, timings) is filtered by the wrapper: success - a brief mark, full output only on a non-zero exit code.
 
 ---
 
-## 03.03. Ошибки
+## 03.02. Output for the agent
 
-*Обязательно.*
+*Mandatory.*
 
-- Сообщение об ошибке - конкретное исправимое действие с примером корректного ввода; без сырых кодов и трейсбеков в ответе tool.
-- Ошибку исполнения возвращать в `content` результата (строкой, с маркером `[!]` скрипта), а не пробрасывать необработанное исключение: модель должна увидеть сбой и скорректировать вызов.
-- Исключение допустимо только для неустранимых сбоев инфраструктуры самого плагина; клиент покажет его как ошибку вызова.
-- Классы ошибок разделять явно: ошибка использования (невалидные аргументы - код 2) и ошибка исполнения (окружение, данные - код 1) - `project_standards.md`, раздел 05.03.
-- Повторно воспроизводимую диагностику - отдельным read-only tool (`*_check`), а не текстом внутри другого tool.
+The tool result is a `Tool.Result` object:
+
+- `content` - what the model sees: a string or parts `{ type: "text", text }` and `{ type: "file", uri, mime, name? }` for artifacts; the main response channel.
+- `output` - structured data matching the definition `output` schema; for programmatic processing and Code Mode calls.
+- `metadata` - service data for the client; not shown to the model.
+
+The model reads `content` to choose the next step; design the response for it, not for a human:
+
+- only high-signal data; no technical identifiers (uuid, mime types) unless needed in the call chain; human-readable names instead of surrogate keys when the object is selected by meaning;
+- truncation is the wrapper's duty, not the model's: reasonable default volumes, a guide of up to 25 thousand tokens per response; the full volume goes to an artifact file with the path in the response (`file` part);
+- `concise` / `detailed` modes - if one tool needs both; identifiers for subsequent calls only in `detailed`;
+- the response structure is stable across calls: the same fields in the same order - the model relies on the format;
+- pagination or filtering by arguments - for potentially large selections, before the request, not after;
+- the intermediate status of a long operation is delivered through `context.progress`, not separate tool calls.
 
 ---
 
-## 04.01. Права (permissions)
+## 03.03. Errors
 
-*Обязательно.*
+*Mandatory.*
 
-Права в V2 - один упорядоченный массив `permissions` из записей `{ action, resource, effect }`. Действует последнее совпадение; `effect` - `allow`, `deny` или `ask`; при отсутствии совпадений - `ask`. Базовая политика агента начинается с записи `{ "action": "*", "resource": "*", "effect": "allow" }`, поэтому ограничения задаются явными правилами после нее.
+- An error message is a concrete fixable action with a correct input example; no raw codes and stack traces in the tool response.
+- An execution error is returned in the result `content` (as a string, with the script `[!]` marker), not thrown as an unhandled exception: the model must see the failure and correct the call.
+- An exception is allowed only for unrecoverable infrastructure failures of the plugin itself; the client shows it as a call error.
+- Error classes are separated explicitly: usage error (invalid arguments - code 2) and execution error (environment, data - code 1) - `project_standards.md`, 05.03.
+- Reproducible diagnostics get a separate read-only tool (`*_check`), not text inside another tool.
 
-Маски `*` (любая строка, включая `/`) и `?` (один символ) применяются и к `action`, и к `resource`.
+---
+
+## 04.01. Permissions
+
+*Mandatory.*
+
+Permissions in V2 are one ordered `permissions` array of `{ action, resource, effect }` records. The last match applies; `effect` is `allow`, `deny`, or `ask`; with no match - `ask`. The base agent policy starts with `{ "action": "*", "resource": "*", "effect": "allow" }`, so restrictions are set by explicit rules after it.
+
+Masks `*` (any string, including `/`) and `?` (one character) apply to both `action` and `resource`.
 
 ```jsonc
 {
@@ -303,67 +303,67 @@ export default Plugin.define({
 }
 ```
 
-Правила:
+Rules:
 
-- Действие кастомного tool - его эффективное имя (раздел 01.04), например `reports_run_report`; `options.permission` переопределяет имя действия, если это нужно.
-- Read-only tool - дефолт и может быть `allow`; мутирующий и деструктивный tool получает запись как минимум с `ask`. Автоматический запуск (`allow`) - только для идемпотентных read-only операций.
-- Права можно сужать по агенту: `agents.<id>.permissions` дописываются после общих и не заменяют их.
-- Отключение встроенного tool - записью `{ "action": "<name>", "resource": "*", "effect": "deny" }`, а не переопределением.
-- MCP-инструменты используют действие `<server>_<tool>`.
-- Секреты - через переменные окружения и подстановки конфига; в `description`, схеме и коде плагина секретов нет (`project_standards.md`, раздел 05).
-- Минимальный набор tools в контексте: неиспользуемые tools снимать (`editor.remove`), а не только отключать - каждое описание расходует контекст на каждом шаге.
-
----
-
-## 04.02. Мутации и детерминизм
-
-*Обязательно.*
-
-- Детерминированное предпочтительнее выбора моделью: если известно, что именно нужно, решение фиксируется в реализации, а не отдается аргументом на усмотрение модели.
-- Идемпотентность: повторный вызов с теми же аргументами не меняет результат среды повторно; неидемпотентные операции - только через `ask`.
-- Мутирующие операции - с поддержкой `--dry-run` по основному стандарту (`project_standards.md`, раздел 03.01); режим отдается аргументом, помеченным в описании поля.
-- Состояние между вызовами tool не хранить: каждый вызов самодостаточен, промежуточные данные - файлы проекта или хранилище проекта; состояние самого плагина - `ctx.storage`.
+- The custom tool action is its effective name (01.04), for example `reports_run_report`; `options.permission` overrides the action name when needed.
+- A read-only tool is the default and may be `allow`; a mutating and destructive tool gets a record with at least `ask`. Automatic launch (`allow`) only for idempotent read-only operations.
+- Permissions can be narrowed per agent: `agents.<id>.permissions` are appended after the general ones and do not replace them.
+- Disabling a built-in tool uses a `{ "action": "<name>", "resource": "*", "effect": "deny" }` record, not an override.
+- MCP tools use the action `<server>_<tool>`.
+- Secrets go through environment variables and config substitutions; there are no secrets in `description`, schema, or plugin code (`project_standards.md`, 05).
+- Minimal tool set in context: remove unused tools (`editor.remove`), not just disable them - every description consumes context at every step.
 
 ---
 
-## 05.01. Антипаттерны
+## 04.02. Mutations and determinism
 
-*Обязательно.*
+*Mandatory.*
 
-| Антипаттерн | Правильно |
-| ----------- | --------- |
-| Обертка REST API один к одному (по методу на tool) | Tools под рабочие сценарии агента; меньше и емче |
-| `list_*` там, где нужен поиск | `search_*` с фильтром и релевантными строками |
-| Описание-заглушка из одной фразы | WHAT + WHEN + ограничения (раздел 02.03) |
-| Сырой трейсбек в ответе | Исправимое действие и пример корректного ввода (раздел 03.03) |
-| Полный дамп логов и вывода тестов | Краткая отметка, артефакт с путем, полный вывод только при ошибке (раздел 03.02) |
-| Модель усекает вывод сама (`head`, лимиты наугад) | Дефолты усечения в обертке (раздел 03.02) |
-| Перекрывающиеся tools с размытыми назначениями | Разные четкие назначения; пересечение - объединить |
-| Переопределение встроенного tool | Запрещено без явного запроса; отключение - через `permissions` (раздел 01.03) |
-| Бизнес-логика в коде плагина | Логика во внешнем скрипте проекта (раздел 03.01) |
-| Зависимость скрипта от cwd и абсолютных путей машины | Аргументы и путь от `ctx.location` (раздел 03.01) |
-| Ввод-вывод внутри `ctx.tool.transform` | Данные загрузить до регистрации, при изменении - `reload()` (раздел 02.01) |
-| Путь к проекту параметром от модели | `ctx.location.directory` / `project.canonical` (разделы 01.03, 02.01) |
-| Имя tool по имени файла | Имя задает поле `name`; файл несет `id` плагина (раздел 01.04) |
-| Секреты в схеме, коде или `description` | Переменные окружения и конфиг проекта (раздел 04.01) |
-| Дублирование навыка tool'ом без новых свойств | Одна единица на сценарий; связка - только при реальной пользе (раздел 01.02) |
-| Tool «на всякий случай» без реальных вызовов | Снять; контекст агента - ограниченный ресурс (раздел 04.01) |
+- Deterministic behavior is preferable to model choice: if the required action is known, the decision is fixed in the implementation, not passed as an argument for the model to decide.
+- Idempotency: a repeated call with the same arguments does not change the environment result again; non-idempotent operations - only through `ask`.
+- Mutating operations support `--dry-run` per the core standard (`project_standards.md`, 03.01); the mode is passed as an argument marked in the field description.
+- Do not store state between tool calls: each call is self-sufficient, intermediate data goes to project files or project storage; plugin state is `ctx.storage`.
 
 ---
 
-## 05.02. Пример
+## 05.01. Anti-patterns
 
-Проектный плагин-диспетчер отчетов: тонкая обертка над существующим скриптом проекта, один плагин на домен с неймспейсом.
+*Mandatory.*
+
+| Anti-pattern | Correct |
+| ------------ | ------- |
+| One-to-one REST API wrapper (one tool per method) | Tools for agent work scenarios; fewer and more capacious |
+| `list_*` where search is needed | `search_*` with a filter and relevant rows |
+| A stub description of one phrase | WHAT + WHEN + constraints (02.03) |
+| Raw stack trace in the response | A fixable action and a correct input example (03.03) |
+| Full dump of logs and test output | A brief mark, an artifact with a path, full output only on error (03.02) |
+| The model truncates output itself (`head`, arbitrary limits) | Truncation defaults in the wrapper (03.02) |
+| Overlapping tools with vague purposes | Distinct clear purposes; merge overlaps |
+| Overriding a built-in tool | Forbidden without an explicit request; disable through `permissions` (01.03) |
+| Business logic in plugin code | Logic in the external project script (03.01) |
+| Script dependency on cwd and absolute machine paths | Arguments and a path from `ctx.location` (03.01) |
+| I/O inside `ctx.tool.transform` | Load data before registration, call `reload()` on change (02.01) |
+| Project path as a model parameter | `ctx.location.directory` / `project.canonical` (01.03, 02.01) |
+| Tool name from the file name | The name is set by `name`; the file carries the plugin `id` (01.04) |
+| Secrets in the schema, code, or `description` | Environment variables and project config (04.01) |
+| Duplicating a skill with a tool without new properties | One unit per scenario; the combination only for real benefit (01.02) |
+| A "just in case" tool with no real calls | Remove it; agent context is a limited resource (04.01) |
+
+---
+
+## 05.02. Example
+
+A project report dispatcher plugin: a thin wrapper over an existing project script, one plugin per domain with a namespace.
 
 ```text
 <repo>/
 ├── .opencode/
 │   └── plugins/
-│       └── reports.ts           # регистрация tools домена
+│       └── reports.ts           # domain tool registration
 ├── run/
 │   └── reports/
-│       └── build_report.py      # реализация: SQL, HTML, Excel, JSON
-└── opencode.jsonc               # permissions проекта
+│       └── build_report.py      # implementation: SQL, HTML, Excel, JSON
+└── opencode.jsonc               # project permissions
 ```
 
 `reports.ts`:
@@ -381,18 +381,18 @@ export default Plugin.define({
   setup(ctx) {
     const projectDir = ctx.location.directory
     ctx.tool.transform((editor) => {
-      editor.namespace({ name: "reports", description: "Отчеты проекта" })
+      editor.namespace({ name: "reports", description: "Project reports" })
       editor.add({
         name: "run_report",
         description:
-          "Генерирует готовый отчет проекта по имени: пишет HTML, Excel и JSON в output/ и возвращает пути и KPI. " +
-          "Use when the user asks for готовый отчет по имени из каталога отчетов. " +
-          "Не выполняет произвольный SQL - для разведки данных использовать tools работы с БД",
+          "Generates a ready project report by name: writes HTML, Excel, and JSON to output/ and returns paths and KPIs. " +
+          "Use when the user asks for a ready report by name from the report catalog. " +
+          "Does not run arbitrary SQL - use database tools for data exploration",
         input: {
           type: "object",
           properties: {
-            report_name: { type: "string", description: "Имя отчета из каталога отчетов проекта, например items_units_diff" },
-            dry_run: { type: "boolean", description: "true - показать план без записи файлов; дефолт false" }
+            report_name: { type: "string", description: "Report name from the project report catalog, for example items_units_diff" },
+            dry_run: { type: "boolean", description: "true - show the plan without writing files; default false" }
           },
           required: ["report_name"],
           additionalProperties: false
@@ -424,45 +424,44 @@ export default Plugin.define({
 
 ---
 
-## 05.03. Чеклист автора
+## 05.03. Author checklist
 
-Перед публикацией tool проверить:
+Before publishing a tool, check:
 
-- [ ] Контракт нужен: не дублирует навык и не оборачивает API один к одному (раздел 01.02)
-- [ ] Плагин в правильном каталоге: проектный - `.opencode/plugins/` репозитория, личный - `~/.config/opencode/plugins/` (раздел 01.03)
-- [ ] Объявлены `id` плагина и `name` tool; неймспейс домена задан; эффективное имя не конфликтует со встроенными (разделы 01.03, 01.04)
-- [ ] Регистрация через `ctx.tool.transform`; трансформ синхронный, без ввода-вывода (раздел 02.01)
-- [ ] Рабочий путь - из `ctx.location`, не параметром от модели (разделы 01.03, 02.01)
-- [ ] Схема аргументов - JSON Schema с описанием каждого поля; обязательных аргументов минимум (раздел 02.02)
-- [ ] `description`: WHAT + WHEN + ограничения + состав ответа (раздел 02.03)
-- [ ] Логика - во внешнем скрипте; обертка только запускает и формирует ответ (раздел 03.01)
-- [ ] Запуск процесса передает `context.signal`; скрипт не зависит от cwd; вывод - по формату маркеров; коды завершения 0 / 1 / 2 (раздел 03.01)
-- [ ] Результат - `Tool.Result`; `content` высокосигнальный и усечен оберткой, артефакты - частями `file` (раздел 03.02)
-- [ ] Ошибки - исправимыми сообщениями с примером ввода, без трейсбеков (раздел 03.03)
-- [ ] Мутирующий tool - в `permissions` как минимум с `ask`; read-only может быть `allow` (раздел 04.01)
-- [ ] Мутации идемпотентны или защищены; есть `--dry-run` (раздел 04.02)
-- [ ] Секретов в файле нет (раздел 04.01)
-- [ ] Tool проверен на реальных запросах: выбирается моделью по `description`, ошибки вызова отсутствуют; при ошибках выбора правились описания, не реализация
-
----
-
-## 06.01. Связь с другими документами
-
-| Документ | Назначение |
-| -------- | ---------- |
-| `doc/standards/project_standards.md` | Общие правила проекта: текст (04.03), вывод (04.04), `--dry-run` (03.01), коды завершения (05.03), безопасность (05); настоящий стандарт применяется поверх него |
-| `doc/standards/code_standards.md` | Канон написания кода: Python (02), JavaScript и плагины opencode (03, в т.ч. форма файла плагина - 03.05), HTML/CSS (04), Shell (05), Windows - PowerShell и batch (06), линтеры (08); применяется при написании кода плагина и внешних скриптов tool |
-| `doc/standards/skill_anthropic_standards.md` | Навыки формата SKILL.md; выбор между tool и skill - раздел 01.02 этого документа |
-| `doc/standards/skill_plain_standards.md` | Plain-формат навыков; на кастомные tools не распространяется |
-| `doc/standards/_index_standards.md` | Реестр пакета стандартов; единая версия |
-| Раздел Tools страницы Plugins документации opencode | Первоисточник контракта: `Plugin.define`, `ctx.tool.transform`, схема входа, `options`, `execute` (opencode.ai/v2/docs/build/plugins) |
-| Страница Permissions документации opencode | Формат массива `permissions`, действия, маски, порядок и последнее совпадение (opencode.ai/v2/docs/permissions) |
-| Страница Migrate from V1 документации opencode | Перенос tools с контракта V1 на V2, переименования действий (opencode.ai/v2/docs/migrate-v1) |
-
-При расхождении этого документа с документацией opencode - первоисточник документация; расхождение фиксировать правкой настоящего стандарта.
+- [ ] The contract is needed: it does not duplicate a skill and does not wrap an API one-to-one (01.02)
+- [ ] The plugin is in the right directory: project - `.opencode/plugins/` of the repository, personal - `~/.config/opencode/plugins/` (01.03)
+- [ ] The plugin `id` and tool `name` are declared; the domain namespace is set; the effective name does not conflict with built-ins (01.03, 01.04)
+- [ ] Registration goes through `ctx.tool.transform`; the transform is synchronous, without I/O (02.01)
+- [ ] The working path comes from `ctx.location`, not from a model parameter (01.03, 02.01)
+- [ ] The argument schema is JSON Schema with a description for every field; required arguments are minimal (02.02)
+- [ ] `description`: WHAT + WHEN + constraints + response composition (02.03)
+- [ ] Logic is in the external script; the wrapper only launches and shapes the response (03.01)
+- [ ] The process launch passes `context.signal`; the script does not depend on cwd; output follows the marker format; exit codes 0 / 1 / 2 (03.01)
+- [ ] The result is a `Tool.Result`; `content` is high-signal and truncated by the wrapper, artifacts are `file` parts (03.02)
+- [ ] Errors are fixable messages with an input example, without stack traces (03.03)
+- [ ] A mutating tool is in `permissions` with at least `ask`; read-only may be `allow` (04.01)
+- [ ] Mutations are idempotent or protected; `--dry-run` exists (04.02)
+- [ ] There are no secrets in the file (04.01)
+- [ ] The tool is tested on real requests: the model selects it by `description`, call errors are absent; on selection errors, descriptions were fixed, not the implementation
 
 ---
 
-## 06.02. Версионирование
+## 06.01. Related documents
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя (см. _index_standards.md).
+| Document | Purpose |
+| -------- | ------- |
+| `doc/standards/project_standards.md` | Core project rules: text (04.03), output (04.04), `--dry-run` (03.01), exit codes (05.03), security (05); this standard applies on top of it |
+| `doc/standards/code_standards.md` | Code writing canon: Python (02), JavaScript and opencode plugins (03, including the plugin file shape - 03.05), HTML/CSS (04), Shell (05), Windows - PowerShell and batch (06), linters (08); applies when writing plugin code and external tool scripts |
+| `doc/standards/skill_anthropic_standards.md` | SKILL.md skills; choosing between tool and skill - 01.02 of this document |
+| `doc/standards/_index_standards.md` | Standards package registry; unified version |
+| Tools section of the opencode Plugins documentation | Contract primary source: `Plugin.define`, `ctx.tool.transform`, input schema, `options`, `execute` (opencode.ai/v2/docs/build/plugins) |
+| opencode Permissions documentation page | `permissions` array format, actions, masks, order and last match (opencode.ai/v2/docs/permissions) |
+| opencode Migrate from V1 documentation page | Moving tools from the V1 contract to V2, action renames (opencode.ai/v2/docs/migrate-v1) |
+
+If this document conflicts with the opencode documentation, the documentation wins; record the divergence by editing this standard.
+
+---
+
+## 06.02. Versioning
+
+Standards package versioning is unified for all package documents. Versioning policy, registry, and routing map - in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see `_index_standards.md`).

@@ -1,0 +1,50 @@
+[app]
+name =
+version = 0.1.0
+; language = ru
+
+[paths]
+; keep only paths relevant to the project; remove unused ones
+data_folder = data/
+input_folder = input/
+output_folder = output/results
+log_folder = log/
+; read paths via Path(): data_dir = Path(config.get("paths", "data_folder"))
+
+[logging]
+file_level = DEBUG
+; keep_last = 20
+
+[retry]
+retry_count = 3
+retry_delay = 2
+
+; Database connection settings
+[db]
+driver =
+server =
+database =
+port =
+; store database credentials in .env only, never here
+
+[api]
+base_url =
+timeout = 30
+; store API tokens and keys in .env only, never here
+
+[ollama]
+base_url = http://localhost:11434
+model =
+device = cpu
+timeout = 60
+; comma-separated list when using multiple models: model = llama3,mistral
+
+; Email / SMTP settings
+[email]
+enabled = false
+smtp_host =
+smtp_port =
+smtp_security = ssl
+from =
+to =
+; store SMTP credentials (SMTP_USER, SMTP_PASSWORD) in .env only, never here

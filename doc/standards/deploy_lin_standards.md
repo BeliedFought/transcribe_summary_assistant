@@ -1,191 +1,157 @@
-# Деплой Python-проекта на Linux (overlay). Версия 4.16.0
+# Linux Deploy Standards. Version 5.0.0
 
-OS-overlay к `deploy_standards.md` (общее ядро). Применяется вместе с ядром и `project_standards.md` для установки проекта как системного инструмента на Linux. Документ содержит только Linux-специфику; общие правила деплоя - в ядре.
+OS overlay for `deploy_standards.md` (shared core). Apply it together with the core and `project_standards.md` to install a project as a system tool on Linux. This document contains Linux specifics only; general deploy rules live in the core.
 
-Установка выполняется напрямую на целевой Linux-машине: `uv tool install .` из корня репозитория. Агент имеет полный доступ к репозиторию и целевой машине.
-
----
-
-## Оглавление
-
-**01. Поток и пути:** 01.01 Поток установки - 01.02 PROJECT_ROOT установленного режима
-
-**02. Установочные скрипты:** 02.01 Скрипты run/deploy - 02.02 Блок диагностики для ИИ-агента - 02.03 Платформенные подстановки скриптов
-
-**03. Платформа:** 03.01 uv - 03.02 Shell completion - 03.03 Дополнения к .gitignore - 03.04 Итоговая структура после установки - 03.05 Синхронизация версии, конфига и .env при обновлении - 03.06 Чек-лист OS-специфичных пунктов (Linux)
-
-**04. Связь и версионирование:** 04.01 Связь с другими документами - 04.02 Версионирование
+Installation runs directly on the target Linux machine: `uv tool install .` from the repository root. The agent has full access to the repository and the target machine.
 
 ---
 
-## 01.01. Поток установки
+## Table of Contents
 
-*Обязательно.*
+**01. Flow and paths:** 01.01 Install flow - 01.02 PROJECT_ROOT in installed mode
 
-Установка выполняется на целевой Linux-машине из корня репозитория:
+**02. Install scripts:** 02.01 run/deploy scripts - 02.02 Diagnostic block for AI agents - 02.03 Platform substitutions for scripts
+
+**03. Platform:** 03.01 uv - 03.02 Shell completion - 03.03 .gitignore additions - 03.04 Final structure after installation - 03.05 Version, config and .env sync on update - 03.06 OS-specific checklist (Linux)
+
+**04. Relations and versioning:** 04.01 Related documents - 04.02 Versioning
+
+---
+
+## 01.01. Install flow
+
+*Mandatory.*
+
+Installation runs on the target Linux machine from the repository root:
 
 ```bash
 uv tool install .
 ```
 
-Флаг `--force` применяется только при обновлении (эталон - `deploy_standards.md`, раздел 03.04). Сборка wheel выполняется `uv` автоматически из `pyproject.toml`.
+The `--force` flag applies only on update (reference - `deploy_standards.md`, 03.04). `uv` builds the wheel automatically from `pyproject.toml`.
 
 ---
 
-## 01.02. PROJECT_ROOT установленного режима
+## 01.02. PROJECT_ROOT in installed mode
 
-*Обязательно.*
+*Mandatory.*
 
-В установленном режиме `PROJECT_ROOT` указывает на каталог данных пользователя по XDG: `XDG_CONFIG_HOME / "tool-name"` (по умолчанию `~/.config/tool-name/`).
+In installed mode `PROJECT_ROOT` points to the XDG user data directory: `XDG_CONFIG_HOME / "tool-name"` (default `~/.config/tool-name/`).
 
-Полный пример `src/config.py` для установки на Linux:
+Template: `doc/standards/templates/config.py`. Copy it to `src/config.py` and uncomment the Linux deploy block.
 
-```python
-"""
-Общий модуль загрузки конфигурации проекта.
+**Contract:**
 
-Загружает config/config.ini и .env относительно PROJECT_ROOT.
-В режиме разработки PROJECT_ROOT - корень репозитория.
-В установленном режиме - ~/.config/tool-name/.
-"""
+- Development mode: `PROJECT_ROOT = Path(__file__).resolve().parents[1]` when `.git/` exists next to `src/`
+- Installed mode: `Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser() / "tool-name"`; keep `expanduser()` for the default only - a custom `XDG_CONFIG_HOME` is already absolute
+- The rest of the template (`ENV_PATH`, `CONFIG_PATH`, `config`, `APP_NAME`, `APP_VERSION`) stays unchanged
 
-import configparser
-import os
-from pathlib import Path
-
-from dotenv import load_dotenv
-
-_repo_root = Path(__file__).resolve().parents[1]
-
-if (_repo_root / ".git").exists():
-    PROJECT_ROOT: Path = _repo_root
-else:
-    PROJECT_ROOT = (
-        # expanduser() нужен только для дефолта "~/.config";
-        # если XDG_CONFIG_HOME задана, путь уже абсолютный
-        Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
-        / "tool-name"
-    )
-
-_env_file = PROJECT_ROOT / ".env"
-if _env_file.exists():
-    load_dotenv(_env_file, override=False)
-
-config = configparser.ConfigParser()
-_config_file = PROJECT_ROOT / "config" / "config.ini"
-if _config_file.exists():
-    config.read(_config_file, encoding="utf-8")
-
-APP_NAME: str = config.get("app", "name", fallback="tool-name")
-APP_VERSION: str = config.get("app", "version", fallback="dev")
-```
-
-Заменить `tool-name` на фактическое имя инструмента.
+Replace `tool-name` with the actual tool name.
 
 ---
 
-## 02.01. Скрипты run/deploy
+## 02.01. run/deploy scripts
 
-*Обязательно.*
+*Mandatory.*
 
-| Скрипт | Назначение |
-|--------|------------|
-| `run/deploy/install.py` | Первичная установка инструмента |
-| `run/deploy/update.py` | Обновление установленного инструмента |
+| Script | Purpose |
+|--------|---------|
+| `run/deploy/install.py` | First-time tool installation |
+| `run/deploy/update.py` | Update of the installed tool |
 
 ---
 
-## 02.02. Блок диагностики для ИИ-агента
+## 02.02. Diagnostic block for AI agents
 
-*Обязательно.*
+*Mandatory.*
 
-Каждый скрипт начинается с блока комментариев-инструкций (правила - `deploy_standards.md`, раздел 03.02).
+Each script starts with a comment block of instructions (rules - `deploy_standards.md`, 03.02).
 
-**Шаблон блока для install.py** (заменить `tool-name` на имя инструмента, `package-name` на имя пакета из `pyproject.toml`):
+**Block template for install.py** (replace `tool-name` with the tool name and `package-name` with the package name from `pyproject.toml`):
 
 ```python
 #!/usr/bin/env python3
-# ИИ-агент:
-# Если пользователь указывает @install.py без дополнительных пояснений -
-# выполнить диагностику и установку самостоятельно:
+# AI agent:
+# If the user references @install.py without further explanation -
+# run diagnostics and installation independently:
 #
-# 1. Проверить что запуск выполнен из репозитория (рядом есть pyproject.toml и .git/).
-#    Проверить что pyproject.toml содержит [build-system] и версии зависимостей с ==.
+# 1. Verify the run is from the repository (pyproject.toml and .git/ are present).
+#    Verify pyproject.toml contains [build-system] and dependency versions pinned with ==.
 #
-# 2. Проверить состояние установки:
-# uv tool list (наличие tool-name в выводе)
+# 2. Check install state:
+# uv tool list (tool-name present in the output)
 #
-# 3. Если пакет не установлен:
+# 3. If the package is not installed:
 # python run/deploy/install.py
-# После установки сообщить пользователю путь к команде и расположение конфигурации.
+# After installation report the command path and configuration location.
 #
-# 4. Если пакет установлен:
-# - Сообщить пользователю: пакет уже установлен, путь к команде.
-# - Предложить обновление через @run/deploy/update.py
+# 4. If the package is installed:
+# - Report: the package is already installed, command path.
+# - Offer an update via @run/deploy/update.py
 ```
 
-**Шаблон блока для update.py** (заменить `tool-name` и список файлов):
+**Block template for update.py** (replace `tool-name` and the file list):
 
 ```python
 #!/usr/bin/env python3
-# ИИ-агент:
-# Если пользователь указывает @update.py без дополнительных пояснений -
-# выполнить диагностику и обновление самостоятельно:
+# AI agent:
+# If the user references @update.py without further explanation -
+# run diagnostics and update independently:
 #
-# 1. Проверить что запуск выполнен из репозитория (рядом есть pyproject.toml и .git/).
+# 1. Verify the run is from the repository (pyproject.toml and .git/ are present).
 #
-# 2. Проверить состояние установки:
-# uv tool list (наличие tool-name в выводе)
+# 2. Check install state:
+# uv tool list (tool-name present in the output)
 #
-# 3. Если пакет не установлен:
-# - Сообщить пользователю: пакет не установлен.
-# - Предложить установку через @run/deploy/install.py
+# 3. If the package is not installed:
+# - Report: the package is not installed.
+# - Offer installation via @run/deploy/install.py
 #
-# 4. Если пакет установлен - сравнить исходники в uv-venv с репозиторием:
+# 4. If the package is installed - compare sources in the uv venv with the repository:
 # diff <file> ~/.local/share/uv/tools/tool-name/lib/python*/site-packages/<file>
 #
-# Проверить как минимум: main.py, src/config.py, src/logger.py и все ключевые
-# модули из src/ и run/
+# Check at minimum: main.py, src/config.py, src/logger.py and all key
+# modules from src/ and run/
 #
-# 5. Если исходники отличаются:
+# 5. If sources differ:
 # python run/deploy/update.py
-# После обновления сообщить пользователю синхронизированные параметры
-# и факт миграции config.ini / .env (если была).
+# After the update report the synchronized parameters
+# and whether config.ini / .env migration occurred.
 #
-# 6. Если исходники совпадают:
-# - Сообщить пользователю: пакет установлен и актуален, действия не требуются
+# 6. If sources match:
+# - Report: the package is installed and current, no action required
 #
-# Миграция конфига/.env при отличии структуры от example - алгоритм: `deploy_standards.md` (раздел 04.01)
+# Config/.env migration when the structure differs from the example - algorithm: `deploy_standards.md` (04.01)
 ```
 
 ---
 
-## 02.03. Платформенные подстановки скриптов
+## 02.03. Platform substitutions for scripts
 
-*Обязательно.*
+*Mandatory.*
 
-Эталон кода - `deploy_standards.md`, разделы 03.03 и 03.04; настоящий раздел задает только платформенные значения. Скрипты `run/deploy/install.py` и `run/deploy/update.py` используют общий код ядра; ниже - значения констант и шагов для Linux.
+Reference code - `deploy_standards.md`, 03.03 and 03.04; this section defines platform values only. `run/deploy/install.py` and `run/deploy/update.py` use the shared core code; below are Linux constant and step values.
 
-| Константа / шаг | Значение Linux |
-|-----------------|----------------|
-| `APP_DIR` | `$XDG_CONFIG_HOME/tool-name` (по умолчанию `~/.config/tool-name`) |
-| Путь команды | `~/.local/bin/tool-name` |
-| Каталог uv-venv | `~/.local/share/uv/tools/tool-name` |
-| Права `.env` | `0600` |
-| Подсказка PATH | `~/.local/bin` |
-| Подсказка установки `uv` | `sudo pacman -S uv` (Arch) или `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Constant / step | Linux value |
+|-----------------|-------------|
+| `APP_DIR` | `$XDG_CONFIG_HOME/tool-name` (default `~/.config/tool-name`) |
+| Command path | `~/.local/bin/tool-name` |
+| uv venv directory | `~/.local/share/uv/tools/tool-name` |
+| `.env` mode | `0600` |
+| PATH hint | `~/.local/bin` |
+| `uv` install hint | `sudo pacman -S uv` (Arch) or `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 
-В коде ядра эти значения подставляются в константы `APP_DIR`, `PATH_HINT`, `UV_INSTALL_HINT` и имя команды `TOOL_NAME`. Заменить `tool-name` на фактическое имя инструмента.
+In the core code these values substitute the constants `APP_DIR`, `PATH_HINT`, `UV_INSTALL_HINT` and the command name `TOOL_NAME`. Replace `tool-name` with the actual tool name.
 
 ---
 
 ## 03.01. uv
 
-*Обязательно.*
+*Mandatory.*
 
-`uv` - единственный инструмент для установки. Он устанавливает пакет в изолированный venv, не затрагивая систему. Команда `uv tool install .` использует `pyproject.toml` в корне проекта.
+`uv` is the only installation tool. It installs the package into an isolated venv without touching the system. `uv tool install .` uses `pyproject.toml` in the project root.
 
-**Установка uv:**
+**Installing uv:**
 
 Arch Linux:
 
@@ -193,35 +159,35 @@ Arch Linux:
 sudo pacman -S uv
 ```
 
-Прочие дистрибутивы (официальный установщик uv):
+Other distributions (official uv installer):
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Установочные скрипты проверяют наличие `uv` до начала работы и завершаются с сообщением об установке, если `uv` не найден.
+Install scripts check for `uv` before starting and exit with an installation message when `uv` is missing.
 
 ---
 
 ## 03.02. Shell completion
 
-*Опционально - для CLI с большим количеством команд и аргументов.*
+*Optional - for CLIs with many commands and arguments.*
 
-Для CLI-инструментов с большим количеством команд и аргументов рекомендуется добавить генерацию автодополнения для оболочки. Если используется `argparse`, завершения генерируются через пакет `argcomplete` (требуемая версия Python - по документации пакета). Пример регистрации:
+For CLI tools with many commands and arguments, add shell completion generation. With `argparse`, generate completions through the `argcomplete` package (required Python version - per the package documentation). Registration example:
 
 ```bash
 eval "$(register-python-argcomplete tool-name)"
 ```
 
-Для bash добавить в `~/.bashrc`. Документировать в README проекта.
+For bash add this to `~/.bashrc`. Document it in the project README.
 
 ---
 
-## 03.03. Дополнения к .gitignore
+## 03.03. .gitignore additions
 
-*Обязательно.*
+*Mandatory.*
 
-При подготовке проекта к деплою добавить в `.gitignore`:
+When preparing the project for deploy, add to `.gitignore`:
 
 ```
 *.egg-info/
@@ -229,61 +195,61 @@ dist/
 build/
 ```
 
-Это артефакты сборки, которые создает setuptools при установке. Они не должны попадать в репозиторий.
+These are build artifacts created by setuptools during installation. They must not enter the repository.
 
 ---
 
-## 03.04. Итоговая структура после установки
+## 03.04. Final structure after installation
 
 ```
-Код:        ~/.local/share/uv/tools/tool-name/lib/python*/site-packages/ (импорт-пакет src/ и модуль main.py)
-Команда:    ~/.local/bin/tool-name
-Конфиг:     ~/.config/tool-name/config/config.ini
-Секреты:    ~/.config/tool-name/.env
-Логи:       ~/.config/tool-name/log/
+Code:        ~/.local/share/uv/tools/tool-name/lib/python*/site-packages/ (src/ import package and main.py module)
+Command:     ~/.local/bin/tool-name
+Config:      ~/.config/tool-name/config/config.ini
+Secrets:     ~/.config/tool-name/.env
+Logs:        ~/.config/tool-name/log/
 ```
 
-Исходный репозиторий становится независимым от установленного инструмента - его можно удалять, перезаписывать, клонировать заново.
+The source repository becomes independent of the installed tool - it can be deleted, overwritten or cloned again.
 
 ---
 
-## 03.05. Синхронизация версии, конфига и .env при обновлении
+## 03.05. Version, config and .env sync on update
 
-*Обязательно.*
+*Mandatory.*
 
-Канон алгоритма миграции (сравнение структур, резервные копии, перенос значений, правила) - ядро `deploy_standards.md`, раздел 04.01; здесь только платформенная специфика Linux:
+The migration algorithm canon (structure comparison, backups, value transfer, rules) - core `deploy_standards.md`, 04.01; here only Linux platform specifics:
 
-- Скрипт - `run/deploy/update.py` (эталон кода - `deploy_standards.md`, раздел 03.04; подстановки - раздел 02.03)
-- **Этап 0 - синхронизация версии в репозитории (до установки):** выполняется перед `uv tool install --force`; алгоритм - по канону ядра (`deploy_standards.md`, раздел 04.01)
-- Источник структуры example - репозиторий (установка выполняется из его корня)
-- Prod-файлы - `XDG_CONFIG_HOME/tool-name/` (по умолчанию `~/.config/tool-name/`): `config/config.ini`, `.env`
-- Резервные копии и перезапись - по канону ядра (`deploy_standards.md`, раздел 04.01)
-
----
-
-## 03.06. Чек-лист OS-специфичных пунктов (Linux)
-
-*Обязательно.*
-
-К общему чек-листу (ядро - `deploy_standards.md`, раздел 05.04) добавить:
-
-1. Установочные скрипты (`run/deploy/install.py`, `run/deploy/update.py`) используют корректное `TOOL_NAME`.
-2. `.gitignore` содержит `*.egg-info/`, `dist/`, `build/`.
-3. Тестовая установка и запуск на чистой машине прошли успешно.
-4. Подмена `PROJECT_ROOT` использует корректное имя инструмента и XDG-путь.
+- Script - `run/deploy/update.py` (reference code - `deploy_standards.md`, 03.04; substitutions - 02.03)
+- **Stage 0 - version sync in the repository (before installation):** runs before `uv tool install --force`; algorithm - core canon (`deploy_standards.md`, 04.01)
+- Example structure source - the repository (installation runs from its root)
+- Prod files - `XDG_CONFIG_HOME/tool-name/` (default `~/.config/tool-name/`): `config/config.ini`, `.env`
+- Backups and rewriting - core canon (`deploy_standards.md`, 04.01)
 
 ---
 
-## 04.01. Связь с другими документами
+## 03.06. OS-specific checklist (Linux)
 
-| Документ | Связь |
-|----------|-------|
-| `deploy_standards.md` | Общее ядро деплоя; настоящий документ - OS-overlay, применяется вместе с ним |
-| `deploy_win_standards.md` | Парный OS-overlay для Windows (та же структура скриптов, платформенная специфика) |
-| `doc/standards/project_standards.md` | Основной стандарт |
+*Mandatory.*
+
+Add to the common checklist (core - `deploy_standards.md`, 05.04):
+
+1. Install scripts (`run/deploy/install.py`, `run/deploy/update.py`) use the correct `TOOL_NAME`.
+2. `.gitignore` contains `*.egg-info/`, `dist/`, `build/`.
+3. A test installation and run on a clean machine succeeded.
+4. The `PROJECT_ROOT` swap uses the correct tool name and the XDG path.
 
 ---
 
-## 04.02. Версионирование
+## 04.01. Related documents
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя (см. _index_standards.md).
+| Document | Relation |
+|----------|----------|
+| `deploy_standards.md` | Shared deploy core; this document is an OS overlay applied together with it |
+| `deploy_win_standards.md` | Paired OS overlay for Windows (same script structure, platform specifics) |
+| `doc/standards/project_standards.md` | Core standard |
+
+---
+
+## 04.02. Versioning
+
+Standards package versioning is unified for all package documents. The versioning policy, registry and routing map live in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see _index_standards.md).

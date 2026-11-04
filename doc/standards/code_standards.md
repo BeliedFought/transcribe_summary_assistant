@@ -1,565 +1,557 @@
-# Стандарт написания кода. Версия 4.16.0
+# Code Standards. Version 5.0.0
 
-Канон требований к написанию кода по языкам: Python, JavaScript, HTML и CSS, Shell, Windows (PowerShell и batch); форматы данных; общие правила (комментарии, TODO, длина строки) и линтеры. Документ - дополнение к `project_standards.md` и применяется поверх него: структура проекта, конфигурация, вывод и интерфейс, безопасность, git и рабочий процесс - в основном стандарте. Порядок принятия решений при отсутствии или неоднозначности нормы - `project_standards.md`, раздел 07.06.
+Canonical coding requirements by language: Python, JavaScript, HTML and CSS, Shell, Windows (PowerShell and batch); data formats; shared rules (comments, TODO, line length, encoding); and linters. This document supplements `project_standards.md` and applies on top of it: project structure, configuration, output and UI, security, git, and workflow live in the core standard. For decision priority when a rule is missing or ambiguous, see `project_standards.md` (Section 07.06).
 
-Разделы самодостаточны: при задаче с одним языком агент загружает раздел этого языка и общие разделы 01 и 07. Обязательность разделов - по факту наличия в репозитории кода соответствующего языка; разделы Python применяются в Python-проектах и в Python-скриптах навыков.
+Sections are self-contained: for a single-language task, load that language section plus common sections 01 and 07. A section is mandatory when the repository contains code in the corresponding language; Python sections apply to Python projects and Python skill scripts.
 
-## Оглавление
+## Table of Contents
 
-**01. Общие правила кода:** 01.01 Комментарии - 01.02 Комментарии TODO - 01.03 Длина строки - 01.04 Кодировка и переносы строк
+**01. Common Code Rules:** 01.01 Comments - 01.02 TODO Comments - 01.03 Line Length - 01.04 Encoding and Line Endings
 
-**02. Python:** 02.01 Именование - 02.02 Константы и глобальное состояние - 02.03 Docstrings - 02.04 Типизация - 02.05 Программирование - 02.06 Исключения - 02.07 Логирование в коде
+**02. Python:** 02.01 Naming - 02.02 Constants and Global State - 02.03 Docstrings - 02.04 Typing - 02.05 Programming - 02.06 Exceptions - 02.07 Logging in Code
 
-**03. JavaScript:** 03.01 Модули и переменные - 03.02 Сравнение и строки - 03.03 Функции, именование и документирование - 03.04 Ошибки и запрещенные конструкции - 03.05 Плагины opencode - 03.06 TypeScript
+**03. JavaScript:** 03.01 Modules and Variables - 03.02 Comparison and Strings - 03.03 Functions, Naming, and Documentation - 03.04 Errors and Forbidden Constructs - 03.05 opencode Plugins - 03.06 TypeScript
 
-**04. HTML и CSS:** 04.01 Каркас документа - 04.02 Семантика и доступность - 04.03 Ресурсы и стили - 04.04 Форматирование и именование классов
+**04. HTML and CSS:** 04.01 Document Skeleton - 04.02 Semantics and Accessibility - 04.03 Resources and Styles - 04.04 Formatting and Class Naming
 
-**05. Shell (bash):** 05.01 Шапка и строгий режим - 05.02 Переменные и кавычки - 05.03 Конструкции и функции - 05.04 Ошибки и потоки вывода - 05.05 Рабочий каталог и длина строки - 05.06 busybox ash (встроенные среды) - 05.07 Алиасы и rc-файлы
+**05. Shell (bash):** 05.01 Header and Strict Mode - 05.02 Variables and Quoting - 05.03 Constructs and Functions - 05.04 Errors and Output Streams - 05.05 Working Directory and Line Length - 05.06 busybox ash (Embedded Environments) - 05.07 Aliases and rc Files
 
-**06. Windows:** 06.01 PowerShell - 06.02 Batch (cmd) - 06.03 Windows-специфика в коде
+**06. Windows:** 06.01 PowerShell - 06.02 Batch (cmd) - 06.03 Windows Specifics in Code
 
-**07. Форматы данных:** 07.01 JSON и JSONC - 07.02 TOML и конфигурации инструментов - 07.03 SQL
+**07. Data Formats:** 07.01 JSON and JSONC - 07.02 TOML and Tool Configurations - 07.03 YAML - 07.04 SQL
 
-**08. Линтеры и проверки:** 08.01 Python: ruff и mypy - 08.02 Shell: shellcheck - 08.03 JavaScript: eslint и prettier - 08.04 HTML и CSS: валидатор W3C и stylelint - 08.05 PowerShell: PSScriptAnalyzer
+**08. Linters and Checks:** 08.01 Python: ruff and mypy - 08.02 Shell: shellcheck - 08.03 JavaScript: eslint and prettier - 08.04 HTML and CSS: W3C Validator and stylelint - 08.05 PowerShell: PSScriptAnalyzer
 
-**09. Связь и версионирование:** 09.01 Связь с другими документами - 09.02 Версионирование
+**09. Cross-References and Versioning:** 09.01 Related Documents - 09.02 Versioning
 
 ---
 
-# 01. Общие правила кода
+# 01. Common Code Rules
 
-Правила, не привязанные к языку программирования: комментарии, TODO, длина строки, кодировка и переносы строк.
+Language-independent rules: comments, TODO, line length, encoding, and line endings.
 
-## 01.01. Комментарии
+## 01.01. Comments
 
-*Обязательно.*
+*Required.*
 
-- Комментарии в коде пишутся на русском языке (требования к тексту - `project_standards.md`, раздел 04.03)
-- Комментарий - полное предложение: первое слово с заглавной буквы, соблюдение правил русского языка
-- Комментарий объясняет причину и принятое решение, а не пересказывает код; комментарий, дублирующий код, не пишется
-- Закомментированный код не оставляется
-- Инлайн-комментарий в конце строки - редкий случай: когда пояснение нельзя вынести строкой над кодом
+- Write code comments in English (language split - `project_standards.md`, Section 04.03)
+- A comment is a complete sentence: capitalize the first word and use normal English punctuation
+- A comment explains the reason and the decision, not the code; never restate the code in a comment
+- Do not leave commented-out code
+- A trailing inline comment is a rare case: use it only when the explanation cannot be placed on the line above the code
 
-## 01.02. Комментарии TODO
+## 01.02. TODO Comments
 
-*Обязательно.*
+*Required.*
 
-- Формат единый для всех языков: `TODO(владелец): суть`; владелец - имя пользователя или команды, отвечающей за доработку
-- `TODO` без владельца не оставляется
-- Синтаксис по языку: Python и Shell - `# TODO(owner): ...`, JavaScript - `// TODO(owner): ...`
-- `TODO` отмечает планируемое изменение, а не дефект: дефекты исправляются сразу, без заметки
+- Use one format across all languages: `TODO(owner): summary`; the owner is the user or team responsible for the follow-up
+- Never leave a `TODO` without an owner
+- Language syntax: Python and Shell - `# TODO(owner): ...`, JavaScript - `// TODO(owner): ...`
+- A `TODO` marks a planned change, not a defect: fix defects immediately, without a note
 
-## 01.03. Длина строки
+## 01.03. Line Length
 
-*Обязательно.*
+*Required.*
 
-Длина строки задается каноном языка и закреплена инструментом (раздел 08); единое значение на все языки не вводится:
+Line length follows the language canon and is enforced by a tool (Section 08); do not introduce a single value for all languages:
 
-| Язык | Предел | Где закреплен |
-|------|--------|---------------|
+| Language | Limit | Enforced by |
+|----------|-------|-------------|
 | Python | 100 | `ruff` (08.01) |
 | JavaScript | 80 | `prettier` (08.03) |
-| HTML, CSS | ориентир 80, перенос по необходимости | - |
-| Shell | ориентир 80-100 | 05.05 |
-| PowerShell | ориентир 80-100, длинные вызовы - splatting | 06.01 |
-| Batch (cmd) | ориентир 80, перенос строки - `^` | 06.02 |
+| HTML, CSS | target 80, wrap as needed | - |
+| Shell | target 80-100 | 05.05 |
+| PowerShell | target 80-100, long calls via splatting | 06.01 |
+| Batch (cmd) | target 80, line continuation via `^` | 06.02 |
 
-## 01.04. Кодировка и переносы строк
+## 01.04. Encoding and Line Endings
 
-*Обязательно.*
+*Required.*
 
-- Все текстовые файлы репозитория - UTF-8 без BOM; окончания строк - LF через `.gitattributes`; канон - `project_standards.md` (разделы 01.04, 06.01)
-- Исключения: `.ps1` - UTF-8 с BOM (Windows PowerShell 5.1 иначе читает файл в ANSI); `.bat` и `.cmd` - ASCII (06.02); окончания строк `.ps1`, `.bat`, `.cmd` - CRLF пометкой `.gitattributes` (06.01 основного стандарта)
+- All repository text files are UTF-8 without BOM, with LF line endings enforced through `.gitattributes`; canon - `project_standards.md` (Sections 01.04, 06.01)
+- Exceptions: `.ps1` is UTF-8 with BOM (Windows PowerShell 5.1 otherwise reads the file as ANSI); `.bat` and `.cmd` are ASCII (06.02); line endings of `.ps1`, `.bat`, `.cmd` are CRLF via `.gitattributes` (core standard, Section 06.01)
 
 ---
 
 # 02. Python
 
-Правила применяются к коду Python-проектов и к Python-скриптам навыков; вывод скриптов навыков - по `skill_anthropic_standards.md` (раздел 03.03).
+Rules apply to Python project code and Python skill scripts; skill script output follows `skill_anthropic_standards.md` (Section 03.03).
 
-## 02.01. Именование
+## 02.01. Naming
 
-*Обязательно.*
+*Required.*
 
-| Сущность            | Стиль       | Пример                      |
-| ------------------- | ----------- | --------------------------- |
-| Переменные          | snake_case  | `user_id`, `file_path`      |
-| Функции             | snake_case  | `load_data`, `get_user`     |
-| Классы              | PascalCase  | `DataLoader`, `ApiClient`   |
-| Константы           | UPPER_CASE  | `MAX_RETRIES`, `BASE_URL`   |
-| Приватные атрибуты  | _snake_case | `_session`, `_config`       |
-| Модули / файлы      | snake_case  | `data_loader.py`            |
+| Entity             | Style       | Example                     |
+| ------------------ | ----------- | --------------------------- |
+| Variables          | snake_case  | `user_id`, `file_path`      |
+| Functions          | snake_case  | `load_data`, `get_user`     |
+| Classes            | PascalCase  | `DataLoader`, `ApiClient`   |
+| Constants          | UPPER_CASE  | `MAX_RETRIES`, `BASE_URL`   |
+| Private attributes | _snake_case | `_session`, `_config`       |
+| Modules / files    | snake_case  | `data_loader.py`            |
 
-**Язык нейминга.** Идентификаторы пишутся на английском языке (осмысленные английские слова и устойчивые сокращения: `id`, `url`, `api`, `db`, `config`). Транслитерация русских слов латиницей запрещена: не `dannye`, `spisanie`, `oborot`, а `data`, `writeoff`, `turnover`. Кириллица в техническом нейминге недопустима (см. также 04.03 основного стандарта). Человекочитаемые строки для пользователя (логи, UI, документация) - на русском через `t()` / документацию; они не являются идентификаторами кода.
+**Naming language.** Identifiers are written in English (meaningful English words and established abbreviations: `id`, `url`, `api`, `db`, `config`). Transliterating Russian words into Latin is forbidden: use `data`, `writeoff`, `turnover`, not `dannye`, `spisanie`, `oborot`. Cyrillic in technical naming is not allowed (see also core standard Section 04.03). Human-readable user strings (UI, documentation) are Russian via `t()` or documentation; they are not code identifiers.
 
-**Иерархия в составных именах (от общего к частному).** Если имя файла, модуля, ключа или иного идентификатора состоит из нескольких смысловых частей, части идут слева направо от крупного контекста к более мелкому уточнению: домен / раздел / блок / деталь. Не начинать с мелкой детали и не ставить общий префикс в конец. Примеры: `log_export_summary.txt` (лог -> раздел export -> блок summary), `db_init.py`, `api_sync_users.py`. Заданные в основном стандарте префиксы доменов (`db_`, `api_`, `ai_`, `email_`, `orch_` и т.п.) - первый уровень этой иерархии.
+**Hierarchy in compound names (general to specific).** When a file, module, key, or other identifier name consists of several meaningful parts, the parts run left to right from the larger context to the narrower detail: domain / section / block / detail. Do not start with a small detail and do not put a common prefix at the end. Examples: `log_export_summary.txt` (log -> export section -> summary block), `db_init.py`, `api_sync_users.py`. Domain prefixes defined in the core standard (`db_`, `api_`, `ai_`, `email_`, `orch_`, and similar) are the first level of this hierarchy.
 
-**Имена, которых избегать:**
+**Names to avoid:**
 
-- Однобуквенные `l`, `O`, `I` запрещены - путаются с единицей и нулем
-- При конфликте имени с ключевым словом добавляется завершающее подчеркивание: `class_`
-- Аббревиатуры в PascalCase-именах пишутся целиком заглавными: `HTTPServerError`, не `HttpServerError`
+- Single-letter names `l`, `O`, `I` are forbidden - they are confused with one and zero
+- When a name conflicts with a keyword, add a trailing underscore: `class_`
+- Abbreviations in PascalCase names are written in full uppercase: `HTTPServerError`, not `HttpServerError`
 
-**Слаги.** Слаг - короткая текстовая метка, входящая в состав имен файлов и папок (часть `<slug>` в `2026-07-21_setup-db`, `spec_<slug>.md`). Два типа слагов:
+**Slugs.** A slug is a short text label that is part of file and folder names (the `<slug>` part in `2026-07-21_setup-db`, `spec_<slug>.md`). Two slug types:
 
-- *Латинский слаг* - программный идентификатор:
-  - строчные латинские буквы, цифры, дефис; разделитель слов - дефис (kebab-case)
-  - английские слова; транслит запрещен: `setup-db`, а не `nastroyka-db`
-  - начинается и заканчивается буквой или цифрой; двойные дефисы запрещены
-  - до 4 слов, суммарно до 64 символов
-- *Русский слаг* - человекочитаемое имя для пользователя (рекомендуемые имена папок сессий - раздел 01.01.01 основного стандарта):
-  - буквы кириллицы; цифры допустимы; латиница и пробелы запрещены
-  - разделитель слов - дефис: `Настройка-выгрузки`
-  - первое слово с заглавной буквы, остальные со строчными
-  - буква е без диакритического знака, ё запрещена (раздел 04.03 основного стандарта)
-  - 2-4 слова
+- *Latin slug* - a programmatic identifier:
+  - lowercase Latin letters, digits, hyphen; the word separator is a hyphen (kebab-case)
+  - English words; transliteration is forbidden: `setup-db`, not `nastroyka-db`
+  - starts and ends with a letter or digit; double hyphens are forbidden
+  - up to 4 words, up to 64 characters in total
+- *Russian slug* - a human-readable name for the user (recommended session folder names - core standard Section 01.01.01):
+  - Cyrillic letters; digits are allowed; Latin letters and spaces are forbidden
+  - the word separator is a hyphen: `Настройка-выгрузки`
+  - the first word is capitalized, the rest are lowercase
+  - letter е without a diacritic mark; the diaeresis variant is forbidden (core standard Section 04.03)
+  - 2-4 words
 
-Граница типов - по назначению имени (раздел 04.03 основного стандарта): имя, используемое кодом как идентификатор (шаблон поиска, glob, литерал), строится из латинского слага; человекочитаемое имя артефакта для пользователя - из русского.
+The boundary between types follows the purpose of the name (core standard Section 04.03): a name used by code as an identifier (search pattern, glob, literal) is built from a Latin slug; a human-readable artifact name for the user is built from a Russian slug.
 
-## 02.02. Константы и глобальное состояние
+## 02.02. Constants and Global State
 
-*Обязательно.*
+*Required.*
 
-- Числа и строки с предметным смыслом (таймауты, порты, лимиты, коды, размеры) выносятся в именованные константы `UPPER_CASE`; литералы с предметным смыслом в логике без имени запрещены, кроме самоочевидных (`0`, `1`, `-1`)
-- Модульные константы разрешены и поощряются; внутренние (не часть API модуля) - с префиксом `_`
-- Изменяемое глобальное состояние (модульные словари, списки, флаги, изменяемые из разных мест) - избегать; состояние передается параметрами и возвращается результатами
-- Если изменяемое глобальное состояние необходимо: имя с префиксом `_`, доступ через функции, причина фиксируется комментарием у объявления
+- Numbers and strings with domain meaning (timeouts, ports, limits, codes, sizes) go into named `UPPER_CASE` constants; domain-meaning literals in logic without a name are forbidden, except self-evident ones (`0`, `1`, `-1`)
+- Module constants are allowed and encouraged; internal ones (not part of the module API) use the `_` prefix
+- Avoid mutable global state (module dicts, lists, flags mutated from multiple places); pass state through parameters and return it through results
+- If mutable global state is unavoidable: use a `_` prefix, access it through functions, and record the reason in a comment at the declaration
 
 ## 02.03. Docstrings
 
-*Обязательно.*
+*Required.*
 
-- Каждый модуль имеет модульный docstring: первая строка - краткое назначение модуля
-- Все публичные функции, методы и классы снабжаются docstring; приватные (`_name`) - по необходимости
-- Стиль - Google (читаемый, поддерживается Sphinx и IDE из коробки). Пример:
+- Every module has a module docstring: the first line states the module purpose briefly
+- All public functions, methods, and classes have docstrings; private ones (`_name`) as needed
+- Style - Google (readable, supported by Sphinx and IDEs out of the box). Example:
 
 ```python
 def get_logger(name: str, log_dir: Path) -> logging.Logger:
-    """Создать логгер с файловым и консольным выводом.
+    """Create a file-only logger.
 
     Args:
-        name: имя скрипта, используется в имени файла лога.
-        log_dir: каталог для размещения файла лога.
+        name: Script name used in the log file name.
+        log_dir: Directory for the log file.
 
     Returns:
-        Настроенный экземпляр Logger.
+        Configured Logger instance.
     """
 ```
 
-- Docstring пишется на русском языке (раздел 04.03 основного стандарта), описывает назначение, параметры, возвращаемое значение, исключения (секция `Raises:` при наличии)
-- Форма по PEP 257: сводка - одно предложение в инфинитиве; в многострочном docstring после сводки - пустая строка, закрывающие кавычки на отдельной строке; в однострочном - кавычки в той же строке. Точка в конце сводки ставится (в отличие от сообщений лога, где точка запрещена)
-- Для функций-генераторов используется секция `Yields:`, а не `Returns:`
-- Для тривиальных геттеров/сеттеров и очевидных оберток docstring опускается - избыточные комментарии хуже их отсутствия
+- Write docstrings in English (core standard Section 04.03); describe the purpose, parameters, return value, and exceptions (`Raises:` section when applicable)
+- Form per PEP 257: the summary is one sentence in the imperative; in a multi-line docstring, a blank line follows the summary and the closing quotes sit on their own line; a single-line docstring keeps the quotes on the same line. End the summary with a period (unlike log messages, where a trailing period is forbidden)
+- Generators use `Yields:`, not `Returns:`
+- Omit docstrings for trivial getters/setters and obvious wrappers: redundant comments are worse than none
 
-## 02.04. Типизация
+## 02.04. Typing
 
-*Обязательно.*
+*Required.*
 
-- Аннотации типов для всех функций: параметры и возвращаемое значение
-- Для сложных типов - модуль `typing` или `from __future__ import annotations`
-- Пример: `def get_logger(name: str, log_dir: Path) -> logging.Logger:`
-- `Any` не используется там, где тип выразим: `X | None` / `Optional`, объединения, `Protocol`
-- Имена `TypeVar` - короткие PascalCase: `T`, `AnyStr`, `KT_contra`
-- Современный синтаксис объединений `X | None` допустим и предпочтителен
+- Type annotations for all functions: parameters and return value
+- For complex types, use the `typing` module or `from __future__ import annotations`
+- Example: `def get_logger(name: str, log_dir: Path) -> logging.Logger:`
+- Do not use `Any` where a type is expressible: `X | None` / `Optional`, unions, `Protocol`
+- `TypeVar` names are short PascalCase: `T`, `AnyStr`, `KT_contra`
+- Modern union syntax `X | None` is allowed and preferred
 
-## 02.05. Программирование
+## 02.05. Programming
 
-*Обязательно.*
+*Required.*
 
-**Сравнение и истинность:**
+Generic Python style is enforced by the configured linters (Section 08.01): formatting and indentation, import order, `None` comparisons, `isinstance` checks, boolean comparisons, lambda assignment, mutable defaults, and return consistency. This section defines project requirements and non-obvious restrictions.
 
-- Сравнение с `None` - только `is` / `is not`: `x is None`, `x is not None`; `x == None`, `x != None`, `not x is None` запрещены
-- Истинность последовательностей вместо `len()`: `if seq:` / `if not seq:` для строк, списков, словарей, множеств; `if len(seq) == 0` запрещено
-- Для целых чисел - явное сравнение: `if i % 10 == 0:`; `if not i % 10:` запрещено как неочевидное
-- `isinstance(obj, int)` вместо сравнения типов; `type(obj) is type(1)`, `type(obj) == int` запрещены
-- Булевы значения проверяются использованием, а не сравнением: `if flag:` / `if not flag:`; `if flag == True:`, `if flag is True:` запрещены
+**Truthiness and comparisons:**
 
-**Функции:**
+- Test sequences for truthiness instead of `len()`: `if seq:` / `if not seq:` for strings, lists, dicts, and sets; `if len(seq) == 0` is forbidden
+- For integers, use an explicit comparison: `if i % 10 == 0:`; `if not i % 10:` is forbidden as non-obvious
 
-- Присваивание lambda запрещено: вместо `handler = lambda x: x + 1` - `def handler(x): return x + 1`
-- Согласованность `return`: если хотя бы один `return` функции возвращает значение, все остальные тоже возвращают значение; терминальный `return None` указывается явно
-- Проверка префиксов и суффиксов - `name.startswith("tmp")`, не срезами `name[:3] == "tmp"`
-- Comprehension - один `for` и не более одного `if`; вложенные `for` в comprehension запрещены - писать обычным циклом
+**Functions:**
 
-**Значения по умолчанию:**
+- Check prefixes and suffixes with `name.startswith("tmp")`, not with slices such as `name[:3] == "tmp"`
+- A comprehension has one `for` and at most one `if`; nested `for` clauses in a comprehension are forbidden - write a regular loop
 
-- Изменяемые значения по умолчанию запрещены: `def f(x=[])`, `def f(x={})`, `def f(x=set())`; правильно - `def f(x=None)` и внутри `if x is None: x = []`
-- Антипаттерн `x = x or []` запрещен: он подменяет любое ложное значение, а не только `None`
+**Default values:**
 
-**Строки:**
+- The `x = x or []` antipattern is forbidden: it replaces any falsy value, not only `None`
 
-- Сборка строк в коде - f-строки; `.format()` и `%` - для шаблонов, приходящих из данных, и для аргументов логгера (02.07)
+**Strings:**
 
-**Структура файла:**
+- Build strings with f-strings; use `.format()` and `%` for templates coming from data and for logger arguments (02.07)
 
-- Порядок шапки: модульный docstring, затем `from __future__ import annotations`, затем модульные dunder-имена (`__all__`, `__version__`), затем импорты
-- Импорты: один на строку; `from x import *` запрещен; импорты в начале файла; группы - стандартная библиотека, сторонние, локальные - разделяются пустой строкой; локальные импорты - абсолютные
-- Публичный и внутренний интерфейс: внутренние имена - с ведущим `_`; модули с публичным API объявляют `__all__`; импортированные имена не переэкспортируются без явного решения
-- Базовое форматирование: отступ 4 пробела, табы запрещены; две пустые строки между определениями верхнего уровня, одна между методами; без концевых пробелов; без точек с запятой и составных операторов в одной строке; ключевые аргументы и значения по умолчанию - без пробелов вокруг `=`, при аннотации - с пробелами: `sep: str = ","`
-- В многострочных коллекциях запятая после последнего элемента рекомендуется (когда закрывающая скобка на отдельной строке); для кортежа из одного элемента - обязательна: `(1,)`
+**File structure:**
 
-**Мощные возможности языка:**
+- Header order: module docstring, then `from __future__ import annotations`, then module dunder names (`__all__`, `__version__`), then imports
+- Keep imports at the top of the file; `from x import *` is forbidden; local imports are absolute; import order and grouping are enforced by ruff (`I`)
+- Public and internal interface: internal names start with `_`; modules with a public API declare `__all__`; do not re-export imported names without an explicit decision
+- In multi-line collections, keep a trailing comma after the last element when the closing bracket is on its own line; a one-element tuple requires it: `(1,)`
 
-- Метаклассы, `__del__` для очистки, динамическая компиляция, правка `sys.path`, рефлексия через `getattr` - только при явной необходимости с обоснованием в комментарии
-- `@staticmethod` избегать; `@classmethod` - для именованных конструкторов
+**Powerful language features:**
 
-## 02.06. Исключения
+- Metaclasses, `__del__` for cleanup, dynamic compilation, `sys.path` edits, and reflection through `getattr` require an explicit need and a comment justifying it
+- Avoid `@staticmethod`; use `@classmethod` for named constructors
 
-*Обязательно.*
+## 02.06. Exceptions
 
-Крафт конструкций - в этом разделе; политика обработки (конкретные классы, запрет глушения, `raise ... from`, иерархия `ProjectError`, контекстные менеджеры) - `project_standards.md`, раздел 05.02.
+*Required.*
 
-- Тело `try` минимально: только операция, которую обрабатывает `except`; остальное выносится в `else`; широкий `try` скрывает чужие ошибки
-- `assert` не для проверки предусловий бизнес-логики: при запуске с `-O` проверки исчезают. Для проверки аргументов - `raise ValueError(...)`; `assert` допустим как внутренняя страховка и в тестах
-- Выбор класса исключения по смыслу: нарушенное предусловие аргумента - `ValueError`; отсутствующий ключ - `KeyError`; доменные ошибки - собственные классы с суффиксом `Error` и иерархией по смыслу
+Construct rules are in this section; the handling policy (specific classes, no swallowing, `raise ... from`, `ProjectError` hierarchy, context managers) is in `project_standards.md` (Section 05.02).
 
-## 02.07. Логирование в коде
+- Keep the `try` body minimal: only the operation handled by `except`; move the rest into `else`; a broad `try` hides unrelated errors
+- Do not use `assert` for business-logic preconditions: checks disappear under `-O`. Validate arguments with `raise ValueError(...)`; `assert` is acceptable as an internal safeguard and in tests
+- Choose the exception class by meaning: a violated argument precondition - `ValueError`; a missing key - `KeyError`; domain errors - dedicated classes with the `Error` suffix and a hierarchy by meaning
 
-*Обязательно.*
+## 02.07. Logging in Code
 
-- Аргументы логгера передаются лениво, отдельно от шаблона: `logger.info(t("msg.items_loaded"), count)`, где перевод `msg.items_loaded` содержит плейсхолдер `%s` (шаблон - через `t()` по разделу 04.01 основного стандарта, аргументы - параметрами вызова); f-строка внутри вызова логгера не используется
-- Исключение - скрипты навыков: у них свой канон вывода без логгера (`skill_anthropic_standards.md`, раздел 03.03); правило на них не распространяется
-- Канон логгера, уровни, форматы - `project_standards.md` (разделы 04.06, 04.04)
+*Required.*
+
+- Write `logger.*` calls in English with lazy `%s` arguments passed separately from the template: `logger.info("Loaded %s items from %s", count, path)`. Never use `t()` or f-strings inside a logger call (`project_standards.md`, Section 04.06)
+- Exception - skill scripts: they have their own output canon without a logger (`skill_anthropic_standards.md`, Section 03.03); this rule does not apply to them
+- Logger canon, levels, and formats - `project_standards.md` (Sections 04.06 and 04.04)
 
 ---
 
 # 03. JavaScript
 
-Правила применяются к плагинам opencode, конфигурационным скриптам и будущему фронтенду.
+Rules apply to opencode plugins, configuration scripts, and future frontend code.
 
-## 03.01. Модули и переменные
+## 03.01. Modules and Variables
 
-*Обязательно.*
+*Required.*
 
-- Новый код - только ES-модули: `import` / `export`; `require` и `module.exports` не используются
-- Объявление переменных: `const` по умолчанию; `let` - только когда переменная переприсваивается; `var` запрещен
-- Одна переменная на объявление: `let a = 1, b = 2;` запрещено
-- Переменная объявляется рядом с местом использования и инициализируется сразу
+- New code uses ES modules only: `import` / `export`; do not use `require` or `module.exports`
+- Declare a variable next to its use and initialize it immediately
+- Variable declarations (`const` by default, `let` only for reassignment, no `var`) and one variable per declaration are enforced by ESLint (Section 08.03)
 
-## 03.02. Сравнение и строки
+## 03.02. Comparison and Strings
 
-*Обязательно.*
+*Required.*
 
-- Сравнение - только `===` / `!==`; исключение - сознательная проверка `x == null`, ловящая одновременно `null` и `undefined`
-- Обычные строки - в одинарных кавычках; интерполяция и многострочность - шаблонные литералы (обратные кавычки)
-- Обычная строка не переносится на несколько строк
+- Comparison, quote style, and string layout are enforced by ESLint and Prettier (Section 08.03); the intentional exception is `x == null`, which deliberately catches both `null` and `undefined`
 
-## 03.03. Функции, именование и документирование
+## 03.03. Functions, Naming, and Documentation
 
-*Обязательно.*
+*Required.*
 
-- Вложенные функции - стрелочные (`=>`); `this` не привязывается через `bind` и `const self = this`
-- Именованные вложенные функции: `const name = () => {...}`
-- Именование: переменные и функции - `lowerCamelCase`; классы - `UpperCamelCase`; константы - `CONSTANT_CASE`; имена файлов - строчные, слова через дефис (kebab-case), расширение `.js`
-- Экспортируемые функции и классы описываются JSDoc с `@param` и `@returns`; внутренние однострочные хелперы можно не документировать
-- Отступ - 2 пробела; фигурные скобки обязательны для всех управляющих конструкций (стиль K&R); одна инструкция на строку; точка с запятой обязательна - на автоматическую вставку не полагаться
+- Use arrow functions for nested functions (`=>`); do not bind `this` through `bind` or `const self = this`
+- Name nested functions: `const name = () => {...}`
+- Naming: variables and functions - `lowerCamelCase`; classes - `UpperCamelCase`; constants - `CONSTANT_CASE`; file names - lowercase words separated by hyphens (kebab-case) with the `.js` extension
+- Document exported functions and classes with JSDoc `@param` and `@returns`; internal one-line helpers may stay undocumented
+- Formatting (indentation, braces, semicolons) is enforced by ESLint and Prettier (Section 08.03)
 
-## 03.04. Ошибки и запрещенные конструкции
+## 03.04. Errors and Forbidden Constructs
 
-*Обязательно.*
+*Required.*
 
-- Бросаются объекты `Error` или наследники; бросание строк запрещено
-- `catch` без параметра и пустой блок `catch {}` запрещены
-- Асинхронный код - `async` / `await`; вложенные колбэки не пишутся
-- Запрещены: `with`; `eval` и `new Function(...)`; нестандартные и устаревшие возможности; недокументированные расширения рантайма
-- Используется стандарт ECMA-262 и WHATWG; API конкретной среды (Node, Bun) допускаются по месту использования
+- Throw `Error` objects or subclasses; throwing strings is forbidden
+- `catch` without a parameter and an empty `catch {}` block are forbidden
+- Use `async` / `await` for asynchronous code; do not write nested callbacks
+- Forbidden: `with`; `eval` and `new Function(...)`; non-standard and deprecated features; undocumented runtime extensions
+- Use ECMA-262 and WHATWG; environment-specific APIs (Node, Bun) are allowed where used
 
-## 03.05. Плагины opencode
+## 03.05. opencode Plugins
 
-*Обязательно для репозиториев с плагинами opencode.*
+*Required for repositories with opencode plugins.*
 
-Канон формы файла плагина:
+Canonical plugin file shape:
 
-- Экспорт - `export default Plugin.define({ id, setup })` из пакета `@opencode/plugin`
-- Подписка на события - через `ctx.event.subscribe({ signal })` с `AbortController`
-- `setup` возвращает функцию очистки: отменяет подписки и запущенные процессы
-- Глобальное состояние не хранится; свое состояние - `ctx.storage`
-- Диагностика - `console.error`
+- Export `export default Plugin.define({ id, setup })` from the `@opencode/plugin` package
+- Subscribe to events through `ctx.event.subscribe({ signal })` with an `AbortController`
+- `setup` returns a cleanup function that cancels subscriptions and running processes
+- Do not keep global state; store own state in `ctx.storage`
+- Report diagnostics through `console.error`
 
 ## 03.06. TypeScript
 
-*Обязательно для репозиториев с TypeScript, включая плагины opencode.*
+*Required for repositories with TypeScript, including opencode plugins.*
 
-- `tsconfig.json` со `strict: true`; `target` и `module` - под рантайм исполнения
-- Явные типы в публичных сигнатурах; для локальных переменных - вывод типов
-- `any` не используется; значение неизвестного внешнего типа - `unknown` с уточнением проверкой
-- Именование: типы и интерфейсы - PascalCase; переменные и функции - camelCase; правила 03.01-03.04 применяются
-- Типы пакета-хоста (например `@opencode/plugin`) импортируются как типы: `import type { Plugin } from "@opencode/plugin"`
-- Доменные типы экспортируются из одного модуля; дублирование пересекающихся определений не допускается
+- `tsconfig.json` with `strict: true`; `target` and `module` match the execution runtime
+- Explicit types in public signatures; use type inference for local variables
+- Do not use `any`; a value of unknown external type is `unknown`, narrowed by a check
+- Naming: types and interfaces - PascalCase; variables and functions - camelCase; rules 03.01-03.04 apply
+- Import host package types (for example `@opencode/plugin`) as types: `import type { Plugin } from "@opencode/plugin"`
+- Export domain types from one module; do not duplicate overlapping definitions
 
 ---
 
-# 04. HTML и CSS
+# 04. HTML and CSS
 
-Правила применяются к артефакту `doc/specs/spec_ui.html` (контракт - `console_ui_standards.md`), живым HTML-макетам и фронтенду (`web_standards.md`).
+Rules apply to the `doc/specs/spec_ui.html` artifact (contract - `console_ui_standards.md`), live HTML mockups, and frontend code (`web_standards.md`).
 
-## 04.01. Каркас документа
+## 04.01. Document Skeleton
 
-*Обязательно.*
+*Required.*
 
-- `<!doctype html>` - первой строкой документа
-- `<meta charset="utf-8">`, `<html lang="...">` с языком содержимого, `<title>`
-- `<meta name="viewport" ...>` - для адаптивных страниц
+- `<!doctype html>` on the first line of the document
+- `<meta charset="utf-8">`, `<html lang="...">` with the content language, and `<title>`
+- `<meta name="viewport" ...>` for responsive pages
 
-## 04.02. Семантика и доступность
+## 04.02. Semantics and Accessibility
 
-*Обязательно.*
+*Required.*
 
-- HTML и CSS валидны (проверка валидаторами - 08.04)
-- Элементы используются по назначению: заголовки - для заголовков, `p` - для абзацев, `a` - для ссылок, `nav` / `main` / `section` - по смыслу; `div` не заменяет семантический элемент
-- Доступность: `alt` у изображений (пустой - для декоративных); подписи `<label>` к полям форм; контраст текста; ARIA - только когда нативной семантики не хватает
-- Заголовки - по иерархии, без пропуска уровней
+- HTML and CSS are valid (validator checks - 08.04)
+- Use elements for their purpose: headings for headings, `p` for paragraphs, `a` for links, `nav` / `main` / `section` by meaning; `div` does not replace a semantic element
+- Accessibility: `alt` on images (empty for decorative ones); `<label>` captions for form fields; text contrast; use ARIA only when native semantics is insufficient
+- Headings follow the hierarchy without skipping levels
 
-## 04.03. Ресурсы и стили
+## 04.03. Resources and Styles
 
-*Обязательно.*
+*Required.*
 
-- Внешние ресурсы подключаются только по `https://`; протокол-относительные ссылки `//` не используются
-- Оформление - в `<style>` или внешнем CSS-файле; инлайн-стили и презентационные атрибуты (`width`, `height` для оформления, `<font>`, `align`) не используются
-- Атрибут `type` у тегов `style` и `script` не пишется
+- Load external resources only over `https://`; do not use protocol-relative `//` links
+- Keep presentation in `<style>` or an external CSS file; do not use inline styles or presentational attributes (`width`, `height` for styling, `<font>`, `align`)
+- Do not write the `type` attribute on `style` and `script` tags
 
-## 04.04. Форматирование и именование классов
+## 04.04. Formatting and Class Naming
 
-*Обязательно.*
+*Required.*
 
-- HTML: отступ 2 пробела, табы запрещены; теги и атрибуты - строчными; значения атрибутов - в двойных кавычках; блочный, списочный и табличный элемент - с новой строки, потомки с отступом; концевые пробелы удаляются
-- CSS: валидный; при перечислении каждый селектор - с новой строки; блок объявлений - с отступом 2 пробела; пробел после двоеточия, перед ним - нет; точка с запятой после каждого объявления; селекторы и свойства строчными; hex-цвета - строчными или сокращенные; разделы файла выделяются комментариями (`/* Header */`)
-- Имена классов - осмысленные или обобщенные функциональные, отражающие назначение элемента; презентационные и бессмысленные имена (`red`, `left`, `div2`) не используются
+- HTML: 2-space indent, tabs forbidden; lowercase tags and attributes; double-quoted attribute values; block, list, and table elements on new lines with indented descendants; no trailing whitespace
+- CSS: valid; one selector per line in a selector list; declaration blocks indented 2 spaces; a space after the colon and none before it; a semicolon after every declaration; lowercase selectors and properties; lowercase or shortened hex colors; separate file sections with comments such as `/* Header */`
+- Class names are meaningful or generic functional names that reflect the element purpose; presentational and meaningless names (`red`, `left`, `div2`) are not used
 
 ---
 
 # 05. Shell (bash)
 
-Правила применяются к shell-скриптам репозитория, включая скрипты навыков (`scripts/` пакетов навыков); вывод скриптов навыков - по `skill_anthropic_standards.md` (раздел 03.03).
+Rules apply to repository shell scripts, including skill scripts (`scripts/` in skill packages); skill script output follows `skill_anthropic_standards.md` (Section 03.03).
 
-## 05.01. Шапка и строгий режим
+## 05.01. Header and Strict Mode
 
-*Обязательно.*
+*Required.*
 
-- Первая строка - `#!/usr/bin/env bash`
-- Далее комментарий-шапка: назначение скрипта, ожидаемые аргументы, коды возврата
-- Строгий режим: `set -euo pipefail` сразу после шапки
-- Если скрипт намеренно рассчитан на неинициализированные переменные - это фиксируется комментарием, а обращения к значениям по умолчанию пишутся как `${VAR:-}`
+- The first line is `#!/usr/bin/env bash`
+- Next comes a header comment: script purpose, expected arguments, and return codes
+- Strict mode: `set -euo pipefail` immediately after the header
+- If a script intentionally relies on uninitialized variables, record this in a comment and write default value references as `${VAR:-}`
 
-## 05.02. Переменные и кавычки
+## 05.02. Variables and Quoting
 
-*Обязательно.*
+*Required.*
 
-- Все подстановки переменных - в кавычках: `"$var"`, `"${arr[@]}"`, `"$@"`; `$var` без кавычек в командах и тестах запрещен
-- Переменные в функциях - `local`
-- Именование: переменные и функции - `lower_snake_case`; константы и переменные окружения - `UPPER_SNAKE_CASE`; константы - `readonly`; счетчики циклов `i`, `j`, `k` допустимы
+- Quote all variable substitutions: `"$var"`, `"${arr[@]}"`, `"$@"`; unquoted `$var` in commands and tests is forbidden
+- Function variables are `local`
+- Naming: variables and functions - `lower_snake_case`; constants and environment variables - `UPPER_SNAKE_CASE`; constants are `readonly`; loop counters `i`, `j`, `k` are allowed
 
-## 05.03. Конструкции и функции
+## 05.03. Constructs and Functions
 
-*Обязательно.*
+*Required.*
 
-- Проверки - `[[ ... ]]` вместо `[ ... ]`
-- Подстановка команд - `$(...)`, обратные кавычки не используются
-- Арифметика - `$((...))`
-- Функции - `lower_snake_case`, без ключевого слова `function`
-- Основной сценарий - функция `main`; вызов `main "$@"` в конце файла
+- Use `[[ ... ]]` instead of `[ ... ]` for tests
+- Command substitution - `$(...)`; do not use backticks
+- Arithmetic - `$((...))`
+- Functions - `lower_snake_case`, without the `function` keyword
+- The main scenario is a `main` function; call `main "$@"` at the end of the file
 
-## 05.04. Ошибки и потоки вывода
+## 05.04. Errors and Output Streams
 
-*Обязательно.*
+*Required.*
 
-- Коды возврата команд проверяются: `if ! cmd; then ...; fi`
-- Игнорирование ошибки через `|| true` - только с комментарием-обоснованием
-- Данные пишутся в `STDOUT`; ошибки и сообщение об использовании - в `STDERR` (`>&2`)
-- `eval` запрещен; косвенный доступ - через массивы и `printf -v`
+- Check command return codes: `if ! cmd; then ...; fi`
+- Ignore an error through `|| true` only with a justifying comment
+- Write data to `STDOUT`; errors and the usage message go to `STDERR` (`>&2`)
+- `eval` is forbidden; use arrays and `printf -v` for indirect access
 
-## 05.05. Рабочий каталог и длина строки
+## 05.05. Working Directory and Line Length
 
-*Обязательно.*
+*Required.*
 
-- Скрипт не зависит от текущего каталога: явный `cd` с проверкой (`cd "$dir" || exit 1`) либо абсолютные пути от известной переменной
-- Пути собираются без хардкода разделителей
-- Длина строки - ориентир 80-100 (01.03); длинные сообщения и команды - через heredoc или массивы
-- Строки-разделители (`=====`, `-----`) не используются (`project_standards.md`, 04.04.02)
+- A script does not depend on the current directory: use an explicit `cd` with a check (`cd "$dir" || exit 1`) or absolute paths from a known variable
+- Build paths without hardcoded separators
+- Line length target is 80-100 (01.03); write long messages and commands via heredoc or arrays
+- Do not use separator lines (`=====`, `-----`) (`project_standards.md`, 04.04.02)
 
-## 05.06. busybox ash (встроенные среды)
+## 05.06. busybox ash (Embedded Environments)
 
-*Обязательно для скриптов встроенных Linux-сред (Entware, OpenWrt и аналогичные).*
+*Required for scripts in embedded Linux environments (Entware, OpenWrt, and similar).*
 
-- Фоновый запуск из SSH-сессии или хука прошивки умирает вместе с родителем: отвязка через `start-stop-daemon -S -b -m -p <pidfile>`
-- `start-stop-daemon -K` и `-t` с `-x` не работают для интерпретируемых скриптов: сверяется бинарь интерпретатора, остановка рапортует «не запущено» при живом процессе, а проверка «уже работает» ложно проваливается и плодит дубликаты
-- Живость процесса проверяется по `/proc/<pid>/cmdline` с подстрокой имени скрипта
-- Самодельный лок-каталог переживает перезагрузку и блокирует цикл навсегда: использовать pid-файл либо лок со сроком годности
-- Набор встроенных команд уже bash: перед использованием встроенной команды проверять ее наличие в целевой среде
+- A background launch from an SSH session or a firmware hook dies with the parent: detach via `start-stop-daemon -S -b -m -p <pidfile>`
+- `start-stop-daemon -K` and `-t` with `-x` do not work for interpreted scripts: they match the interpreter binary, so stop reports "not running" while the process is alive, and the "already running" check falsely fails and spawns duplicates
+- Check process liveness through `/proc/<pid>/cmdline` containing the script name
+- A hand-made lock directory survives a reboot and blocks the loop forever: use a pid file or a lock with an expiry
+- The built-in command set is narrower than bash: verify that a built-in command exists in the target environment before using it
 
-## 05.07. Алиасы и rc-файлы
+## 05.07. Aliases and rc Files
 
-*Обязательно для правки shell-настройки пользователя (`~/.bashrc`, `~/.bash_aliases`).*
+*Required when editing user shell configuration (`~/.bashrc`, `~/.bash_aliases`).*
 
-- Алиасы и shell-функции пользователя размещаются строго в `~/.bash_aliases`; заводить их в `~/.bashrc` запрещено
-- `~/.bashrc` содержит только: заголовок и проверку интерактивности, `PS1`, `export`-строки, строки инициализации инструментов (`starship init`, `zoxide init` и аналоги) и строку `[ -f "$HOME/.bash_aliases" ] && source "$HOME/.bash_aliases"` в конце файла
-- Управляемые блоки навыков кастомизации - в маркер-секциях: открывающая строка `# >>> <owner>: <domain> >>>`, закрывающая `# <<< <owner>: <<<`; `<owner>` - имя навыка или компонента, `<domain>` - назначение блока (пример: `# >>> cfg-mc: lastdir >>>`); замена блока идет целиком по рамкам, чужие секции не трогаются
-- Комментарий - короткий, функциональный, над строкой или группой: что делает и зачем; текст комментария - по правилам 04.03 `project_standards.md` (русский, без ё, дефис-минус, без точки в конце)
-- Декоративные строки-разделители (`# --- xxx ---`) в rc-файлах не используются
-- Сходные по сути алиасы размещаются рядом, одним доменом (vpn-команды вместе, rdp вместе и так далее); парные команды - единым паттерном именования `<domain>-on` / `<domain>-off` / `<domain>-status` (пример: семейство `vpntg-on`, `vpntg-off`, `vpntg-status`)
-- Один алиас - один владелец: навык, который его пишет и проверяет; два навыка не управляют одной строкой, алиас чужого владельца при чистке мигрирует или пропускается, но не удаляется
-- Новые определения дописываются в конец своего домена; порядок доменов стабилен между прогонами, чтобы повторные применения были идемпотентны
+- Place user aliases and shell functions strictly in `~/.bash_aliases`; defining them in `~/.bashrc` is forbidden
+- `~/.bashrc` contains only: a header and interactivity check, `PS1`, `export` lines, tool initialization lines (`starship init`, `zoxide init`, and similar), and the line `[ -f "$HOME/.bash_aliases" ] && source "$HOME/.bash_aliases"` at the end of the file
+- Managed blocks of customization skills live in marker sections: opening line `# >>> <owner>: <domain> >>>`, closing line `# <<< <owner>: <<<`; `<owner>` is the skill or component name, `<domain>` is the block purpose (example: `# >>> cfg-mc: lastdir >>>`); replace a block entirely by its markers and never touch other sections
+- Keep the comment short and functional, above the line or group: what it does and why; comment text follows Section 01.01 (English, hyphen-minus, no trailing period)
+- Do not use decorative separator lines (`# --- xxx ---`) in rc files
+- Group aliases by domain (vpn commands together, rdp together, and so on); paired commands follow one naming pattern `<domain>-on` / `<domain>-off` / `<domain>-status` (example: the `vpntg-on`, `vpntg-off`, `vpntg-status` family)
+- One alias has one owner: the skill that writes and verifies it; two skills never manage the same line; an alias owned by another skill migrates or is skipped during cleanup, never deleted
+- Append new definitions to the end of their domain; keep domain order stable between runs so repeated applications are idempotent
 
 ---
 
-# 06. Windows: PowerShell и batch
+# 06. Windows: PowerShell and Batch
 
-Правила применяются к скриптам Windows: `.ps1` (PowerShell) и `.bat` / `.cmd` (batch). Новые сценарии автоматизации пишутся на PowerShell или Python; batch - только простая обвязка.
+Rules apply to Windows scripts: `.ps1` (PowerShell) and `.bat` / `.cmd` (batch). Write new automation scenarios in PowerShell or Python; batch is only simple glue.
 
 ## 06.01. PowerShell
 
-*Обязательно при наличии .ps1-скриптов.*
+*Required when .ps1 scripts exist.*
 
-- Целевая версия новых скриптов - PowerShell 7.x (актуальная LTS-ветка); синтаксис 7 (`&&`, `||`, тернарный `?:`, `??`) используется свободно
-- Windows PowerShell 5.1 - режим совместимости для систем без установленного PowerShell 7: такой скрипт не использует синтаксис 7 и объявляет минимум шапкой `#Requires -Version 5.1`
-- Решение ревизуется по триггеру: смена LTS-ветки PowerShell 7.x либо полный переход целевых систем на PowerShell 7 - режим совместимости 5.1 сокращается
-- Строгий режим в начале скрипта: `Set-StrictMode -Version Latest` и `$ErrorActionPreference = 'Stop'`
-- Функции именуются по схеме глагол-существительное из одобренных глаголов PowerShell (`Get-Verb`), в PascalCase: `Get-Report`, `Set-Option`
-- Полные имена команд и параметров, без алиасов: `Where-Object`, а не `?`; `Select-String`, а не `sls`; параметры - именованные
-- Параметры функции - блок `param()` с типами; `[CmdletBinding()]` - при использовании общих параметров
-- Обработка ошибок: `try` / `catch` / `finally`; вместо проверок `$?` - `-ErrorAction Stop` у конкретного вызова
-- Потоки вывода: данные - `Write-Output` (в конвейер); сообщения пользователю - `Write-Host` (только прямой вывод); ошибки - `Write-Error`; диагностика - `Write-Verbose` / `Write-Debug`
-- Строки: одинарные кавычки для литералов, двойные - только при интерполяции; многострочные - here-string (интерполирующий `@"..."@`, литеральный `@'...'@`)
-- Длинные вызовы - splatting (`$params = @{...}`; `Cmdlet @params`), а не переносы через обратную кавычку
-- Запрещены: `Invoke-Expression` и динамическое исполнение строк; обход политики выполнения из самих скриптов
-- Кодировка файла `.ps1` - UTF-8 с BOM (Windows PowerShell 5.1 иначе читает файл в ANSI и искажает кириллицу); окончания строк - CRLF
+- The target version for new scripts is PowerShell 7.x (the current LTS branch); use 7 syntax (`&&`, `||`, ternary `?:`, `??`) freely
+- Windows PowerShell 5.1 is a compatibility mode for systems without PowerShell 7: such a script avoids 7 syntax and declares the minimum in the header `#Requires -Version 5.1`
+- Revisit the decision on a trigger: a PowerShell 7.x LTS branch change or a full migration of target systems to PowerShell 7 - then reduce the 5.1 compatibility mode
+- Strict mode at the start of the script: `Set-StrictMode -Version Latest` and `$ErrorActionPreference = 'Stop'`
+- Name functions with an approved PowerShell verb-noun pair (`Get-Verb`) in PascalCase: `Get-Report`, `Set-Option`
+- Use full command and parameter names, no aliases: `Where-Object`, not `?`; `Select-String`, not `sls`; use named parameters
+- Function parameters go in a typed `param()` block; add `[CmdletBinding()]` when using common parameters
+- Error handling: `try` / `catch` / `finally`; instead of `$?` checks, use `-ErrorAction Stop` on the specific call
+- Output streams: data - `Write-Output` (to the pipeline); user messages - `Write-Host` (direct output only); errors - `Write-Error`; diagnostics - `Write-Verbose` / `Write-Debug`
+- Strings: single quotes for literals, double quotes only for interpolation; multi-line strings use here-strings (interpolating `@"..."@`, literal `@'...'@`)
+- Long calls use splatting (`$params = @{...}`; `Cmdlet @params`), not backtick line continuations
+- Forbidden: `Invoke-Expression` and dynamic string execution; bypassing the execution policy from scripts
+- `.ps1` encoding is UTF-8 with BOM (Windows PowerShell 5.1 otherwise reads the file as ANSI and corrupts Cyrillic); line endings are CRLF
 
 ## 06.02. Batch (cmd)
 
-*Обязательно при наличии .bat- или .cmd-скриптов.*
+*Required when .bat or .cmd scripts exist.*
 
-- Назначение batch - простая обвязка: запуск Python или uv, установка переменных, проброс аргументов; вычислительная логика и разбор ошибок - на PowerShell или Python
-- Шапка: `@echo off` первой строкой; при отложенном раскрытии переменных - `setlocal enabledelayedexpansion` и парный `endlocal` в конце
-- Переменные и пути - в кавычках: `"%VAR%"`, `"C:\path with spaces"`; присваивание без пробелов вокруг `=`
-- Коды возврата: проверка `if errorlevel 1` или `%ERRORLEVEL%`; завершение - `exit /b <code>`; конвенция кодов - 0 / 1 / 2 (`project_standards.md`, 05.03)
-- Кодировка файла - ASCII: комментарии и сообщения пишутся на английском (исключение к языку текста `project_standards.md` 04.03 - техническое ограничение OEM-кодировки консоли cmd; русский текст в batch ненадежен). Русский вывод при необходимости - только через `chcp 65001` и UTF-8 без BOM с проверкой на целевой системе; окончания строк - CRLF
-- Длинные команды - перенос по `^` в конце строки; пробел после `^` перенос ломает
+- Batch purpose is simple glue: launch Python or uv, set variables, forward arguments; computational logic and error parsing belong to PowerShell or Python
+- Header: `@echo off` on the first line; with delayed expansion, `setlocal enabledelayedexpansion` and a matching `endlocal` at the end
+- Quote variables and paths: `"%VAR%"`, `"C:\path with spaces"`; assign without spaces around `=`
+- Return codes: check `if errorlevel 1` or `%ERRORLEVEL%`; exit with `exit /b <code>`; code convention - 0 / 1 / 2 (`project_standards.md`, Section 05.03)
+- File encoding is ASCII: write comments and messages in English (an exception to the text-language rule in `project_standards.md` 04.03 - a technical limitation of the cmd OEM console encoding; Russian text in batch is unreliable). If Russian output is required, use `chcp 65001` with UTF-8 without BOM and verify on the target system; line endings are CRLF
+- Break long commands with `^` at the end of the line; a space after `^` breaks the continuation
 
-## 06.03. Windows-специфика в коде
+## 06.03. Windows Specifics in Code
 
-*Обязательно для кода, работающего на Windows.*
+*Required for code running on Windows.*
 
-- Зарезервированные имена Windows (`CON`, `PRN`, `AUX`, `NUL`, `COM1`-`COM9`, `LPT1`-`LPT9`) не используются для файлов и каталогов, в том числе с расширением; имена не заканчиваются точкой или пробелом
-- Имена, различающиеся только регистром, не создаются: файловая система Windows регистронезависима
-- Глубокие пути не создаются: классическое ограничение Win32 - 260 символов; на политику длинных путей ОС не полагаться
-- Переменные окружения: `%USERPROFILE%` в cmd, `$env:USERPROFILE` в PowerShell, `os.environ` / `Path.home()` в Python; `~` в командах Windows не раскрывается
-- Пути - через `pathlib.Path` в Python (`project_standards.md`, 01.04) и `Join-Path` в PowerShell (06.01); строковая конкатенация и хардкод разделителей запрещены
-- Права POSIX и симлинки в репозитории не предполагаются; окончания строк `.ps1`, `.bat`, `.cmd` - CRLF пометкой `.gitattributes` (`project_standards.md`, 06.01)
+- Do not use reserved Windows names (`CON`, `PRN`, `AUX`, `NUL`, `COM1`-`COM9`, `LPT1`-`LPT9`) for files and directories, including with an extension; names do not end with a period or space
+- Do not create names that differ only by case: the Windows file system is case-insensitive
+- Do not create deep paths: the classic Win32 limit is 260 characters; do not rely on the OS long-path policy
+- Environment variables: `%USERPROFILE%` in cmd, `$env:USERPROFILE` in PowerShell, `os.environ` / `Path.home()` in Python; `~` is not expanded in Windows commands
+- Build paths through `pathlib.Path` in Python (`project_standards.md`, 01.04) and `Join-Path` in PowerShell (06.01); string concatenation and hardcoded separators are forbidden
+- Do not assume POSIX permissions or symlinks in the repository; line endings of `.ps1`, `.bat`, `.cmd` are CRLF via `.gitattributes` (`project_standards.md`, 06.01)
 
 ---
 
-# 07. Форматы данных
+# 07. Data Formats
 
-## 07.01. JSON и JSONC
+## 07.01. JSON and JSONC
 
-*Обязательно.*
+*Required.*
 
-- Отступ - 2 пробела
-- Ключи и строки - в двойных кавычках
-- Файл завершается переводом строки
-- Комментарии в JSON не допускаются; конфигурационные файлы с комментариями используют расширение `.jsonc`
+- Indent - 2 spaces
+- Keys and strings in double quotes
+- End the file with a newline
+- Comments are not allowed in JSON; configuration files with comments use the `.jsonc` extension
 
-## 07.02. TOML и конфигурации инструментов
+## 07.02. TOML and Tool Configurations
 
-*Обязательно при наличии соответствующих файлов.*
+*Required when the corresponding files exist.*
 
-- Шаблоны внешних тем (например `starship.toml`) - копии внешних источников: состав ключей не меняется без обновления темы, форматирование не навязывается
-- Конфигурация opencode (`opencode.jsonc`): `$schema` в корне, MCP-серверы в `mcp.servers`, секреты - только ссылками `{file:...}`, файлы с секретами - права 600
+- External theme templates (for example `starship.toml`) are copies of external sources: do not change the key set without updating the theme, and do not impose formatting
+- opencode configuration (`opencode.jsonc`): `$schema` at the root, MCP servers under `mcp.servers`, secrets only as `{file:...}` references, secret files with mode 600
 
 ## 07.03. YAML
 
-*Обязательно при наличии YAML (CI, сторонние конфиги).*
+*Required when YAML exists (CI, third-party configs).*
 
-- Отступ - 2 пробела, табы запрещены
-- Значения со спецсимволами (`:`, `{`, `[`, `#`, начальный `-`) - в кавычках
-- Литералы `true` / `false` / `null` - строчными; значения, похожие на числа (`3.10`, `1.0`), - в кавычках, чтобы не нормализовывались парсером
-- Многострочные строки - `|` (блок с переносами) или `>` (свернутый) по смыслу
-- Анкоры и алиасы (`&`, `*`) не используются: не все инструменты их разворачивают
+- Indent - 2 spaces, tabs forbidden
+- Quote values with special characters (`:`, `{`, `[`, `#`, leading `-`)
+- Literals `true` / `false` / `null` are lowercase; number-like values (`3.10`, `1.0`) are quoted so parsers do not normalize them
+- Multi-line strings use `|` (block with newlines) or `>` (folded) as appropriate
+- Do not use anchors and aliases (`&`, `*`): not all tools expand them
 
 ## 07.04. SQL
 
-*Обязательно при наличии SQL-файлов или встроенных запросов.*
+*Required when SQL files or embedded queries exist.*
 
-- Ключевые слова - UPPER (`SELECT`, `FROM`, `WHERE`); идентификаторы - snake_case (`code_standards.md`, 02.01)
-- Смысловые конструкции (`JOIN`, `WHERE`, `AND`, `GROUP BY`, `ORDER BY`) - с новой строки; отступ продолжений единый по файлу
-- Только явные `JOIN`; неявное соединение через запятую не используется
-- Алиасы таблиц - короткие осмысленные (`u` для users, `o` для orders); бессмысленные (`t1`, `a`) не допускаются
-- `SELECT *` не используется - колонки перечисляются; параметры подстановки - плейсхолдеры драйвера (`project_standards.md`, 03.02)
-- Шапка файла запроса - назначение одной строкой (правила комментариев - 01.01)
+- Keywords are UPPER (`SELECT`, `FROM`, `WHERE`); identifiers are snake_case (`code_standards.md`, 02.01)
+- Put semantic clauses (`JOIN`, `WHERE`, `AND`, `GROUP BY`, `ORDER BY`) on new lines; keep continuation indentation consistent within a file
+- Use explicit `JOIN` only; do not use implicit comma joins
+- Table aliases are short and meaningful (`u` for users, `o` for orders); meaningless aliases (`t1`, `a`) are not allowed
+- Do not use `SELECT *` - list columns; substitution parameters are driver placeholders (`project_standards.md`, Section 03.02)
+- The query file header states the purpose in one line (comment rules - 01.01)
 
 ---
 
-# 08. Линтеры и проверки
+# 08. Linters and Checks
 
-Требования разделов 02-06 исполняются инструментами, а не только декларацией. Проверки запускаются перед коммитом; отключение конкретного правила - инлайн-комментарием с обоснованием рядом.
+The requirements of sections 02-06 are enforced by tools, not by declaration alone. Run checks before commit; disable a specific rule only with an inline comment and a justification next to it.
 
-## 08.01. Python: ruff и mypy
+## 08.01. Python: ruff and mypy
 
-*Обязательно.*
+*Required.*
 
-- Линтер и форматтер - `ruff` (один инструмент вместо связки flake8+isort+black); конфигурация в `pyproject.toml`, секция `[tool.ruff]`
-- Набор проверок: `E`, `F`, `I` (импорты), `UP` (pyupgrade), `B` (bugs), `RET` (согласованность return), `SIM` (упрощения), `C4` (comprehensions), `BLE` (запрет слепого перехвата исключений)
-- Длина строки - 100 символов
-- Тип-чекер - `mypy` (единственный закрепленный вариант); конфигурация в `pyproject.toml`, секция `[tool.mypy]`; базовый режим - пресет `strict = true`, точечные отключения - ключ `disable_error_code` глобально или в per-module секциях, каждое отключение сопровождается обоснованием:
+- Linter and formatter - `ruff` (one tool instead of flake8+isort+black); configuration in `pyproject.toml`, section `[tool.ruff]`
+- Rule set: `E`, `F`, `I` (imports), `UP` (pyupgrade), `B` (bugs), `RET` (return consistency), `SIM` (simplifications), `C4` (comprehensions), `BLE` (no blind exception catching)
+- Line length - 100 characters
+- Type checker - `mypy` (the only pinned option); configuration in `pyproject.toml`, section `[tool.mypy]`; the baseline is the `strict = true` preset, targeted disables use `disable_error_code` globally or in per-module sections, and every disable carries a justification:
 
 ```toml
 [tool.mypy]
 strict = true
 
-# пример точечного отключения: у внешнего пакета нет заглушек типов
+# example of a targeted disable: the external package ships no type stubs
 disable_error_code = ["import-untyped"]
 ```
-- Инструменты добавляются в `requirements.txt` или dev-секцию `pyproject.toml` - по механизму dev-зависимостей проекта (`project_standards.md`, 01.06)
-- Команда проверки перед коммитом: `ruff check . && mypy src`
-- Область: `ruff` - все файлы `.py` репозитория, включая скрипты навыков (`data/skills/*/scripts/`, `doc/skills/*/scripts/`); `mypy` - `src/`
-- Отключение правила - `# noqa: CODE` с обоснованием в комментарии рядом
+- Add tools to `requirements.txt` or the dev section of `pyproject.toml` following the project dev-dependency mechanism (`project_standards.md`, Section 01.06)
+- Pre-commit check command: `ruff check . && ruff format --check . && mypy src`
+- Scope: `ruff` - all `.py` files in the repository, including skill scripts (`data/skills/*/scripts/`, `doc/skills/*/scripts/`); `mypy` - `src/`
+- Disable a rule with `# noqa: CODE` plus a justification comment next to it
 
 ## 08.02. Shell: shellcheck
 
-*Обязательно при наличии shell-скриптов.*
+*Required when shell scripts exist.*
 
-- Все `.sh`-файлы репозитория проверяются `shellcheck`
-- Отключение конкретного предупреждения (`# shellcheck disable=SC2034`) - только с комментарием-обоснованием
+- All `.sh` files in the repository are checked by `shellcheck`
+- Disable a specific warning (`# shellcheck disable=SC2034`) only with a justification comment
 
-## 08.03. JavaScript: eslint и prettier
+## 08.03. JavaScript: eslint and prettier
 
-*Обязательно для репозиториев с сопровождаемым JS-кодом.*
+*Required for repositories with maintained JS code.*
 
-- Статический анализ - `eslint` (конфигурация `eslint.config.js`, flat config); форматирование - `prettier` (конфигурация `.prettierrc`)
-- Инструменты фиксируются в dev-зависимостях репозитория (`package.json`)
-- Ключевые параметры prettier, закрепляющие правила раздела 03: `singleQuote: true`, `printWidth: 80`, `tabWidth: 2`, `useTabs: false`
-- Команда проверки перед коммитом: `npx eslint . && npx prettier --check .`
-- Отключение правила eslint - инлайн-комментарием с обоснованием
+- Static analysis - `eslint` (`eslint.config.js`, flat config); formatting - `prettier` (`.prettierrc`)
+- Pin tools in the repository dev dependencies (`package.json`)
+- Key prettier settings that enforce section 03: `singleQuote: true`, `printWidth: 80`, `tabWidth: 2`, `useTabs: false`
+- Pre-commit check command: `npx eslint . && npx prettier --check .`
+- Disable an eslint rule with an inline comment and a justification
 
-## 08.04. HTML и CSS: валидатор W3C и stylelint
+## 08.04. HTML and CSS: W3C Validator and stylelint
 
-*Обязательно для репозиториев с HTML/CSS.*
+*Required for repositories with HTML/CSS.*
 
-- HTML проверяется валидатором W3C (validator.w3.org) - при создании и значимых правках `spec_ui.html`, живых макетов и фронтов
-- CSS проверяется линтером `stylelint` с базовой конфигурацией `stylelint-config-standard` (файл `.stylelintrc.json`, dev-зависимости - `package.json`); валидатор W3C jigsaw.w3.org/css-validator не применяется - заморожен и не поддерживает современный CSS
-- Команда проверки CSS перед коммитом: `npx stylelint "**/*.css"`
+- Validate HTML with the W3C validator (validator.w3.org) when creating or significantly changing `spec_ui.html`, live mockups, and frontends
+- Check CSS with `stylelint` and the `stylelint-config-standard` baseline (`.stylelintrc.json`, dev dependencies in `package.json`); do not use the W3C jigsaw.w3.org CSS validator - it is frozen and does not support modern CSS
+- Pre-commit CSS check command: `npx stylelint "**/*.css"`
 
 ## 08.05. PowerShell: PSScriptAnalyzer
 
-*Обязательно при наличии .ps1-скриптов.*
+*Required when .ps1 scripts exist.*
 
-- Все `.ps1`-файлы репозитория проверяются `PSScriptAnalyzer` (`Invoke-ScriptAnalyzer`); отклонение конкретного правила - только с обоснованием рядом (комментарий-подавление или файл настроек анализатора)
-- Для batch-файлов линтера нет: правила раздела 06.02 соблюдаются вручную
+- All `.ps1` files in the repository are checked by `PSScriptAnalyzer` (`Invoke-ScriptAnalyzer`); deviate from a specific rule only with a justification nearby (a suppression comment or an analyzer settings file)
+- Batch files have no linter: follow section 06.02 manually
 
 ---
 
-# 09. Связь и версионирование
+# 09. Cross-References and Versioning
 
-## 09.01. Связь с другими документами
+## 09.01. Related Documents
 
-| Документ | Связь |
-|----------|-------|
-| `doc/standards/project_standards.md` | Основа: структура проекта, вывод и интерфейс (04), политика обработки ошибок (05.02), логирование (04.06), текст (04.03), зависимости (01.06) |
-| `doc/standards/skill_anthropic_standards.md` | Канон вывода скриптов навыков (раздел 03.03); правила этого стандарта применяются к коду скриптов навыков поверх канона вывода |
-| `doc/standards/console_ui_standards.md` | Артефакт `spec_ui.html`; правила HTML применяются к макету |
-| `doc/standards/web_standards.md` | Фронтенд и веб-структура; правила JS и HTML/CSS применяются к коду фронтов |
-| `doc/standards/_index_standards.md` | Реестр пакета, карта маршрутизации, политика версионирования |
+| Document | Relationship |
+|----------|--------------|
+| `doc/standards/project_standards.md` | Core: project structure, output and UI (04), error handling policy (05.02), logging (04.06), text (04.03), dependencies (01.06) |
+| `doc/standards/skill_anthropic_standards.md` | Output canon for skill scripts (Section 03.03); this standard applies to skill script code on top of the output canon |
+| `doc/standards/console_ui_standards.md` | `spec_ui.html` artifact; HTML rules apply to the mockup |
+| `doc/standards/web_standards.md` | Frontend and web structure; JS and HTML/CSS rules apply to frontend code |
+| `doc/standards/_index_standards.md` | Package registry, routing map, and versioning policy |
 
-## 09.02. Версионирование
+## 09.02. Versioning
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования - в `doc/standards/_index_standards.md`.
+Versioning of the standards package is unified for all package documents. For the versioning policy, see `doc/standards/_index_standards.md`.

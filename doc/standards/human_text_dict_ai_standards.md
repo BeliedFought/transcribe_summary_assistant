@@ -1,93 +1,81 @@
-# Словарь маркеров ИИ-текста. Версия 4.16.0
+# Human Text AI Dictionary Standards. Version 5.0.0
 
-Denylist оборотов и структур, выдающих сгенерированный текст: вводные-открытия, модальные хеджи, мотивационные клише, трюизмы, параллелизмы, кальки с английского. Документ - дополнение к `human_text_standards.md` и применяется поверх него вместе с остальными словарями пакета. Порядок принятия решений при отсутствии или неоднозначности нормы - `project_standards.md`, раздел 07.06.
+Denylist of phrases and structures that give away generated text: opening introductions, modal hedges, motivational cliches, truisms, parallelisms, calques from English. This document supplements `human_text_standards.md` and applies on top of it together with the other package dictionaries. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 
-Сокращения стилей и статусы применимости - `human_text_standards.md`, раздел 03.09: РЛ - разговорный легкий, РС - разговорный строгий, ДЛ - деловой легкий, ДС - деловой строгий, ТЛ - технический легкий, ТС - технический строгий; статусы: запрет, ограничено, норма.
-
----
-
-## Оглавление
-
-**01. Назначение и порядок применения**
-
-**02. Применимость по стилям**
-
-**03. Вводные-открытия**
-
-**04. Модальные хеджи**
-
-**05. Мотивационные клише и маркетинговые штампы**
-
-**06. Трюизмы и формульные выводы**
-
-**07. Псевдо-сократические и риторические конструкции**
-
-**08. Параллелизмы**
-
-**09. Кальки с английского**
-
-**10. Псевдо-терапевтические обороты**
-
-**11. Неодушевленный субъект**
-
-**12. Самомаркировка честности**
-
-**13. Лексика ИИ и формульные финалы**
-
-**14. Запрещенные замены**
-
-**15. Не запрещать: логические связки и калибровка**
-
-**16. Пополнение словаря**
-
-**17. Связь и версионирование:** 17.01 Связь с другими документами - 17.02 Версионирование
+Style abbreviations and applicability statuses - `human_text_standards.md`, 03.09: РЛ - conversational light, РС - conversational strict, ДЛ - business light, ДС - business strict, ТЛ - technical light, ТС - technical strict; statuses: запрет, ограничено, норма.
 
 ---
 
-## 01. Назначение и порядок применения
+## Table of Contents
 
-*Обязательно.*
+**01. Purpose and Application Order**
 
-Маркеры ИИ-текста - обороты, которые языковые модели воспроизводят чаще людей: усредненный регистр, ложная вовлеченность, перестраховка, кальки с английской логики. Словарь решает задачу «текст не должен читаться как сгенерированный»: юзер распознает кривой агентский текст именно по этим паттернам.
+**02. Applicability by Styles**
 
-Порядок правки:
+**03. Opening Introductions**
 
-1. Маркер из таблицы - замена из колонки «Замена»
-2. Замены нет - перестроить предложение или удалить оборот целиком
-3. Замену брать из канон-лексики (`human_text_allowlist_standards.md`) или строить заново; раздел 14 запрещает лечить маркер родственным маркером
-4. Статус по стилям - по пометкам раздела 02 и колонки «Отклонения»
+**04. Modal Hedges**
+
+**05. Motivational Cliches and Marketing Stamps**
+
+**06. Truisms and Formulaic Conclusions**
+
+**07. Pseudo-Socratic and Rhetorical Constructions**
+
+**08. Parallelisms**
+
+**09. Calques from English**
+
+**10. Pseudo-Therapeutic Phrases**
+
+**11. Inanimate Subject**
+
+**12. Honesty Self-Labeling**
+
+**13. AI Lexicon and Formulaic Finales**
+
+**14. Forbidden Replacements**
+
+**15. Do Not Ban: Logical Connectors and Calibration**
+
+**16. Dictionary Enrichment**
+
+**17. Relations and Versioning:** 17.01 Related Documents - 17.02 Versioning
 
 ---
 
-## 02. Применимость по стилям
+## 01. Purpose and Application Order
 
-*Обязательно.*
+*Mandatory.*
 
-| Категория | РЛ | РС | ДЛ | ДС | ТЛ | ТС |
-|-----------|----|----|----|----|----|----|
-| 03. Вводные-открытия | запрет | запрет | запрет | запрет | запрет | запрет |
-| 04. Модальные хеджи | запрет | ограничено | ограничено | ограничено | запрет | ограничено |
-| 05. Мотивационные клише, маркетинговые штампы | запрет | запрет | запрет | запрет | запрет | запрет |
-| 06. Трюизмы и формульные выводы | запрет | запрет | запрет | запрет | запрет | запрет |
-| 07. Псевдо-сократические и риторические | запрет | запрет | запрет | запрет | запрет | запрет |
-| 08. Параллелизмы | запрет | запрет | запрет | запрет | запрет | запрет |
-| 09. Кальки с английского | запрет | запрет | запрет | запрет | запрет | запрет |
-| 10. Псевдо-терапевтические обороты | запрет | запрет | запрет | запрет | запрет | запрет |
-| 11. Неодушевленный субъект | запрет | запрет | запрет | запрет | запрет | ограничено |
-| 12. Самомаркировка честности | запрет | запрет | запрет | запрет | запрет | запрет |
-| 13. Лексика ИИ и формульные финалы | запрет | запрет | запрет | запрет | запрет | запрет |
+AI text markers are phrases that language models reproduce more often than people: an averaged register, false involvement, overcaution, calques of English logic. The dictionary serves the goal "the text must not read as generated": the user recognizes awkward agent text precisely by these patterns.
 
-Хеджирование в РС, ДЛ, ДС и ТС - ограничено: допустимо только при реальной неопределенности факта; на установленных фактах хеджирование запрещено во всех стилях (раздел 04, раздел 15).
+Order of fixing:
+
+1. A marker from the table - the replacement from the "Replacement" column
+2. No replacement - rebuild the sentence or remove the phrase entirely
+3. Take the replacement from the canon lexicon (`human_text_allowlist_standards.md`) or build anew; Section 14 bans treating a marker with a related marker
+4. Style status - per the marks in Section 02 and the "Deviations" column
 
 ---
 
-## 03. Вводные-открытия
+## 02. Applicability by Styles
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Универсальные открытия темы вместо перехода к сути.
+The applicability matrix is common to the package: it lives in `human_text_standards.md`, 03.09, and is not duplicated here.
 
-| Оборот | Замена |
+Hedging in РС, ДЛ, ДС, and ТС is limited: allowed only under real uncertainty of fact; on established facts hedging is banned in all styles (Section 04, Section 15).
+
+---
+
+## 03. Opening Introductions
+
+*Mandatory.*
+
+Status: banned in all styles. Universal topic openings instead of moving to the point.
+
+| Phrase | Replacement |
 |--------|--------|
 | в современном мире, в современном обществе | удалить; начать с сути |
 | в эпоху цифровизации, в эпоху чего-либо | удалить |
@@ -100,13 +88,13 @@ Denylist оборотов и структур, выдающих сгенерир
 
 ---
 
-## 04. Модальные хеджи
+## 04. Modal Hedges
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет в РЛ и ТЛ; ограничено в РС, ДЛ, ДС и ТС - только при реальной неопределенности. Привычное хеджирование на твердых фактах уводит ответственность и читается как машинная перестраховка.
+Status: banned in РЛ and ТЛ; limited in РС, ДЛ, ДС, and ТС - only under real uncertainty. Habitual hedging on hard facts shifts responsibility and reads as machine overcaution.
 
-| Оборот | Замена | Отклонения |
+| Phrase | Replacement | Deviations |
 |--------|--------|------------|
 | может стать, может повлиять | дать факт или убрать модальность | в остальных стилях при реальной неопределенности |
 | способен обеспечить | обеспечить | |
@@ -120,13 +108,13 @@ Denylist оборотов и структур, выдающих сгенерир
 
 ---
 
-## 05. Мотивационные клише и маркетинговые штампы
+## 05. Motivational Cliches and Marketing Stamps
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Пустые возвеличивания без содержания.
+Status: banned in all styles. Empty aggrandizement without substance.
 
-| Оборот | Замена |
+| Phrase | Replacement |
 |--------|--------|
 | раскрыть потенциал | удалить или дать конкретику |
 | вывести на новый уровень | удалить или дать факт |
@@ -142,13 +130,13 @@ Denylist оборотов и структур, выдающих сгенерир
 
 ---
 
-## 06. Трюизмы и формульные выводы
+## 06. Truisms and Formulaic Conclusions
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Подпорки авторитета и формулы завершения, пересказывающие текст.
+Status: banned in all styles. False authority props and completion formulas that retell the text.
 
-| Оборот | Замена |
+| Phrase | Replacement |
 |--------|--------|
 | стоит отметить, что | удалить; факт - сразу |
 | важно отметить, важно понимать, важно учитывать | удалить; факт - сразу |
@@ -166,13 +154,13 @@ Denylist оборотов и структур, выдающих сгенерир
 
 ---
 
-## 07. Псевдо-сократические и риторические конструкции
+## 07. Pseudo-Socratic and Rhetorical Constructions
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Имитация диалога и вовлеченности.
+Status: banned in all styles. Imitation of dialogue and involvement.
 
-| Конструкция | Замена |
+| Construction | Replacement |
 |--------------|--------|
 | вопрос к себе с коротким ответом: «Зачем? Потому что.» | развернуть в предложение |
 | риторический вопрос в начале раздела | удалить; дать утверждение |
@@ -182,13 +170,13 @@ Denylist оборотов и структур, выдающих сгенерир
 
 ---
 
-## 08. Параллелизмы
+## 08. Parallelisms
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Конструкция «не просто X, а Y» и родня - самый частый маркер агентского текста.
+Status: banned in all styles. The construction «не просто X, а Y» and its relatives are the most frequent marker of agent text.
 
-| Конструкция | Замена | Отклонения |
+| Construction | Replacement | Deviations |
 |--------------|--------|------------|
 | не просто X, а Y | дать X и Y прямо | запрет везде |
 | это не X, это Y | дать X и Y прямо | живая речь («это не может не радовать») маркером не считается |
@@ -198,13 +186,13 @@ Denylist оборотов и структур, выдающих сгенерир
 
 ---
 
-## 09. Кальки с английского
+## 09. Calques from English
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Буквальный перевод английских оборотов; русский читатель морщится, редактор правит сразу.
+Status: banned in all styles. A literal translation of English phrases; the Russian reader winces, the editor corrects it immediately.
 
-| Калька | Замена |
+| Calque | Replacement |
 |--------|--------|
 | в конце дня (at the end of the day) | в итоге |
 | думать за пределами коробки (outside the box) | искать нестандартные решения |
@@ -220,13 +208,13 @@ Denylist оборотов и структур, выдающих сгенерир
 
 ---
 
-## 10. Псевдо-терапевтические обороты
+## 10. Pseudo-Therapeutic Phrases
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Имитация заботы вместо помощи.
+Status: banned in all styles. Imitation of care instead of help.
 
-| Оборот | Замена |
+| Phrase | Replacement |
 |--------|--------|
 | ты не ошибаешься, что так чувствуешь | удалить; дать решение |
 | это не слабость | удалить |
@@ -236,30 +224,30 @@ Denylist оборотов и структур, выдающих сгенерир
 
 ---
 
-## 11. Неодушевленный субъект
+## 11. Inanimate Subject
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях; ограничено в ТС. Предмет или абстракция в роли деятеля с метафорическим глаголом намерения, эмоции или оценки: работа «подчеркивает», документ «демонстрирует заботу», система «стремится».
+Status: banned in all styles; limited in ТС. An object or abstraction in the role of an actor with a metaphorical verb of intention, emotion, or evaluation: a work "подчеркивает", a document "демонстрирует заботу", a system "стремится".
 
-| Конструкция | Замена |
+| Construction | Replacement |
 |--------------|--------|
 | исследование подчеркивает, работа демонстрирует | назвать автора и факт: «Авторы показали (Mnih et al., 2016)» |
 | система стремится обеспечить | дать факт работы: «система повторяет попытку три раза» |
 | документ отражает заботу о пользователе | перестроить: назван признак |
 | отчет подтверждает эффективность | дать число из отчета |
 
-Отклонения в ТС: функциональные формулировки («система проверяет», «модуль выполняет») - норма жанра, не маркер; маркер - только метафорическое приписывание намерения и оценки.
+Deviations in ТС: functional wording («система проверяет», «модуль выполняет») is the genre norm, not a marker; the marker is only metaphorical attribution of intention and evaluation.
 
 ---
 
-## 12. Самомаркировка честности
+## 12. Honesty Self-Labeling
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Текст присваивает себе добродетель вместо предъявления фактов.
+Status: banned in all styles. The text awards itself a virtue instead of presenting facts.
 
-| Оборот | Замена |
+| Phrase | Replacement |
 |--------|--------|
 | честный список, честный разбор, объективный разбор | дать методику: как проверялось |
 | без воды, без прикрас | удалить; дать факт |
@@ -269,13 +257,13 @@ Denylist оборотов и структур, выдающих сгенерир
 
 ---
 
-## 13. Лексика ИИ и формульные финалы
+## 13. AI Lexicon and Formulaic Finales
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Слова-маркеры генерации и шаблонные концовки.
+Status: banned in all styles. Marker words of generation and template endings.
 
-| Оборот | Замена |
+| Phrase | Replacement |
 |--------|--------|
 | углубиться в тему, погрузиться в тему | рассмотреть |
 | полотно, мозаика, ландшафт (о тексте, рынке, отрасли) | дать структуру: перечисление |
@@ -291,13 +279,13 @@ Denylist оборотов и структур, выдающих сгенерир
 
 ---
 
-## 14. Запрещенные замены
+## 14. Forbidden Replacements
 
-*Обязательно.*
+*Mandatory.*
 
-Маркер, замененный родственным маркером, остается маркером. Правило: замена берется из канон-лексики или предложение перестраивается.
+A marker replaced with a related marker remains a marker. Rule: the replacement comes from the canon lexicon or the sentence is rebuilt.
 
-| Вместо | Нельзя на | Причина |
+| Instead of | Not allowed to use | Reason |
 |--------|-----------|---------|
 | очень важно | крайне важно, чрезвычайно важно | усилитель заменен усилителем |
 | стоит отметить | важно подчеркнуть, следует отметить | трюизм заменен трюизмом |
@@ -309,43 +297,43 @@ Denylist оборотов и структур, выдающих сгенерир
 
 ---
 
-## 15. Не запрещать: логические связки и калибровка
+## 15. Do Not Ban: Logical Connectors and Calibration
 
-*Обязательно.*
+*Mandatory.*
 
-Словарь запрещает украшения и штампы, но не логику текста. Следующие средства не являются маркерами и не подлежат правке:
+The dictionary bans decorations and stamps, but not the logic of the text. The following means are not markers and are not subject to correction:
 
-- причинно-следственные: потому что, так как, следовательно, отсюда, поэтому
-- условные: если - то, при условии что, только если
-- противопоставления: в отличие от, тогда как, а не
-- уточнения: то есть, в частности, например, именно
-- последовательности: сначала - затем - в итоге
-- калибровка уверенности: вероятно, возможно, как правило - при реальной неопределенности факта
+- causal: потому что, так как, следовательно, отсюда, поэтому
+- conditional: если - то, при условии что, только если
+- contrasts: в отличие от, тогда как, а не
+- clarifications: то есть, в частности, например, именно
+- sequences: сначала - затем - в итоге
+- confidence calibration: вероятно, возможно, как правило - under real uncertainty of fact
 
-Принцип: конструкции, задающие отношения между объектами (причину, границу, условие, иерархию), - инструменты мышления; их запрет ломает смысл. Модальность запрещается только там, где она служит перестраховкой на установленных фактах (раздел 04).
-
----
-
-## 16. Пополнение словаря
-
-*Обязательно.*
-
-Механизм пополнения - `human_text_standards.md`, раздел 05.04. Специфика словаря: новые маркеры появляются по мере смены моделей и промпт-мод; при обнаружении повторяющегося оборота в чужих и своих агентских текстах - запись по правилам категории, с примером и заменой. Источник указывается: репозиторий-каталог, статья или правка пользователя.
+Principle: constructions that set relations between objects (cause, boundary, condition, hierarchy) are thinking tools; banning them breaks the meaning. Modality is banned only where it serves as overcaution on established facts (Section 04).
 
 ---
 
-## 17.01. Связь с другими документами
+## 16. Dictionary Enrichment
 
-| Документ | Связь |
+*Mandatory.*
+
+The enrichment mechanism is in `human_text_standards.md`, 05.04. Dictionary specifics: new markers appear as models and prompt modes change; when a recurring phrase is found in other people's and own agent texts - an entry by the category rules, with an example and a replacement. The source is stated: a catalog repository, an article, or a user correction.
+
+---
+
+## 17.01. Related Documents
+
+| Document | Relation |
 |----------|-------|
-| `human_text_standards.md` | Основной документ: жанры, стили, методика, статусы применимости (03.09), механизм пополнения (05.04) |
-| `human_text_dict_standards.md` | Парный denylist: канцелярит, вода, усилители, плеоназмы |
-| `human_text_allowlist_standards.md` | Канон-лексика: источник разрешенных замен |
-| `project_standards.md` | Микро-уровень текста (04.03), правка пакета (07.05) |
-| `doc/specs/text_overrides.md` | Шаблон оверрайда: доменные запреты поверх этого словаря |
+| `human_text_standards.md` | Main document: genres, styles, method, applicability statuses (03.09), enrichment mechanism (05.04) |
+| `human_text_dict_standards.md` | Paired denylist: officialese, filler, amplifiers, pleonasms |
+| `human_text_allowlist_standards.md` | Canon lexicon: source of allowed replacements |
+| `project_standards.md` | Text micro level (04.03), package editing (07.05) |
+| `doc/specs/text_overrides.md` | Override template: domain prohibitions on top of this dictionary |
 
 ---
 
-## 17.02. Версионирование
+## 17.02. Versioning
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя.
+Versioning of the standards package is unified for all package documents. The versioning policy, registry, and routing map are in `doc/standards/_index_standards.md`. A package version bump is performed only on explicit user request.

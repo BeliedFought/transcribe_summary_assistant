@@ -1,2722 +1,403 @@
-# Стандарт проекта для AI-агента. Версия 4.16.0
+# Project Standards. Version 5.0.0
 
-Универсальный документ, определяющий правила и соглашения для проекта на всех этапах: инициализация, разработка, рефакторинг, сопровождение. Агент применяет этот стандарт при каждом обращении к проекту - не только при создании, но и при любых последующих изменениях.
+Core rules across initialization, development, refactoring, and maintenance. Coding rules: `doc/standards/code_standards.md`. SQLite marts, `diag/`/`tmp/`/`test/`, sessions, SQL/migrations, and `run/` CLI: `doc/standards/cli_data_standards.md`. Retries, SSH, DPI/routing, and system config mutations: `doc/standards/network_ops_standards.md`. Universal rules apply to all repos; Python rules (`.venv`, `requirements.txt`, `pytest`) apply to Python projects; deviations use `doc/specs/overrides.md` (Section 01.01.02). Tagging `@doc/standards/project_standards.md` runs the audit in Section 07.04.
 
-Документ содержит общий набор правил и соглашений: структура каталогов, конфигурация, работа с БД и API, логирование, git, виртуальное окружение, требования к тексту; требования к написанию кода - в `doc/standards/code_standards.md`. Правила не применяются все сразу - агент выбирает только те разделы, которые релевантны текущей задаче.
+## Table of Contents
 
-**Область действия.** Проекты могут быть разными по типу и стеку - стандарты пакета универсальны. Разделы, привязанные к Python (виртуальное окружение, зависимости, тестирование), применяются в Python-проектах; проект на другом стеке применяет общие части стандарта (структура, конфигурация, вывод и интерфейс, безопасность, git, рабочий процесс), а отклонения от стек-специфичных разделов оформляются проектными оверрайдами (раздел 01.01.02).
-
-## Оглавление
-
-Аннотированный указатель разделов: номер соответствует разделу документа, вторая колонка - что в разделе. Тематическая маршрутизация по пакету - `doc/standards/_index_standards.md`.
-
-| Раздел | Содержание |
-|--------|------------|
-| **01. Основы и структура проекта** | структура, конфигурация, идентификация, пути, валидация, зависимости, окружение |
-| 01.01 | Структура проекта: состав папок и их назначение, файлы в корне, папка run, оркестрация (main.py, run/orch_*) |
-| 01.01.01 | Сессионные структуры и SESSION.md: маркер сессии, идентификатор, версия, оверрайды, жизненный цикл, архивация |
-| 01.01.02 | Проектные оверрайды стандарта: реестр doc/specs/overrides.md и приоритет норм |
-| 01.01.03 | Локальная витрина данных (mart.sqlite): SQL-наборы src_/report_, режимы local/refresh |
-| 01.01.04 | Папки diag и tmp: переиспользуемая диагностика и разовые артефакты, маска имен, индекс diag |
-| 01.01.05 | Папка test: эталонные тесты агентов, согласование набора, граница с diag |
-| 01.01.06 | Корзина агента (.trash/): карантин удаляемого, правила переноса, исключение git-нативных удалений при синхронизации зеркал |
-| 01.01.07 | Журнал уроков (data/lessons.md): переносимый опыт, пары «контекст - урок», обогащение хаба |
-| 01.02 | Конфигурация: config.ini, секция [app], типизированное чтение, секреты в .env |
-| 01.03 | Идентификация и версия приложения: name/version, SemVer, вывод при запуске |
-| 01.04 | Пути к файлам и кросс-платформенность: PROJECT_ROOT, pathlib, эталон src/config.py |
-| 01.05 | Валидация при запуске: fail fast, состав проверок, код завершения 2 |
-| 01.06 | Зависимости и статический анализ: requirements.txt, пиннинг, ruff, mypy, uv.lock |
-| 01.07 | Виртуальное окружение и Python-версия: .venv, .python-version, зеркало pip |
-| **02. Внешние подключения** | БД, API, Ollama, retry, GitHub, почта, SSH |
-| 02.01 | Подключение к БД: плейсхолдеры DRIVER, SERVER, DATABASE, AUTH |
-| 02.02 | Подключение к API: BASE_URL, ENDPOINTS, AUTH |
-| 02.03 | Подключение к Ollama: BASE_URL, MODEL, DEVICE |
-| 02.04 | Retry для внешних подключений: экспоненциальный backoff, повторяемые ошибки, Retry-After |
-| 02.05 | GitHub: поиск SSH-ключа, проверка соединения, GIT_SSH_COMMAND |
-| 02.06 | Подключение к почте (SMTP): секция [email], multipart, секреты в .env |
-| 02.07 | Подключение к машинам по SSH: ~/.ssh/config, HostKeyAlias, одинаковые адреса в разных сетях |
-| 02.08 | Сети с DPI и выборочная маршрутизация: VPN-протоколы, DNS, SNI, IPv6, доменные маршруты, гейты вендоров, SMB |
-| **03. Архитектура и точки входа** | идемпотентность, атомарность, SQL, точки входа, CLI; требования к написанию кода - code_standards.md |
-| 03.01 | Идемпотентность, атомарность и работа с файлами: повторный запуск, write-to-temp + rename, --dry-run |
-| 03.02 | SQL и DDL: хранение в файлах, параметризация |
-| 03.02.01 | Индекс SQL-файлов: sql/_index_sql.md |
-| 03.02.02 | Правила размещения: ddl/, queries/, dml/, migrations/ |
-| 03.02.03 | Миграции схемы: schema_version, M<N>_*.sql, запрет DROP + CREATE на живых данных |
-| 03.03 | Точки входа run/: проверочные скрипты по доменам |
-| 03.03.01 | run/db: db_check_connection, db_check_schema, db_init, db_migrate |
-| 03.03.02 | run/api: api_check_connection, api_test_requests |
-| 03.03.03 | run/ai: ai_ollama_check, ai_ollama_pull_models |
-| 03.03.04 | run/email: email_test_send |
-| 03.04 | Конвенции CLI: argparse, --help через t(), обработка неизвестного флага |
-| **04. Вывод и интерфейс** | i18n, текст, форматирование, логирование, режимы вывода, GUI |
-| 04.01 | Мультиязычность (i18n): t(), translations, fallback, reload |
-| 04.02 | Текстовые маркеры: [!], [i], [*] вместо эмодзи |
-| 04.03 | Требования к написанию текста: язык, стиль, дефис, без ё и многоточий, нейминг |
-| 04.04 | Форматирование вывода: формат строки, оформление, структура, таблицы, списки, сводки |
-| 04.04.01 | Формат строки: plain/menu/rich, timestamp, маркер |
-| 04.04.02 | Общие правила оформления: одна строка, цвет, без точек и строк-разделителей |
-| 04.04.03 | Структурирование вывода: пустая строка между блоками |
-| 04.04.04 | Таблицы: tabulate в логе, console_table в menu/rich |
-| 04.04.05 | Списки: заголовок и элементы, log_file_only в menu/rich |
-| 04.04.06 | Сводки: формат префикс: ключ: N |
-| 04.05 | Формулировка сообщений об ошибках и терминология: понятный текст, единые термины |
-| 04.06 | Логирование: src/logger.py, режимы, два канала, ротация, эталон |
-| 04.07 | Режимы вывода в консоль: plain/menu/rich, интерактивный контекст |
-| 04.07.01 | Строгий режим (plain): по умолчанию, индикация прогресса через \r |
-| 04.07.02 | Интерактивное меню: кадр по console_ui_standards.md |
-| 04.07.03 | Rich-консоль: rich_console, console_table, console_summary |
-| 04.08 | Графический интерфейс (GUI): tkinter, src/gui, фоновые потоки |
-| **05. Безопасность и надежность** | секреты, ошибки, завершение, привилегии |
-| 05.01 | Безопасность: секреты, права .env, фильтрация логов, SQL, subprocess, TLS, пути |
-| 05.02 | Обработка ошибок: конкретные исключения, traceback, иерархия ProjectError |
-| 05.03 | Корректное завершение: ресурсы, SIGINT/SIGTERM, коды 0/1/2/130/143 |
-| 05.04 | Привилегированные операции (root, sudo): строгий порядок по умолчанию, уровни 0-3 (pty с вводом пароля, GUI-askpass, узкий NOPASSWD, файловый askpass), точечный оверрайд |
-| **06. Документация и версионирование** | git, README и AGENTS, отладка, тестирование |
-| 06.01 | Git: одна ветка, .gitignore и .gitattributes, Conventional Commits, авторство, ворота целостности пакета |
-| 06.02 | README.md и AGENTS.md: версия, ссылки на индексы; канон - repo_info_doc_standards.md и index_nav_standards.md |
-| 06.03 | Отладка: артефакты в debug и tmp, не в корне проекта |
-| 06.04 | Тестирование: эталонные тесты test/, приоритетные инварианты и объекты проверки |
-| **07. Рабочий процесс** | правила, требования, инициализация, проверка, решения |
-| 07.01 | Общие правила работы: согласование, документация, субагенты |
-| 07.02 | Общение с пользователем, уточнение требований и триггер выполнения: режимы, вопросы, спецификации, триггеры `ДЕЛАЙ` / `GO` |
-| 07.03 | Порядок действий при старте проекта: шаги инициализации |
-| 07.04 | Проверка соответствия стандарту: версия, spec_ui, список расхождений |
-| 07.05 | Редактирование файла стандарта: только хаб, bump, актуализация индекса |
-| 07.06 | Иерархия источников при принятии решений: порядок и приоритет |
-| **08. Термины** | словарь пакета с указанием разделов-источников |
-| **09. Связь и версионирование** | связь с другими документами, единая версия пакета |
-| 09.01 | Связь с другими документами |
-| 09.02 | Версионирование |
-
----
-**Задание для AI-агента при тегировании этого файла в проекте**
-
-Если пользователь упомянул (тегнул) этот файл в чате, агент выполняет проверку соответствия проекта стандарту по разделу 07.04: порядок проверки, формат отчета и перечень обязательных пунктов определены там. Маршрутизация по пакету стандартов - в `doc/standards/_index_standards.md`.
+- **01. Structure & Config:** `01.01` Layout (`01.01.01`-`01.01.07`), `01.02` `config.ini`, `01.03` Identity/SemVer, `01.04` Paths, `01.05` Validation, `01.06` Deps, `01.07` `.venv`
+- **02. Connections:** `02.01`-`02.03` DB/API/Ollama, `02.04` Retry, `02.05` GitHub SSH, `02.06` SMTP, `02.07` SSH Hosts, `02.08` DPI/Routing
+- **03. Architecture & CLI:** `03.01` Idempotency, Atomicity & `--dry-run`, `03.02` SQL (`03.02.01`-`03.02.03`), `03.03` `run/` (`03.03.01`-`03.03.04`), `03.04` CLI
+- **04. Output & UI:** `04.01` `t()`, `04.02` Markers, `04.03` Language Split & Typography, `04.04` Format (`04.04.01`-`04.04.06`), `04.05` Errors, `04.06` Logging, `04.07` Modes (`04.07.01`-`04.07.03`), `04.08` GUI
+- **05. Security:** `05.01` Secrets & Sudoers, `05.02` Exceptions, `05.03` Shutdown & Exit Codes, `05.04` Privileged Operations (Levels 0-3)
+- **06. Git & Testing:** `06.01` Git & Pre-Commit Gate, `06.02` `README.md` & `AGENTS.md`, `06.03` Debugging, `06.04` Testing
+- **07. Workflow:** `07.01` Superpowers & Subagents, `07.02` Clarification, Specs & `ДЕЛАЙ`/`GO`, `07.03` Init, `07.04` Audit, `07.05` Hub Editing, `07.06` Decision Cascade
+- **08-09. Glossary & Links:** `08.01` Glossary, `09.01` Related Standards, `09.02` Versioning
 
 ---
 
-# 01. Основы и структура проекта
+# 01. Fundamentals and Project Structure
 
-Структура, конфигурация, идентификация, пути, валидация, зависимости, окружение
+## 01.01. Project Structure
 
----
+Create only directories the project uses; never invent top-level folder names.
 
-## 01.01. Структура проекта
+| Directory | Purpose & Rules |
+|-----------|-----------------|
+| `config/` | `config.ini` (`[app]` `name`, `version`, Section 01.03) and `translations.json` for DB-less projects (Section 04.01) |
+| `data/` | Working data (git-ignored) except tracked: `data/skills/`, `data/memory/`, `data/lessons.md`, `data/registries/`, `data/journals/`, `data/state/`. Backups in `data/backup/<topic>/`; skill cache in `data/cache/<skill>/` |
+| `diag/`, `test/` | Optional committed scripts in `<dir>/<domain>/<domain>_<type>_<action>.<ext>` + `_index_diag.md` (01.01.04) / `_index_test.md` (01.01.05) |
+| `debug/`, `tmp/` | `debug/`: local debug scripts (`.gitkeep` only). `tmp/`: scratch in `tmp/<domain>/` (01.01.04, untracked, no `.gitkeep`, deleted after commit) |
+| `.trash/` | Deletion quarantine `.trash/<slug>_<YYYYMMDDHHMM>/` + `MANIFEST.md` (01.01.06). Untracked, no `.gitkeep` |
+| `.backup/<version>/` | Cold read-only snapshots of prior standard versions; ignored by agents unless explicitly requested |
+| `doc/standards/` | Standards package (read-only outside hub, Section 07.05); entry point `_index_standards.md` |
+| `doc/standards/templates/` | Reference code templates (`config.ini.example`, `config.py`, `localization.py`, `logger.py`, `progress.py`, `gitignore.template`, `install.py`, `update.py`) synced with `doc/standards/`, loaded on demand |
+| `doc/specs/` | `init/` (`init_base.txt`, `init_final.md` pre-MVP; archived to `.arch/` at MVP), `spec_<module>.md` (07.02), `spec_ui.html` (`console_ui_standards.md`), `overrides.md` (01.01.02), and `_index_specs.md` (`index_nav_standards.md`, Section 06.03) |
+| `doc/agent_questions/` | Batch question files `questions_YYYY-MM-DD_HH-MM.md` (07.02). Untracked except `.gitkeep` |
+| `doc/change_requests/` | Incoming CRs `cr_<slug>.md` + `_index_change_requests.md` (`change_request_standards.md`). Committed |
+| `doc/skills/` | Anthropic skills (`<name>/SKILL.md`, `skill_anthropic_standards.md`): `hub-` (`hub_loc`), `glob-` (`hub_glob`), `pg-` (`pr_glob`), `ext/<repo>/`. Local skills (`pr_loc`) in `data/skills/` + `_index_skills_pl.md` |
+| `input/`, `output/`, `sample/`, `log/` | Input/output files and logs `log_<script>_<timestamp>.log` (04.06, `.gitkeep` only); spec samples `sample/{db,api}_*` (committed) |
+| `run/`, `sql/`, `src/`, `templates/` | Entry points `run/{db,api,ai,email}/` (03.03); SQL `sql/{ddl,queries,dml,migrations}/` + `_index_sql.md` (03.02); library `src/` (`config.py`, `logger.py`, `localization.py`, `exceptions.py`, `src/gui/`); content templates `templates/` |
 
-*Обязательно.*
+- **Root files:** `README.md`, `AGENTS.md`, `.env`, `.env.example` (empty-value mirror of `.env`), `requirements.txt`, `.gitignore` (06.01), `.gitattributes` (06.01), `.python-version` (01.07).
+- **Archiving (`.arch/`):** move completed/superseded artifacts (fulfilled CRs, pre-MVP `doc/specs/init/`, finished sessions) intact into a sibling `.arch/` folder and remove their rows from active `_index_*.md`. Auto-archive artifacts completed in the current task; never touch historical artifacts without user request. `.arch/` is git-ignored at all depths; include `.arch/` in uniqueness checks.
+- **Orchestration:** repeatable pipelines use one orchestrator (`main.py` at root or `<session>/run/orch_<name>.py`). Steps in `src/` exchange files/DB tables; the orchestrator sequences calls, checks statuses, and halts on error (parameters via CLI flags or `config.ini`, never interactive input).
 
-Создавать только те папки, которые реально используются в проекте. Структура, правила именования и назначение папок - строгие: не создавать папки с произвольными именами, не размещать файлы не в своих папках.
+### 01.01.01. Session Structures and `SESSION.md`
 
+Subproject marked by `SESSION.md` (`ID: YYYY-MM-DD_<slug>`, localized `data/`, `log/`, `doc/specs/`, SemVer, overrides, `<session>/run/orch_*.py`). See `cli_data_standards.md` (Sections 03.01-03.03).
 
-| Папка  | Назначение       | Действие                                                                                                                                            |
-| ------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| config | Конфигурация     | Файл config.ini; все настройки проекта хранить здесь. Обязательная секция [app] с name и version (раздел 01.03). Для проектов без БД - translations.json (раздел 04.01) |
-| data   | Рабочие данные   | Данные для работы скриптов: SQLite, кеш, файлы состояния, справочники. Данные, которые скрипты создают и читают в процессе работы                   |
-| diag   | Диагностические скрипты | Опциональная папка. Переиспользуемые диагностические скрипты: проверки, отчеты, снимки состояния, профилирование; критерий попадания - переиспользуемость. Файлы - в подпапках по домену `diag/<domain>/`. Обязателен индекс `diag/_index_diag.md` и именование по маске `<domain>_<type>_<action>` (раздел 01.01.04). Коммитить в git |
-| debug  | Отладка          | Размещать отладочные скрипты только здесь; не в корне проекта. Разовые артефакты - в tmp (раздел 01.01.04) |
-| tmp    | Разовые артефакты | Опциональная папка. Разовые артефакты агентов и инструментов: скриншоты (Playwright и др.), выгрузки, черновики. Файлы - в подпапках по домену `tmp/<domain>/`. Не коммитить. После коммита агент удаляет из tmp созданные им артефакты; любое содержимое tmp можно удалять в любой момент без предупреждения (раздел 01.01.04) |
-| .trash | Карантин удаляемого | Опциональная папка. Карантин того, что агент иначе удалил бы: удаление заменяется переносом сюда, содержимое сохраняется для восстановления. Подпапки `.trash/<slug>_<YYYYMMDDHHMM>/`, внутри - файлы с сохранением относительных путей и `MANIFEST.md`. Не коммитить, без `.gitkeep`. Правила - раздел 01.01.06 |
-| doc/standards       | Стандарт проекта | Пакет стандартов, по которому создан проект: копируется целиком; точка входа - `_index_standards.md` (реестр и карта маршрутизации) |
-| doc/specs           | Спецификации     | `init/` (стартовые спеки до MVP: `init_base.txt` - требования пользователя в свободной форме, `init_final.md` - итоговая спецификация инициализации после уточнения; при MVP переносятся в `.arch/`), `spec_<module>.md` (боевые модульные спецификации - раздел 07.02), **spec_ui.html** (обязательная спецификация вывода: эталон UI/лога, своя SemVer макета; канон - `console_ui_standards.md`), `overrides.md` (опциональный реестр проектных оверрайдов - раздел 01.01.02), **_index_specs.md** (обязательный индекс каталога спецификаций) |
-| doc/agent_questions | Вопросы агента   | Файлы уточняющих вопросов, создаваемые агентом в ходе согласования; структура файла - раздел 07.02 |
-| doc/change_requests | Задания на изменение | Входящие задания на изменение (CR): проблематика, варианты решения, согласование. Коммитятся; файлы `cr_<slug>.md`; обязателен индекс `_index_change_requests.md`. Канон - `doc/standards/change_request_standards.md` |
-| doc/skills          | Навыки агента    | Специализированные инструкции для AI-агента; опционально; два формата: плоские *.md - plain-формат (оформление - doc/standards/skill_plain_standards.md; корень = общие glob_ (слаг hub_glob) и хаб hub_ (слаг hub_loc), doc/skills/<repo>/pg_*.md = проектные (слаг pr_glob); агрегат внешних в хабе - doc/skills/ext/<repo>/) и подпапки с SKILL.md - навыки стандарта Anthropic (оформление - doc/standards/skill_anthropic_standards.md; префиксы каталогов: glob- = общие (hub_glob), hub- = только хаб (hub_loc), pg- = проектные (pr_glob), pl- = локальные (pr_loc), префикс опционален). Локальные навыки (pr_loc) - в data/skills/ (plain или Anthropic, коммитится) |
-| input  | Входящие данные  | Данные для обработки                                                                                                                                |
-| sample | Примеры данных  | Примеры данных для составления спецификаций; файлы с префиксами db_, api_ и др. (префикс - ориентир по типу данных)                                |
-| log    | Логи             | Создавать лог-файлы только в этой папке                                                                                                             |
-| output | Исходящие данные | Обработанные данные                                                                                                                                 |
-| run    | Точки входа      | Скрипты, которые пользователь может запустить сам и получить результат; подпапки по домену (db, api, ai и т.д.); возможны комбинации с main.py     |
-| sql    | SQL-скрипты      | DDL, запросы, DML в подпапках ddl/, queries/, dml/; навигация через индекс `sql/_index_sql.md`                                                     |
-| src    | Библиотечный код | Размещать модули и скрипты, импортируемые другими скриптами. Обязательный модуль localization.py (раздел 04.01). Для проектов с GUI - подпапка src/gui (раздел 04.08) |
-| templates | Шаблоны | Шаблонные файлы для заполнения (например, шаблон Excel, шаблон письма). Создавать подпапки по сути контента |
-| test   | Эталонные тесты агентов | Опциональная папка. Переиспользуемые проверочные скрипты, которыми агент перепроверяет свою работу после изменений; произвольные исполняемые скрипты. Набор тестов согласовывается с пользователем (раздел 07.02). Файлы - в подпапках по домену `test/<domain>/`. Обязателен индекс `test/_index_test.md` и именование по маске `<domain>_<type>_<action>` (раздел 01.01.05). Не исключать из git |
+### 01.01.02. Project Standard Overrides (`doc/specs/overrides.md`)
 
+Record agreed deviations in `doc/specs/overrides.md` (`Standard Section | Deviation | Rationale | Approval Date`). Without a row and user approval, global rules apply (Section 07.06).
 
-**Сессионная структура:** работа может строиться вокруг отдельных сессий - самодостаточных подпроектов в общей папке. Сессией считается любая папка, явно указанная пользователем, в корне которой находится обязательный маркер-файл `SESSION.md`. Полный контракт сессии (идентификатор, версия, оверрайды, жизненный цикл, структура `SESSION.md`, процедура создания маркера) - в подразделе 01.01.01.
+### 01.01.03. Local Data Mart and Pipeline Modes
 
+External DB extracts cache in `data/mart.sqlite` (`mart_*` + `mart_meta.snapshot_ts`) with `src_*.sql` / `report_*.sql` and `--mode local|refresh`. See `cli_data_standards.md` (Sections 01.01, 01.02).
 
-**Файлы в корне:** README.md, .env, .env.example (шаблон переменных без значений), requirements.txt, .gitignore (обязателен; состав исключений - раздел 06.01), .gitattributes (обязателен; окончания строк - разделы 01.04, 06.01), .python-version (раздел 01.07). Папки `doc/standards`, `doc/specs`, `doc/skills`, `doc/change_requests` - коммитить (change_requests - `doc/standards/change_request_standards.md`). Подпапки `data/skills/` и `data/memory/`, файл журнала уроков `data/lessons.md`, зоны рантайм-данных навыков (`data/registries/`, `data/journals/`, `data/state/`) - коммитить (исключения из игнорируемого `data/`; журнал уроков - раздел 01.01.07, память агентов - `doc/standards/memory_standards.md`, рантайм-данные навыков - `doc/standards/skill_data_standards.md`). Папку `diag/` с индексом - коммитить (раздел 01.01.04); папку `test/` с индексом - коммитить (раздел 01.01.05). Для исключаемых папок с локальным содержимым применять паттерн `folder/*` + `!folder/.gitkeep` (см. раздел 06.01).
+### 01.01.04. `diag/` and `tmp/`: Diagnostics and Scratch Artifacts
 
-**Архивация вместо удаления (`.arch/`).** Если накопившееся содержимое устарело или неактуально, а удалять его не предполагается, оно переносится в подпапку `.arch/` той папки, где находится: рабочая область остается чистой, содержимое сохраняется на машине. Механика едина для любых точек накопления - сессий, заданий, спецификаций, отчетов, выгрузок:
+`diag/<domain>/<domain>_<type>_<action>.<ext>` (`check`, `report`, `dump`, `profile`) + `diag/_index_diag.md`, hardware stress-test cutoffs, and `tmp/<domain>/` rules: see `cli_data_standards.md` (Sections 02.01-02.03).
 
-- `.arch/` создается в точке накопления при первом переносе и лежит рядом с активным содержимым
-- Отработанные артефакты агент архивирует самостоятельно сразу после завершения работы с ними - отдельного запроса не требуется: выполнено задание из `doc/change_requests/` - файл в `.arch/` этой папки; отработана временная спецификация - в `.arch/` места, где она лежала; архивация отработанного - часть завершения задачи
-- Устаревшее, не затронутое в текущей задаче, переносится только по явному запросу пользователя; по своей инициативе агент историческое не трогает
-- Переносимое перемещается целиком, без переименования и пересборки
-- Различие с `tmp/`: содержимое `tmp/` удаляется после завершения работы; содержимое `.arch/` не удаляется - архив хранится постоянно
-- Различие с `.trash/`: `.arch/` - осознанный архив отработанного, `.trash/` - карантин при удалении (раздел 01.01.06)
-- Содержимое `.arch/` в индексы не вносится; при архивации элемента, состоявшего в индексе (например, спецификации в `_index_specs.md`), его строка из индекса убирается
-- Содержимое `.arch/` исключено из git на любой глубине (раздел 06.01) - архив локален для машины пользователя
-- Имена архивных элементов учитываются при проверке уникальности новых (включая подпапки `.arch/`)
-- Агент не работает с содержимым `.arch/` без явного указания пользователя
+### 01.01.05. `test/`: Agent Reference Tests
 
-Применение к сессиям - раздел 01.01.01.
+`test/<domain>/<domain>_<type>_<action>.<ext>` + `test/_index_test.md` (user approval required to add/remove tests). See `cli_data_standards.md` (Section 02.04) and Section 06.04.
 
-**Файл .env.example:** содержит все переменные из `.env` без значений. Обновлять синхронно с `.env` при добавлении или удалении переменных.
+### 01.01.06. Agent Trash Quarantine (`.trash/`)
 
-**Спецификация:** пользователь записывает требования в `doc/specs/init/init_base.txt` в свободной форме; в результате общения с агентом создается структурированная и согласованная итоговая спецификация инициализации `doc/specs/init/init_final.md` (разделы 07.02, 07.03). Боевые модульные `spec_<module>.md` появляются при сопровождении (раздел 07.02); стартовая фаза не декомпозируется.
+Never delete repo files directly (`rm`, `unlink`, `git clean`); move intact (preserving relative paths) to `.trash/<slug>_<YYYYMMDDHHMM>/` with `MANIFEST.md` (date, agent/host, reason, paths + git status, count). Exceptions: `tmp/`, `.trash/` (purged only on user request), git mirror syncs (`reset --hard`, `checkout`, `pull`) when state is in reflog, and managed package/skill file removals performed by sync skills (git-native deletions recoverable from history; check `git status` first and quarantine or ask on uncommitted changes). Skills modifying `$HOME` configs quarantine displaced files into an adjacent folder with a manifest and restore commands.
 
-**Спецификация вывода `doc/specs/spec_ui.html`:** обязательна для репозиториев с пользовательским выводом - точками входа, которые пользователь запускает сам (run/, `main.py`, меню, rich, batch CLI). Для репозиториев без пользовательского вывода (документационные, справочные) не создается; при появлении первого пользовательского вывода создается. Полный контракт (состав, SemVer макета, карта, кадры, лог, методика, футер с абсолютным путем) - в `doc/standards/console_ui_standards.md`.
+### 01.01.07. Lessons Log (`data/lessons.md`)
 
-**Индекс `doc/specs/_index_specs.md`:** обязателен для каждого репозитория - точка входа в каталог спецификаций, тегается агенту вместо чтения всех файлов `doc/specs/` целиком. Скелет, состав колонок, типы файлов и правила актуализации - канон индексов `index_nav_standards.md` (разделы 03, 05.01, 06.03); пересборку выполняет навык `glob-update-indexes`. Эталонный шаблон индекса - `doc/specs/_index_specs.md` в хабе `project_standards`; в производном репозитории индекс формируется по фактическому составу. Сессии, расположенные вне `doc/specs/`, корневой индекс не охватывает (их спецификации живут в `<session>/doc/specs/`, раздел 01.01.01).
+Append-only log (`!data/lessons.md`) of portable lessons (`glob-mine-lesson` / `hub-mine-knowledge`): `## YYYY-MM-DD - <topic>`, `Контекст: <file/commit/OS>`, `Урок: <generalized rule without hostnames/paths>`. Instance facts go to `data/memory/env.md` or `doc/specs/overrides.md`.
 
-**Папка sample:** примеры данных для составления спецификаций (`doc/specs/init/`, `spec_<module>.md`). Файлы именуются с префиксами по типу данных: db_ - примеры структур БД/таблиц, api_ - примеры ответов API, возможны иные префиксы. Префикс служит ориентиром при выборе релевантных примеров.
+## 01.02. Configuration (`config/config.ini`)
 
-**Подпапка `data/backup/`:** резервные копии, создаваемые в процессе работы или по явному запросу пользователя. Все бэкапы строго в `data/backup/`; внутри - подпапки по сути запроса (`data/backup/db/`, `data/backup/config/`, `data/backup/<task>/`). Содержимое не коммитить в git - исключено как часть `data/` (раздел 06.01).
+Store tunable settings in `config/config.ini` and secrets in `.env` (Section 05.01). Use typed getters (`getint()`, `getfloat()`, `getboolean()`). Include `[app]` (`name`, `version`, optional `language`) and used sections only. **Template:** `doc/standards/templates/config.ini.example`.
 
-**Подпапка `data/skills/`:** локальные навыки (слаг `pr_loc`) AI-агента, не участвующие в синхронизации каталога навыков: не агрегируются в хаб и не распространяются. Допускаются оба формата: каталоги `pl-<name>/SKILL.md` или `<name>/SKILL.md` (формат Anthropic; оформление - `doc/standards/skill_anthropic_standards.md`, раздел 01.03) и плоские файлы `pl_<name>.md` или `<name>.md` (plain-формат; оформление - `doc/standards/skill_plain_standards.md`). В отличие от остального содержимого `data/`, папка `data/skills/` коммитится в git - в `.gitignore` для `data/` добавляется исключение `!data/skills/` (раздел 06.01). Локальные навыки индексируются собственным индексом `data/skills/_index_skills_pl.md` (ведет `glob-update-indexes`; `index_nav_standards.md`, раздел 06.02).
+## 01.03. Application Identity and Versioning
 
-**Подпапка `data/memory/`:** память агентов - постоянный контекст между сессиями: точка входа `memory.md` и закрытый перечень тематических файлов (`decisions.md`, `env.md`, `preferences.md`). Уроки в память не пишутся - для них журнал `data/lessons.md` (раздел 01.01.07). Каталог создается при первой записи, не при инициализации; коммитится - исключение `!data/memory/` в `.gitignore` (раздел 06.01). Сессионная память - `data/memory/` папки сессии (раздел 01.01.01). Канон - `doc/standards/memory_standards.md`.
+Ask the user for `[app] name` before scaffolding (Section 07.03); initialize `[app] version = 0.1.0` (SemVer; synced with `pyproject.toml` in deployable tools). Log `logger.info("Started %s v%s", APP_NAME, APP_VERSION)` (English technical log) and render the user banner with `console_message(logging.INFO, t("msg.app_started", name=APP_NAME, version=APP_VERSION))` in every entry point (Section 04.06). On commit, propose a SemVer bump by commit type (`feat` -> MINOR; `fix`/`chore` -> PATCH; `refactor` -> PATCH/MINOR; `docs`/`test`/`style` -> none; never auto-propose MAJOR).
 
-**Зоны рантайм-данных навыков (`data/registries/`, `data/journals/`, `data/state/`, `data/cache/`).** Данные, которые навыки создают и ведут при выполнении: реестры-справочники, журналы, маркеры состояния - коммитятся (исключения `!data/registries/`, `!data/journals/`, `!data/state/` в `.gitignore`, раздел 06.01); кэш - `data/cache/<skill-name>/`, не коммитится. Машинно-специфичные данные - в подпапке `<hostname>` внутри зоны. Каталог навыка рантайм-данных не содержит: навык - ядро, не хранилище. Зоны создаются при первой записи; форматы файлов, классы рантайма и границы - канон `doc/standards/skill_data_standards.md`.
+## 01.04. File Paths and Cross-Platform Compatibility
 
-**Папка run:** в run - скрипты, которые пользователь может запустить сам и получить результат. В зависимости от проекта возможны комбинации (main.py, run/, оба).
+Compute `PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent` once in `src/config.py` and import `PROJECT_ROOT`, `config`, `APP_NAME`, `APP_VERSION` everywhere. Build paths via `pathlib.Path` relative to `PROJECT_ROOT` (no `cwd` reliance or string concatenation; `/` in `config.ini`). Enforce LF via `.gitattributes` (Section 06.01). **Template:** `doc/standards/templates/config.py`.
 
-- Создавать подпапки по доменной логике: db - работа с БД, api - работа с API, ai - работа с Ollama/LLM, email - отправка почты
-- Имя файла скрипта: префикс по домену (db_, api_, ai_, email_) + описание действия, например `db_init.py`, `api_sync.py`, `ai_ollama_check.py`, `email_test_send.py`
-- Обязательные проверочные скрипты по доменам (БД, внешние API, Ollama, почта) и их логика - в разделе 03.03
+## 01.05. Startup Validation (Fail Fast)
 
-**Оркестрация (пайплайны):** если есть повторяющаяся последовательность действий (сбор данных из источников -> обработка -> формирование отчетов -> обновление документации), создается скрипт-оркестратор - единая точка входа: и пользователь, и агент запускают его при повторяющихся задачах вместо выполнения шагов по одному. Расположение зависит от уровня:
-- **Уровень репозитория:** оркестратор для всего проекта - файл `main.py` в корне репозитория; единственный оркестратор уровня репозитория.
-- **Уровень сессии:** оркестратор в рамках сессии (см. раздел 01.01.01) - в `run/` папки сессии с префиксом `orch_` (например `<session>/run/orch_full_update.py`).
+Before domain logic, validate in order: (1) load `config.ini`/`.env`, (2) required keys/secrets, (3) required paths/files, (4) external connections. Report all failures in one batch via `t()` and exit with code `2` (Section 05.03). Probe host environment via a heuristic cascade before aborting.
 
-Принципы построения пайплайна:
-- Каждый шаг - отдельная функция или модуль в `src/` соответствующего уровня (репозитория или сессии). Шаги не дублируют логику друг друга.
-- Оркестратор импортирует и вызывает шаги как функции из `src/`. Он не содержит логики шагов - только последовательность вызовов, проверку результатов и остановку при ошибке.
-- Шаги делятся на производящие данные (сбор, обработка, Excel-файлы) и потребляющие данные (обновление документации, генерация отчетов). Между ними - явный интерфейс: файл на диске, таблица БД или другой материальный носитель.
-- Если шагу нужны параметры - они передаются через CLI-аргументы или конфиг, а не через интерактивный ввод. Все решения принимаются до запуска оркестратора.
-- Агент не вызывает шаги напрямую - только оркестратор целиком.
+## 01.06. Dependencies and Static Analysis
+
+Pin `==` versions in `requirements.txt` and prefer stdlib. Commit `uv.lock` when using `uv`; run `pip-audit` before releases. Keep dev tools (`ruff`, `mypy`) in `requirements.txt` (or `pyproject.toml` dev group, never mixed). Run linters per `code_standards.md` (Section 08).
+
+## 01.07. Virtual Environment and Python Version
+
+Create `.venv/` with copies (`python3 -m venv --copies .venv`) and record `.python-version`. Before `pip install`, verify `~/.config/pip/pip.conf`; if missing or slow, benchmark candidates from `glob-cfg-pip` (never hardcode mirror URLs), write the fastest to `~/.config/pip/pip.conf`, and report latency.
 
 ---
 
-### 01.01.01. Сессионные структуры и SESSION.md
+# 02. External Connections
 
-*Обязательно.*
+## 02.01. Database Connection
 
-**Определение.** Сессией считается любая папка в репозитории, явно указанная пользователем как сессия, в корне которой находится маркер-файл `SESSION.md`. Папки `doc/change_requests/<id>/` и `doc/specs/<project>/` - типичные примеры расположения, а не исчерпывающий список. Папка без `SESSION.md` сессией не является. Сессия - маленький репозиторий внутри большого: внутри своей папки она может содержать подпапки src/, data/, sql/, log/, doc/ и иные по тем же правилам, что и корневой проект (раздел 01.01). На сессию распространяются все требования настоящего стандарта (именование, структура, конфигурация, логирование, требования к тексту), кроме отдельного git - git общий для всего проекта, у сессии нет отдельного репозитория.
+Read `DRIVER`, `SERVER`, `DATABASE`, `PORT` from `[db]` in `config.ini` and credentials from `.env`; ask the user if missing.
 
-**Локализация артефактов.** Внутри сессии создаются собственные `doc/agent_questions/`, `doc/specs/` (спецификации задач интерактивного режима - раздел 07.02), `log/`, `data/` - внутри папки сессии, а не в корне проекта. Это исключает смешивание вопросов и логов разных сессий. Разовые диагностические выгрузки (отчеты, снимки, скриншоты) размещаются в `tmp/` корня проекта (раздел 01.01.04); результаты, которые сессия должна сохранять между запусками, - в `data/` папки сессии. Сессионная память агентов - `data/memory/` папки сессии по канону `doc/standards/memory_standards.md` (охват и структура - как у проектной памяти). Конфигурация: при необходимости создается `config/config.ini` внутри папки сессии; если не нужен - используется конфиг корневого проекта. Для хранения промежуточных данных сессия может использовать собственную SQLite-базу (в `data/` папки сессии).
+## 02.02. External API Connection
 
-**Оркестратор сессии.** Располагается в `run/` папки сессии с префиксом `orch_` (например `<session>/run/orch_full_update.py`); шаги - функции и модули в `src/` папки сессии (см. «Оркестрация (пайплайны)» выше).
+Read `BASE_URL`, `ENDPOINTS`, `timeout` from `[api]` in `config.ini` and auth tokens/keys from `.env`.
 
-**Идентификатор сессии.** Формат `YYYY-MM-DD_slug`, например `2026-07-21_setup-db`; `<slug>` - латинский слаг по правилам `code_standards.md` (раздел 02.01: kebab-case, латиница, без транслита). Используется в scope коммитов (например `feat(2026-07-21_setup-db): подключить модуль выгрузки`), в имени оркестратора, в ссылках. При создании нового `SESSION.md` агент проверяет уникальность идентификатора в пределах репозитория.
+## 02.03. Ollama Connection
 
-**Имя папки сессии.** Папка сессии может располагаться в любом месте репозитория и иметь любое имя; имя папки не связано с контентом сессии и не является ее идентификатором - канонический идентификатор хранится в `SESSION.md`. Агент рекомендует пользователю переименовать папку в формат `YYYY-MM-DD_Суть-сессии`: дата, подчеркивание, далее русский слаг по правилам `code_standards.md` (раздел 02.01) - кириллицей, дефис между словами, первое слово с заглавной буквы, кратко отражающий суть задачи (2-4 слова), например `2026-07-21_Настройка-выгрузки`. Переименование - рекомендация, не требование; итоговое имя остается за пользователем. Кириллические имена папок сессий - исключение из общего правила латиницы для технического нейминга (раздел 04.03): они человекочитаемые, а не программные идентификаторы.
+Read `BASE_URL`, `MODEL` (comma-separated), `DEVICE` (`cpu`/`gpu`), `timeout` from `[ollama]` in `config.ini`.
 
-**Версия сессии.** Внутри сессии ведется собственная SemVer-версия (независимая от версии пакета стандартов), указанная в шапке `SESSION.md`. Bump версии сессии выполняется по правилам SemVer (PATCH/MINOR/MAJOR) - по запросу пользователя или при значимом изменении внутри сессии.
+## 02.04. Connection Retries and Channel Liveness
 
-**Оверрайды стандарта.** Сессия может отклоняться от глобальных правил стандарта, но только по явному согласованию с пользователем. Каждый оверрайд фиксируется в блоке «Оверрайды стандарта» файла `SESSION.md`: ссылка на раздел стандарта, текст отклонения, обоснование, пометка о согласовании с пользователем (дата). Без записи в этом блоке оверрайд не действует - применяются глобальные правила. Приоритет норм (канон - раздел 07.06): явные указания пользователя текущего диалога > сессионные оверрайды > проектные оверрайды > глобальный стандарт. Если оверрайда нет - действует глобальное правило стандарта; оверрайд отменяет норму, на которую ссылается, в пределах своей области.
+Shared `retry()` helper with exponential backoff from `[retry]` (`retry_count = 3`, `retry_delay = 2`, max `30s`), `Retry-After` on HTTP `429`, and channel liveness HTTP probes (`!= 000` vs `000`). See `network_ops_standards.md` (Sections 01.01, 01.02).
 
-**Жизненный цикл.** Статус в шапке `SESSION.md`: `активна`, `приостановлена`, `завершена`, `отменена`. В сессии со статусом, отличным от `активна`, агент не работает без явного указания пользователя - это защищает закрытые и приостановленные сессии от случайных правок.
+## 02.05. GitHub SSH Discovery and Network Operations
 
-**Архивация сессий.** К сессиям применяется общее правило «Архивация вместо удаления» (раздел 01.01): завершенные и отмененные сессии переносятся в `.arch/` той папки, где они расположены, - архивные сессии не остаются рядом с боевыми. Например, сессии из `doc/change_requests/<id>/` переносятся в `doc/change_requests/.arch/`. Папка сессии перемещается целиком с сохранением внутренней структуры; идентификаторы архивных сессий учитываются при проверке уникальности новых идентификаторов (включая подпапки `.arch/`).
-
-**Корень текущей сессии.** Агент ищет файл `SESSION.md` вверх по дереву от текущей рабочей директории до корня репозитория. Первый найденный файл определяет корень текущей сессии; при работе внутри сессии применяются ее оверрайды. Если `SESSION.md` не найден - работа ведется по глобальным правилам.
-
-**Запреты:**
-
-- Вложенные сессии: `SESSION.md` внутри папки, уже являющейся сессией, недопустим
-- `SESSION.md` в корне репозитория недопустим - иначе весь репозиторий стал бы одной сессией
-
-**Создание маркера.** Файл `SESSION.md` создается агентом при инициализации сессии по явному указанию пользователя («эта папка - сессия», «работаем в сессии <path>» и аналоги). Если пользователь тегнул папку без `SESSION.md`, но она явно сессионная - агент не создает маркер молча, а предлагает создать, прилагает черновик шапки и ждет подтверждения (раздел 07.02). При работе внутри сессии агент применяет инструкции из `SESSION.md` по приоритету раздела 07.06: явные указания пользователя текущего диалога > инструкции и оверрайды `SESSION.md` > проектные оверрайды > глобальный стандарт.
-
-**Назначение файла.** `SESSION.md` совмещает три роли: маркер сессионной структуры, мета сессии и описание сессии (как README корневого проекта). Агент при любых изменениях в сессии поддерживает файл актуальным: обновляет структуру папок, точку входа, результаты, статус, версию.
-
-**Структура `SESSION.md`:**
-
-```markdown
-# Сессия: <title>. Версия X.Y.Z
-
-Маркер сессионной структуры. Папка с этим файлом - самостоятельный подпроект: на нее распространяются все требования стандарта (именование, структура, конфигурация, логирование, требования к тексту), кроме отдельного git. Агент при любых изменениях в сессии поддерживает этот файл актуальным - как README корневого проекта.
-
----
-
-Идентификатор: 2026-07-21_setup-db
-Дата создания: 2026-07-21
-Статус: активна
-Версия: 0.1.0
-Цель: <goal>
-
----
-
-## Структура сессии
-
-<structure_description>
-
-## Точка входа
-
-<entry_point_path>
-
-## Результаты
-
-<expected_results>
-
-## Оверрайды стандарта
-
-<overrides>
-```
-
-Пояснения к плейсхолдерам шаблона: `<structure_description>` - перечень подпапок и файлов сессии по образцу таблицы структуры из README корневого проекта; `<entry_point_path>` - путь к скрипту запуска (`run/orch_*.py` или иной); `<expected_results>` - что должно получиться по итогам работы сессии; `<overrides>` - согласованные с пользователем отклонения от глобальных правил, при отсутствии отклонений - «отсутствуют».
-
----
-
-### 01.01.02. Проектные оверрайды стандарта
-
-*Опционально (при наличии отклонений).*
-
-**Назначение.** Репозиторий может осознанно отклоняться от глобальных правил стандарта. Каждое такое отклонение (оверрайд) фиксируется явно, чтобы агенты при аудите и правках не предлагали «исправить» согласованное решение.
-
-**Носитель.** Файл `doc/specs/overrides.md` (коммитится; создается только при наличии оверрайдов). При отсутствии отклонений файл не создается.
-
-**Формат записи** - таблица, по одной строке на оверрайд:
-
-| Раздел стандарта | Отклонение | Обоснование | Дата согласования |
-|------------------|------------|-------------|-------------------|
-| <section ref, e.g. 04.03> | <what deviates and where> | <why agreed> | YYYY-MM-DD |
-
-**Правило действия.** Без записи в `doc/specs/overrides.md` оверрайд не действует - применяется глобальное правило стандарта, и агент вправе предлагать приведение к стандарту. Согласование с пользователем обязательно и фиксируется датой.
-
-**Приоритет.** Явные указания пользователя текущего диалога > сессионные оверрайды (раздел 01.01.01, блок в `SESSION.md`) > проектные оверрайды > глобальный стандарт. При отсутствии оверрайда действует глобальное правило стандарта; оверрайд отменяет норму, на которую ссылается, в пределах своей области (проект или сессия). Канон приоритета - раздел 07.06.
-
-**Учет при аудите.** Навык аудита (`glob-audit-repository`) перед классификацией собирает реестр оверрайдов (включая `doc/specs/overrides.md`) и исключает перечисленные отклонения из шума; проверяется только оформление оверрайда (наличие ссылки, обоснования, даты согласования).
-
----
-
-### 01.01.03. Локальная витрина данных и режимы пайплайна
-
-*Обязательно для проектов, где пайплайн собирает данные из внешней БД.*
-
-**Назначение.** Если пайплайн сессии или репозитория получает данные из внешней БД, повторные обращения к источнику избыточны: одни и те же запросы выполняются от запуска к запуску. Результат запросов выгружается в локальную витрину на SQLite один раз, а сборка результатов идет из витрины.
-
-**Витрина данных.** Снимок данных, собранных запросами пайплайна из внешней БД. Хранится в отдельной БД SQLite:
-
-- Файл витрины: `data/mart.sqlite`. Для сессии - в `data/` папки сессии (раздел 01.01.01); при нескольких независимых витринах - `data/mart_<domain>.sqlite`
-- Витрина исключена из git как часть `data/` (раздел 06.01)
-
-**Каноничная структура витрины:**
-
-- Таблицы данных: префикс `mart_` + имя сущности, например `mart_orders`, `mart_customers`. Имена латиницей без транслита (`code_standards.md`, раздел 02.01)
-- Служебная таблица `mart_meta`: хранит метку времени снимка. Обязательная строка с ключом `snapshot_ts` и значением в формате `YYYY-MM-DD HH:MM:SS` - время последней полной перезаписи витрины из источника
-
-**SQL-запросы.** Два набора в `sql/queries/` (раздел 03.02) с разными префиксами - по движку назначения:
-
-- `src_<entity>.sql` - запросы к источнику (внешняя БД, например MS SQL): выгрузка строк в витрину. Только экстракция (проекция, фильтры, минимальные соединения); расчетная и отчетная логика сюда не выносится - иначе режим `local` не воспроизводит отчет без обращения к источнику
-- `report_<entity>.sql` - запросы к витрине (SQLite): расчеты и формирование отчета. Вся вычислительная логика пайплайна живет здесь
-
-Префикс `report_` (а не `mart_`) выбран, чтобы не пересекаться с префиксом таблиц витрины `mart_`. Разделение по префиксу исключает запуск запроса чужого диалекта (T-SQL источника против SQLite витрины) против чужого движка. При работе с SQL агент ориентируется на индекс `sql/_index_sql.md` (раздел 03.02.01).
-
-**Два режима пайплайна.** Оркестратор (раздел 01.01) поддерживает два режима запуска:
-
-- `local` - сборка из локальной витрины `data/mart.sqlite`; обращения к внешней БД нет
-- `refresh` - проверка схемы источника, выгрузка из внешней БД, полная перезапись витрины, обновление `mart_meta.snapshot_ts`, затем сборка из витрины
-
-Режим задается явно - CLI-аргументом оркестратора (например `--mode local|refresh`) или ключом конфига - а не интерактивным вводом, по принципам оркестрации (раздел 01.01: параметры через CLI или конфиг). Шаг обновления витрины - функция или модуль в `src/`, вызываемая оркестратором; сам по себе логики сборки результатов не содержит.
-
-**Проверка схемы при `refresh`.** Перед выгрузкой проверяется соответствие схемы источника ожидаемой (состав и типы колонок таблиц выгрузки). При расхождении `refresh` завершается с ошибкой и человекочитаемым описанием (раздел 04.05) - данные в витрину не выгружаются. Требование к составу колонок фиксируется в `sql/_index_sql.md`.
-
-**Перезапись витрины.** `refresh` выполняет полную перезапись: предыдущие данные не сохраняются, версий снимков нет. Перезапись атомарна (раздел 03.01) - выгрузка в рамках одной транзакции или через staging-таблицы с последующим swap; `mart_meta.snapshot_ts` обновляется только по успешному завершению перезаписи.
-
-**Логика устаревания и режим по умолчанию.** Не регламентируются: условие, при котором витрина считается устаревшей, и режим запуска по умолчанию остаются за проектом.
-
----
-
-### 01.01.04. Папки diag и tmp: диагностика и разовые артефакты
-
-*Обязательно для папок diag и tmp (при их использовании).*
-
-**Папка diag - переиспользуемые диагностические скрипты.** В `diag/` размещаются только скрипты, пригодные для повторного использования: проверки состояния окружения и компонентов, сбор отчетов, снимки состояния, профилирование. Критерий попадания - переиспользуемость: разовые скрипты и артефакты в `diag/` не размещаются. Папка коммитится в git вместе с индексом.
-
-**Раскладка по доменным подпапкам.** Файлы в `diag/` группируются в подпапки по домену: путь - `diag/<domain>/<domain>_<type>_<action>.<ext>`. Домен задается подпапкой, имя файла сохраняет полную маску; в корне `diag/` лежит только индекс. Словарь доменов - общий для `diag/`, `test/` и `tmp/` (абзац об именовании ниже).
-
-**Граница с `test/` (раздел 01.01.05).** Папки разделяются по вопросу, на который отвечает скрипт. `diag/` отвечает на вопрос «что происходит»: исследование состояния окружения и компонентов, сбор фактов и снимков для разбора; вердикта о правильности проекта скрипт не дает. `test/` отвечает на вопрос «все ли в порядке с результатом»: проверка поведения проекта и правок агента на соответствие ожидаемому. Признак выбора: скрипт нужен, чтобы разобраться в ситуации, - в `diag/`; чтобы подтвердить качество результата своей работы, - в `test/`. Пример пары по одному домену: `diag/db/db_dump_schema.py` (diag - снимок схемы для разбора) и `test/db/db_check_migrations.py` (test - контроль применения миграций).
-
-**Именование в diag** - маска `<domain>_<type>_<action>`, латиница, snake_case (`code_standards.md`, раздел 02.01). Домен - первый сегмент маски и одновременно имя доменной подпапки, поэтому файл лежит по пути `diag/<domain>/<domain>_<type>_<action>.<ext>`:
-
-- `<domain>` - домен диагностики и имя подпапки: `env`, `git`, `db`, `net`, `disk`, `py` и т.п.; словарь доменов общий для `diag/`, `test/` и `tmp/`
-- `<type>` - тип диагностики; контролируемый словарь, расширение - только через правку стандарта (раздел 07.05):
-  - `check` - точечная проверка с вердиктом (ок/не ок, код возврата)
-  - `report` - сбор данных и человекочитаемый отчет
-  - `dump` - сырой снимок состояния для последующего разбора
-  - `profile` - замеры производительности и ресурсов
-- `<action>` - уточнение действия
-
-Примеры: `diag/env/env_check_python.py`, `diag/git/git_dump_status.sh`, `diag/db/db_check_connectivity.py`.
-
-**Индекс `diag/_index_diag.md`.** Обязателен при наличии папки; лежит в корне `diag/`; скелет, реестр и карта маршрутизации - по канону индексов `index_nav_standards.md` (разделы 03, 04, 06.05). Реестр разбивается на таблицы по доменным подпапкам (первая колонка - путь с доменом). Отдельные файлы-доки к скриптам не создаются - описание скрипта живет в индексе. При любом изменении состава `diag/` (добавление, удаление, переименование) индекс актуализируется в том же коммите.
-
-**Папка tmp - разовые артефакты.** Место для разовых артефактов агентов и инструментов: скриншоты (Playwright и др.), выгрузки, черновики, промежуточные файлы отладки. Артефакты раскладываются по доменным подпапкам `tmp/<domain>/`; словарь доменов - общий с `diag/` и `test/`. Секреты в `tmp/` не размещать (раздел 05.01); в git не коммитится (раздел 06.01). Правила уборки: после коммита агент удаляет из `tmp/` созданные им в рамках задачи артефакты; любое содержимое `tmp/` можно удалять в любой момент без предупреждения - ничто в коде и документации не ссылается на `tmp/`. Папка создается по требованию и в репозитории не хранится (без `.gitkeep`).
-
-**Привилегированный сборщик дампа и непривилегированный разбор.** Диагностика, требующая root, разделяется на два слоя: привилегированный скрипт только собирает сырой дамп (минимум кода, одна команда на канал вывода), агент строит человекочитаемый отчет по дампу без привилегий. Каждый канал в дампе оформляется секцией «команда + вывод»; дамп снабжается заголовком (хост, дата, инвокер).
-
-**Нагрузочные тесты железа.** Канон предохранителей: именованный аварийный порог (температура, уровень батареи) с автоматической остановкой; контроль, что нагрузка реально стартовала (замеры утилизации на старте - иначе вердикт по холодному железу ложен); каждая остановка получает именованную причину, попадающую в артефакт; после нагрузки - сверка журнала ядра на ошибки тестируемого компонента. Физические шаги пользователя (подключить зарядку) - ожидание циклом опроса состояния с фиксацией факта ожидания в артефакте; тест не выполняет полный разряд или износ - контролируемый отрезок.
-
-**Хвосты аппаратных тестов.** Утилиты нагрузки, форкающие процессы, переживающие родителя: запуск в отдельной сессии, остановка группы процессов целиком, затем добивание остатков по имени. Операции, продолжающиеся на устройстве независимо от процесса (самотестирование диска): при прерывании обязателен явный останов штатной командой - иначе операция продолжится на устройстве сама.
-
-**Приемы диагностики сред:**
-- Поиск событий в журналах по шаблону - с явными белыми списками ложных срабатываний (строки поддержки механизма - не события; штатные коды простоев - не дроссель), с обоснованием в комментарии у списка
-- Предполетная проверка длинных прогонов: все зависимости проверяются до старта, включая условные (состав зависит от обнаруженного окружения); каждая невыполненная - с готовой командой установки
-- Метрики однотипных устройств разных вендоров собираются каскадом провайдеров с меткой источника в каждой записи; при недоступности датчика в отчет попадает объяснение причины, а не пустое значение
-- Признак «служба включена» по `systemctl is-enabled` - широкий набор статусов: `enabled`, `enabled-runtime`, `static`, `alias`, `indirect`, `generated` означают действующий юнит, иначе служба ошибочно считается выключенной
-
----
-
-### 01.01.05. Папка test: эталонные тесты агентов
-
-*Обязательно для папки test (при ее использовании).*
-
-**Назначение.** `test/` - эталонные переиспользуемые тесты для агентов: постоянный набор проверочных скриптов, которыми агент перепроверяет свою работу после изменений в проекте. Тесты не разовые: каждый скрипт рассчитан на многократный прогон. Формат - произвольные исполняемые скрипты; фреймворк не предписывается. Папка коммитится в git вместе с индексом. Отличие от `diag/` - по вопросу, на который отвечает скрипт: не исследование состояния, а проверка результата работы; граница и признак выбора - в разделе 01.01.04.
-
-**Согласование набора.** Состав тестов согласовывается с пользователем: агент не добавляет и не удаляет тесты молча - предложение и подтверждение по разделу 07.02.
-
-**Раскладка и именование.** Файлы группируются в доменные подпапки `test/<domain>/`, как в `diag/`; маска имени та же - `<domain>_<type>_<action>`, латиница, snake_case, тот же контролируемый словарь типов и доменов (раздел 01.01.04). Примеры: `test/env/env_check_python.py`, `test/db/db_check_migrations.py`.
-
-**Индекс `test/_index_test.md`.** Обязателен при наличии папки; лежит в корне `test/`; скелет, реестр и карта маршрутизации - по канону индексов `index_nav_standards.md` (разделы 03, 04, 06.05). Реестр разбивается на таблицы по доменным подпапкам (первая колонка - путь с доменом). При любом изменении состава `test/` (добавление, удаление, переименование) индекс актуализируется в том же коммите.
-
----
-
-### 01.01.06. Корзина агента (.trash/)
-
-*Обязательно.*
-
-**Назначение.** `.trash/` - единая корзина (карантин) репозитория для того, что агент иначе удалил бы. Любое удаление файлов или папок, выполняемое агентом, оформляется переносом в `.trash/`, а не удалением: содержимое сохраняется на машине и может быть возвращено. Правило действует всегда, включая удаление неотслеживаемых и непонятных файлов.
-
-**Расположение и структура.** Корзина находится в корне репозитория:
-
-```
-.trash/
-  <slug>_<YYYYMMDDHHMM>/
-    MANIFEST.md
-    <path>/...
-```
-
-- Имя подпапки - `<slug>_<YYYYMMDDHHMM>`; `slug` - короткое осмысленное имя причины латиницей в kebab-case (например `deleted-untracked`, `unknown-files`, `sync-leftovers`)
-- Переносимые файлы сохраняют путь относительно корня репозитория; структура каталогов воспроизводится внутри подпапки
-- Каждый перенос сопровождается `MANIFEST.md`: дата и время, исполнитель (агент, хост), причина, перечень путей с исходным статусом (отслеживаемый, неотслеживаемый, игнорируемый), число файлов, примечания
-
-**Правила.**
-- Агент не удаляет файлы и папки репозитория напрямую: удаление заменяется переносом в `.trash/<slug>_<YYYYMMDDHHMM>/`
-- Исключения - содержимое `tmp/` (по определению удаляемое, раздел 01.01.04), содержимое самого `.trash/` и git-нативные удаления при синхронизации зеркал (блок ниже)
-- Перемещение выполняется целиком, без переименования и пересборки содержимого
-- Агент не чистит `.trash/` по своей инициативе; очистка - только по явному запросу пользователя
-- Содержимое `.trash/` в индексы не вносится
-- `.trash/` целиком исключена из git (раздел 06.01), без `.gitkeep`; папка создается по требованию и в репозитории не хранится
-- Различие с `.arch/`: `.arch/` - осознанный архив отработанного, который остается рядом с активным содержимым; `.trash/` - карантин для того, что иначе было бы удалено
-
-**Git-нативные удаления при синхронизации зеркал.** Карантин не требуется для удалений, выполняемых git-операциями приведения клона-зеркала к состоянию upstream - `git reset --hard`, `git checkout`, `git pull` - в рамках синхронизации зеркал, при условии что удаляемое содержимое восстановимо из истории git репозитория-приемника (прежнее состояние ветки, reflog). Перечень операций закрыт: иные команды под исключение не подпадают. `git clean` и удаление неотслеживаемых путей под исключение не попадают - карантин обязателен. Локальные незакоммиченные правки отслеживаемых файлов, уничтожаемые `reset --hard`, невосстановимы: перед git-приведением выполняется `git status`, при наличии таких правок - карантин или стоп и вопрос пользователю (раздел 07.02).
-
-**Карантин пользовательских файлов вне репозитория.** Навык, изменяющий пользовательские файлы за пределами репозитория (конфиги домашнего каталога и т.п.), не удаляет «лишнее», а переносит в каталог карантина рядом с точкой изменения: уникализация имени суффиксом при коллизии; рядом - манифест с причиной, перечнем перемещенного и готовыми командами восстановления; перед переносом файл выводится из активного состояния (агент, демон), если применимо.
-
----
-
-### 01.01.07. Журнал уроков (data/lessons.md)
-
-*Обязательно при наличии журнала.*
-
-**Назначение.** `data/lessons.md` - журнал уроков репозитория: переносимый опыт, полученный в ходе работы над проектом, - приемы, ловушки библиотек и сред, неочевидные решения и их причины. Журнал - точка накопления знаний для обогащения хаба стандартов: фиксацию записей выполняет навык `glob-mine-lesson`, сбор кандидатов из проекта - навык `hub-mine-knowledge` (только хаб). Записи не обслуживаются индексами.
-
-**Правила:**
-
-- Записи добавляются в конец файла; существующие записи не правятся и не удаляются
-- Контекст записи - конкретика ситуации (файл и строка, коммит, задача, машина, версия): допустимы любые детали, журнал остается внутри репозитория
-- Урок записи - обобщенная формулировка для класса ситуаций (архитектура, семейство ОС, диапазон версий библиотеки, класс устройства): без имен машин и пользователей, адресов и путей конкретной машины
-- Тест ценности: воспроизведется ли урок в следующем проекте; знание, привязанное только к данному экземпляру среды, - кандидат в проектный оверрайд (раздел 01.01.02), а не в журнал
-- Файл коммитится: в `.gitignore` для `data/` добавляется исключение `!data/lessons.md` (раздел 06.01)
-- Архивация накопившегося журнала - по явному запросу пользователя, переносом в `data/.arch/` (архивация вместо удаления, раздел 01.01)
-
-**Скелет записи** (добавляется в конец файла):
-
-```markdown
-## YYYY-MM-DD - короткая тема урока
-
-Контекст: конкретика ситуации - файл и строка, коммит, задача, версия библиотеки или ОС
-
-Урок: обобщение для класса ситуаций - как поступать в аналогичных случаях
-```
-
----
-
-## 01.02. Конфигурация
-
-*Обязательно.*
-
-- Хранить все настраиваемые параметры проекта в config/config.ini
-- Не хардкодить в коде значения, которые пользователь может менять (пути, порты, имена и т.п.)
-- Читать настройки из config/config.ini при запуске
-- ConfigParser возвращает все значения как строки; использовать типизированные методы: `config.getint()`, `config.getfloat()`, `config.getboolean()` - не приводить типы вручную через `int()` и т.п.
-- Секция `[app]` в config.ini обязательна; содержит параметры `name` (название приложения) и `version` (версия, SemVer). См. раздел 01.03
-- Секция `[app]` может содержать параметр `language` - язык интерфейса (подробнее в разделе 04.01)
-
-**Пример `config/config.ini`** (секции опциональны - оставлять только релевантные проекту):
-
-```ini
-[app]
-name =
-version = 0.1.0
-; language = ru  (язык интерфейса, раздел 04.01)
-
-[db]
-driver =
-server =
-database =
-port =
-; пароль и логин - только в .env, не здесь
-
-[api]
-base_url =
-timeout = 30
-; токены и ключи API - только в .env, не здесь
-
-[ollama]
-base_url = http://localhost:11434
-model =
-device = cpu
-timeout = 60
-; модели перечислять через запятую, если их несколько: model = llama3,mistral
-
-[email]
-enabled = false
-smtp_host =
-smtp_port =
-smtp_security = ssl
-from =
-to =
-; логин и пароль приложения (SMTP_USER, SMTP_PASSWORD) - только в .env, не здесь
-
-[retry]
-retry_count = 3
-retry_delay = 2
-
-[logging]
-file_level = DEBUG
-
-[paths]
-; использовать только те пути, которые релевантны для проекта; неиспользуемые - удалить
-data_folder = data/
-input_folder = input/
-output_folder = output/results
-log_folder = log/
-; пути читать через Path(): data_dir = Path(config.get("paths", "data_folder"))
-```
-
----
-
-## 01.03. Идентификация и версия приложения
-
-*Обязательно.*
-
-Каждый проект имеет название и версию приложения. Эти значения используются для идентификации проекта в логах, консоли и при развертывании.
-
-**Название приложения:**
-- Агент запрашивает название у пользователя явно при инициализации проекта (раздел 07.03)
-- Название хранится в секции `[app]` файла `config/config.ini`: параметр `name`
-- Название может содержать буквы, цифры, пробелы, дефисы - в человекочитаемом виде (например: `Мой инструмент`, `Data Processor`)
-
-**Методология определения названия:**
-
-Назначение названия - идентификация проекта пользователем. Название отображается в логах и консоли при каждом запуске (строка `{APP_NAME} v{APP_VERSION}`).
-
-Правила:
-- Агент не придумывает название самостоятельно - только из ответа пользователя
-- Если пользователь не указал название явно - агент задает вопрос: "Укажите название приложения" - до начала создания структуры проекта
-- Название задается один раз при инициализации; агент не меняет название в течение жизни проекта (ручное изменение пользователем - пункт ниже)
-- Название не связано с именем папки репозитория, именем пакета в `pyproject.toml` или именем CLI-команды - это разные сущности:
-  - Название приложения (`config.ini [app] name`) - человекочитаемое, для отображения пользователю
-  - Имя пакета (`pyproject.toml name`) - техническое, для pip/uv (строчные буквы, дефисы)
-  - CLI-команда (`pyproject.toml [project.scripts]`) - команда shell
-- Допускается изменение названия пользователем в `config.ini` вручную в любой момент; агент не предлагает изменить название при коммитах
-
-**Версия приложения:**
-- Хранится в секции `[app]` файла `config/config.ini`: параметр `version`
-- Начальная версия при создании проекта: `0.1.0`
-- Формат версии: семантическое версионирование (SemVer) - `MAJOR.MINOR.PATCH`
-
-**Методология определения версии (SemVer):**
-
-- **PATCH** (X.Y.Z -> X.Y.Z+1): исправление ошибок, мелкие доработки без нового функционала
-- **MINOR** (X.Y.Z -> X.Y+1.0): новый функционал, новые возможности, обратно совместимые изменения
-- **MAJOR** (X.Y.Z -> X+1.0.0): ломающие изменения - несовместимость с предыдущей версией, изменение интерфейса или поведения
-
-**Автоматическое предложение обновления версии при коммите:**
-
-При каждом коммите агент анализирует тип коммита (раздел 06.01) и предлагает обновить версию в `config/config.ini`:
-
-| Тип коммита | Действие с версией |
-|-------------|-------------------|
-| `feat` | MINOR |
-| `fix` | PATCH |
-| `refactor` | PATCH (если поведение не изменилось) или MINOR (если появились новые возможности) |
-| `chore` | PATCH |
-| `docs` | не обновлять |
-| `test` | не обновлять |
-| `style` | не обновлять |
-
-Порядок:
-1. Агент определяет тип коммита
-2. Если тип подразумевает обновление версии - агент предлагает пользователю новую версию
-3. При согласии - агент обновляет `version` в секции `[app]` файла `config/config.ini` и включает это изменение в текущий коммит
-4. При отказе - версия остается без изменений
-5. MAJOR-обновление агент не предлагает автоматически - только по явному запросу пользователя
-
-**Экспорт в config.py:**
-- `src/config.py` экспортирует `APP_NAME` (str) и `APP_VERSION` (str) - значения из секции `[app]`
-- При отсутствии значения `name` - пустая строка; при отсутствии `version` - строка `dev`
-
-**Вывод при запуске:**
-- Каждый entry-point скрипт (в `run/`, `main.py`) выводит название и версию одним из первых действий, сразу после инициализации логера:
-  ```python
-  from pathlib import Path
-
-  from src.config import PROJECT_ROOT, APP_NAME, APP_VERSION
-  from src.logger import get_logger
-  from src.localization import t
-  logger = get_logger(Path(__file__).stem, log_dir=PROJECT_ROOT / "log")
-  logger.info(t("msg.app_started", name=APP_NAME, version=APP_VERSION))
-  ```
-- Вывод названия и версии - перед основной логикой скрипта, до любых действий с данными
-
-**Для проектов с деплоем** (по стандартам `deploy_lin_standards.md` / `deploy_win_standards.md`):
-- `config.ini` секция `[app]` - единый источник `name` и `version` для отображения во всех режимах (разработки и установленном)
-- `pyproject.toml` поле `version` - источник для метаданных пакета (pip/uv), не используется для отображения
-- Синхронность версий в `pyproject.toml` и `config.ini` - ответственность агента при коммите
-- Установочный скрипт синхронизирует `name` и `version` из репо-конфига в прод-конфиг при обновлении (подробнее - в стандартах деплоя)
-- Секция `[app]` в `config.ini` обязательна для всех проектов - как с деплоем, так и без
-
----
-
-## 01.04. Пути к файлам и кросс-платформенность
-
-*Обязательно.*
-
-**PROJECT_ROOT и пути:**
-- PROJECT_ROOT вычисляется один раз - в `src/config.py`: `Path(__file__).resolve().parents[1]`
-  (файл всегда находится в `src/`, поэтому `parents[1]` - всегда корень проекта)
-- Все остальные скрипты получают PROJECT_ROOT через импорт: `from src.config import config, PROJECT_ROOT`
-  Не вычислять PROJECT_ROOT повторно в каждом скрипте
-- Все пути строить через pathlib относительно PROJECT_ROOT: `PROJECT_ROOT / "log" / "file.log"`
-  Не использовать строковую конкатенацию путей и `os.path.abspath()`
-- Не полагаться на текущую рабочую директорию (cwd); скрипт должен корректно работать при запуске из любой папки
-- `src/config.py` также экспортирует `APP_NAME` и `APP_VERSION` из секции `[app]` конфига (см. раздел 01.03)
-
-**Кросс-платформенность (Windows и Linux):**
-
-Скрипты могут запускаться на Windows и Linux. Все операции с путями должны работать на обеих ОС автоматически.
-
-- Использовать `pathlib.Path` для всех путей - он автоматически применяет разделитель, принятый в ОС (`\` на Windows, `/` на Linux)
-- Не конкатенировать пути через строки (`"log/" + name`) и не использовать `os.path.join()` со строками-частями
-- Не использовать захардкоженные разделители (`/` или `\`) в путях - только методы `Path`: оператор `/` или `.joinpath()`
-- Пути из `config.ini` или `.env` оборачивать в `Path()` при чтении: `log_dir = Path(config.get("paths", "log_folder"))`
-- Пути в `config.ini` записывать с прямым слешем (`log/app.log`) - `pathlib.Path` корректно распознает их на обеих ОС
-- Для создания директорий: `path.mkdir(parents=True, exist_ok=True)` - работает на обеих ОС
-- Для определения ОС при необходимости: `import sys; sys.platform` (`"win32"` на Windows, `"linux"` на Linux) - использовать только если логика принципиально различается по ОС
-- Окончания строк в репозитории контролируются через `.gitattributes` (раздел 06.01): все текстовые файлы хранятся с LF, чтобы shell-скрипты и diff корректно работали на обеих ОС
-
-**Эталонная реализация `src/config.py`:**
-
-```python
-"""
-Общий модуль загрузки конфигурации проекта.
-
-Загружает config/config.ini и .env относительно PROJECT_ROOT.
-PROJECT_ROOT определяется как родительская папка папки src/.
-
-Использование:
-    from src.config import config, PROJECT_ROOT, APP_NAME, APP_VERSION
-    db_server = config.get("db", "server")
-    api_key = config.get("api", "key")  # значение из .env
-    output_dir = Path(config.get("paths", "output_folder"))  # пути - всегда через Path()
-"""
-
-import configparser
-from pathlib import Path
-
-from dotenv import load_dotenv
-
-# корень проекта - папка, содержащая src/, config/, log/ и т.д.
-PROJECT_ROOT: Path = Path(__file__).resolve().parents[1]
-
-# загрузка .env (секреты; не перезаписывает уже установленные переменные окружения)
-_env_file = PROJECT_ROOT / ".env"
-if _env_file.exists():
-    load_dotenv(_env_file, override=False)
-
-# загрузка config.ini
-config = configparser.ConfigParser()
-_config_file = PROJECT_ROOT / "config" / "config.ini"
-if _config_file.exists():
-    config.read(_config_file, encoding="utf-8")
-
-APP_NAME: str = config.get("app", "name", fallback="")
-APP_VERSION: str = config.get("app", "version", fallback="dev")
-```
-
----
-
-## 01.05. Валидация при запуске
-
-*Обязательно.*
-
-Каждый скрипт перед выполнением основной логики проверяет готовность окружения. Цель - обнаружить проблемы до начала работы и выдать понятное сообщение вместо непредсказуемого сбоя в процессе.
-
-**Проверять при запуске:**
-- Наличие обязательных параметров в config.ini и .env (без значений - сразу ошибка с указанием имени параметра)
-- Корректность путей: существование папок log/, data/ и других, используемых скриптом
-- Доступность внешних ресурсов: БД, API, Ollama, почта (SMTP) - только если скрипт с ними работает (см. разделы 02.01-02.03, 02.06)
-- Наличие обязательных файлов: файлы DDL в `sql/ddl/` для db-скриптов (раздел 03.02), config.ini и т.п.
-
-**Принцип fail fast:**
-- Все проверки выполняются до начала основной логики
-- При обнаружении проблемы - сразу выход с понятным сообщением (через t(), см. раздел 04.01) и кодом завершения 2 (раздел 05.03)
-- Не продолжать выполнение, если обязательные условия не выполнены
-- Несколько проблем - выводить все одним блоком, не останавливаться на первой (агент может исправить все за один проход)
-
-**Порядок проверок:**
-1. Чтение конфигурации (config.ini, .env)
-2. Валидация обязательных параметров
-3. Проверка путей и файлов
-4. Проверка внешних подключений (если применимо)
-
-**Обнаружение окружения каскадом:**
-- Параметры среды (пути, версии, наличие компонентов) определяются каскадом: основной источник -> эвристики по признакам -> заметка в отчет; захардкоженные пути и имена не используются
-- Несоответствия собираются в общий список ошибок и печатаются в статусе; решение об отказе принимается по факту накопленных ошибок, а не первым прерыванием - двусмысленность фиксируется, а не прерывает сбор
-
----
-
-## 01.06. Зависимости и статический анализ
-
-*Обязательно.*
-
-- В requirements.txt в корне проекта указывать зафиксированные версии пакетов (==, не >=)
-- Не добавлять новые зависимости без обоснованной необходимости; предпочитать стандартную библиотеку
-- Локфайл (uv.lock) - опция для дополнительной фиксации транзитивных зависимостей: рекомендуется для проектов с деплоем (uv используется стандартами деплоя); при наличии локфайла он коммитится. Применение локфайла в деплое - `deploy_standards.md` (01.02) и `web_standards.md` (uv sync --frozen)
-- Аудит уязвимостей зависимостей: при обновлении зависимостей и перед релизом с деплоем - `pip-audit` по `requirements.txt` (uv-проекты - по экспорту окружения); найденные уязвимости - блокирующее замечание релиза до обновления затронутых пакетов
-- Dev-зависимости (ruff, mypy): приоритетный механизм - requirements.txt; размещение в dev-секции pyproject.toml - допустимая альтернатива, выбранная один раз на проект и зафиксированная в его документации. Не смешивать оба механизма в одном проекте
-
-**Статический анализ кода:**
-
-Требования к написанию кода исполняются инструментами, а не только декларацией. Инструменты по языкам, наборы правил, конфигурация и команда проверки перед коммитом - `doc/standards/code_standards.md`, раздел 08 (Python - `ruff` и `mypy`, Shell - `shellcheck`, JavaScript - `eslint` и `prettier`, PowerShell - `PSScriptAnalyzer`, HTML - валидатор W3C, CSS - stylelint). Dev-зависимости инструментов - по механизму dev-зависимостей этого раздела (requirements.txt или dev-секцию `pyproject.toml`)
-
----
-
-## 01.07. Виртуальное окружение и Python-версия
-
-*Обязательно.*
-
-- Хранить окружение внутри проекта: папка .venv в корне проекта
-- Создание: `python3 -m venv --copies .venv` (флаг `--copies` обеспечивает реальные файлы вместо симлинков; расширение VS Code Python Environments не принимает цепочки симлинков как валидный интерпретатор)
-- Активация: source .venv/bin/activate
-- Установка зависимостей: pip install -r requirements.txt
-- Исключить .venv из git: добавить `.venv/` в .gitignore
-- Фиксировать версию Python в файле .python-version в корне проекта. Политика версий: минимальная - версия, с которой проект реально тестировался (ориентир для новых проектов - системный Python актуальных LTS-дистрибутивов); целевая - актуальный стабильный выпуск Python на момент создания проекта. Жесткая фиксация одного минорного выпуска без обоснования не используется; повышение минимальной версии - осознанное решение с учетом машин проекта
-- Зеркало pip: pypi.org может быть недоступен напрямую (несовместимость TLS, сетевые ограничения).
-  Перед установкой зависимостей убедиться, что ~/.config/pip/pip.conf указывает на рабочее зеркало.
-  Агент НЕ хардкодит конкретное зеркало - он подбирает самое быстрое и доступное на текущей машине
-- Порядок подбора зеркала:
-  1. Проверить наличие ~/.config/pip/pip.conf и работоспособность указанного в нем index-url
-     (быстрый HEAD/простой запрос). Если текущее зеркало отвечает быстро - оставить его без изменений
-  2. Если зеркало отсутствует или не отвечает - агент прозванивает кандидатов,
-     измеряет время отклика каждого и выбирает самый быстрый доступный
-  3. Записать выбранное зеркало в ~/.config/pip/pip.conf
-- Список зеркал-кандидатов - в навыке `glob-cfg-pip` (обновляемый артефакт; в стандарт URL зеркал не входят)
-- Шаблон создания/обновления файла (подставить выбранное зеркало):
-  ```
-  mkdir -p ~/.config/pip && cat > ~/.config/pip/pip.conf << 'EOF'
-  [global]
-  index-url = <mirror_url>
-  EOF
-  ```
-- Агент сообщает пользователю, какое зеркало выбрано и почему (время отклика, причина выбора)
-
----
-
-# 02. Внешние подключения
-
-БД, API, Ollama, retry, GitHub, почта, SSH
-
----
-
-## 02.01. Подключение к БД
-
-*Опционально - только если проект предусматривает работу с БД.*
-
-Если проект предполагает работу с БД, использовать плейсхолдеры: DRIVER (драйвер БД), SERVER, DATABASE, AUTH (аутентификация). Значения брать из config/config.ini или .env; при отсутствии - запрашивать у пользователя.
-
----
-
-## 02.02. Подключение к API
-
-*Опционально - только если проект предусматривает работу с внешними API.*
-
-Если проект предполагает работу с внешними API, использовать плейсхолдеры: BASE_URL, ENDPOINTS, AUTH (токен, API-ключ, Basic и т.п.). Значения брать из config/config.ini или .env; при отсутствии - запрашивать у пользователя.
-
----
-
-## 02.03. Подключение к Ollama
-
-*Опционально - только если проект предусматривает работу с Ollama.*
-
-Если проект предполагает работу с Ollama по API, в конфиге указывать: BASE_URL (адрес Ollama API, например http://localhost:11434), MODEL (имя модели, например llama3, mistral), DEVICE (cpu или gpu - на чем должна работать Ollama). При необходимости: timeout, параметры генерации. Значения брать из config/config.ini или .env; при отсутствии - запрашивать у пользователя.
-
----
-
-## 02.04. Retry для внешних подключений
-
-*Опционально - только если проект предусматривает внешние подключения.*
-
-Все операции с внешними ресурсами (БД, API, Ollama, почта) подвержены временным сбоям: таймауты, обрывы соединения, временная недоступность. Скрипты должны обрабатывать такие сбои через механизм повторных попыток.
-
-**Параметры (в config/config.ini):**
-- `retry_count` - количество повторных попыток (по умолчанию 3)
-- `retry_delay` - начальная задержка между попытками в секундах (по умолчанию 2)
-
-**Правила:**
-- Использовать экспоненциальный backoff: каждая следующая попытка с задержкой `retry_delay * 2^attempt`
-- Максимальная задержка - 30 секунд
-- Логировать каждую попытку: номер попытки, задержка, причина повтора
-- После исчерпания попыток - логировать ошибку и exit(1)
-- Не применять retry для ошибок аутентификации (401/403) и ошибок валидации (400/422) - только для таймаутов, сетевых ошибок (5xx, ConnectionError, TimeoutError) и HTTP 429 (пункт ниже)
-- Для БД: retry при OperationalError, TimeoutError; не retry при ProgrammingError (ошибка в SQL)
-- Для API: HTTP 429 (Too Many Requests) подлежит retry. Если ответ содержит заголовок `Retry-After` - задержка берется из него (в секундах или как HTTP-date) и переопределяет экспоненциальный backoff для этой попытки. При отсутствии заголовка - применяется стандартный backoff. Логировать использование значения из `Retry-After`
-
-**Реализация:** общая функция `retry()` в `src/` для всех типов подключений.
-
-**Критерии живости канала:**
-- При проверке «работает ли маршрут или канал» критерий - любой HTTP-код, кроме `000`: часть сервисов отвечает `3xx`, `403` или `404` на корневой адрес, и это признак рабочего канала, а не ошибка; ожидаемые коды фиксируются по эталонным URL
-- Код `000` при исправных маршрутах означает глобально недоступный ресурс, а не проблему туннеля или прокси; порядок вывода: сначала состояние покрытия маршрутов, затем вывод о ресурсе
-- Для сервисов за CDN проверять реальные URL контента, а не только корень домена; сверять с клиентской стороной, а не только таблицей маршрутов - ротация адресов CDN дает единичные расхождения в норме
-
----
-
-## 02.05. GitHub
-
-*Опционально - только если проект предусматривает публикацию на GitHub.*
-
-**SSH-ключ**
-
-Не искать файл ключа по конкретному имени. Имя может быть нестандартным (`id_ed25519_work_github`, `id_rsa_company_github` и т.п.). Сканировать `~/.ssh/` по паттерну `*github*.pub`; при нескольких совпадениях перебирать по порядку до первого ключа, прошедшего проверку соединения (`ssh -T git@github.com`), - безусловный выбор первого по алфавиту не применяется. Приватный ключ - тот же файл без суффикса `.pub`:
+Never hardcode SSH key names. Loop over `~/.ssh/*github*.pub` and test each key until the first working key authenticates:
 
 ```bash
-KEY_PUB=$(ls ~/.ssh/*github*.pub 2>/dev/null | head -1)
-
-if [ -z "$KEY_PUB" ]; then
-    echo "[!] SSH-ключ для GitHub не найден в ~/.ssh/ (паттерн: *github*.pub)" >&2
-    exit 1
-fi
-
-KEY_PATH="${KEY_PUB%.pub}"
+KEY_PATH=""
+for pub in ~/.ssh/*github*.pub; do
+    [ -e "$pub" ] || continue
+    cand="${pub%.pub}"
+    if ssh -i "$cand" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T -p 443 git@ssh.github.com 2>&1 | grep -q "successfully authenticated"; then
+        KEY_PATH="$cand"; break
+    fi
+done
+[ -n "$KEY_PATH" ] || { echo "[!] No working GitHub SSH key in ~/.ssh/*github*.pub" >&2; exit 1; }
+export GIT_SSH_COMMAND="ssh -i $KEY_PATH -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
 ```
 
-**Создание ключа (если не найден)**
+If missing, ask the user to generate `~/.ssh/id_ed25519_$(hostname -s)_github`. Never use `StrictHostKeyChecking=no`.
 
-Если ключ не обнаружен - сообщить пользователю и вывести команды для создания. Имя файла строить по паттерну `id_ed25519_{hostname}_github`, чтобы ключ автоматически обнаруживался при следующем запуске:
+## 02.06. Email Connection (SMTP)
 
-```
-ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_$(hostname -s)_github -C "your@email"
-```
+Read `enabled`, `smtp_host`, `smtp_port`, `smtp_security` (`ssl`/`starttls`/`none`), `from`, `to`, `subject_*` from `[email]` in `config.ini` and `SMTP_USER`, `SMTP_PASSWORD` from `.env`. Send multipart (`text/plain` + `text/html`) email via `src/email_sender.py`.
 
-Затем добавить публичный ключ в аккаунт GitHub: Settings -> SSH and GPG keys -> New SSH key, вставить содержимое файла `~/.ssh/id_ed25519_$(hostname -s)_github.pub`.
+## 02.07. SSH Client Configuration and Embedded Targets
 
-Паттерн `id_ed25519_{hostname}_github` гарантирует, что glob `*github*.pub` найдет ключ при следующем вызове.
+`Host <shortname>` blocks in `~/.ssh/config` with mandatory `HostKeyAlias <shortname>`, `SSH_ASKPASS_REQUIRE=force` on embedded devices, lockout protection, and `/usr/bin/ssh`: see `network_ops_standards.md` (Sections 02.01, 02.02).
 
-**Проверка соединения**
+## 02.08. DPI Networks, Selective Routing, and SMB
 
-Передавать найденный ключ явно через флаг `-i`. Не полагаться на `~/.ssh/config` - при прямом подключении к `ssh.github.com` конфиг с `Host github.com` на это подключение не распространяется:
-
-```bash
-ssh -i "$KEY_PATH" -T -p 443 git@ssh.github.com
-```
-
-Ожидаемый вывод начинается с `Hi <username>` и содержит подтверждение аутентификации; полный текст вывода GitHub не нормируется
-
-**Git-операции по сети**
-
-Все git-команды с сетевым доступом (`fetch`, `push`, `clone`) выполнять с явно заданным ключом через `GIT_SSH_COMMAND`. Устанавливать до первой git-команды, требующей сетевого доступа:
-
-```bash
-export GIT_SSH_COMMAND="ssh -i $KEY_PATH -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
-```
-
-`accept-new` принимает ключ неизвестного хоста при первом соединении и отклоняет соединение при изменившемся ключе; `StrictHostKeyChecking=no` не использовать - оно отключает проверку ключа хоста полностью.
+IKEv2/IPsec DPI blocking, DNS spoofing vs DoT/DoH, SOCKS5 SNI desync + tunnel, IPv6 blackholes, CDN routing (`curl --resolve`), vendor geo-gates, and Samba/SMB (`nofail`): see `network_ops_standards.md` (Sections 03.01-03.07).
 
 ---
 
-## 02.06. Подключение к почте (SMTP)
+# 03. Architecture and Entry Points
 
-*Опционально - только если проект предусматривает отправку email.*
+## 03.01. Idempotency, Atomicity, and File Operations
 
-Если проект предусматривает рассылку почты (уведомления, отчеты, саммари и т.п.), использовать SMTP. Все параметры подключения - в секции `[email]` файла `config/config.ini`:
+- **Idempotency & DB atomicity:** re-runs yield identical state without duplicates (`UPSERT`, unique indexes, checkpoints); wrap multi-row/table writes in one transaction with `rollback()` on error.
+- **Atomic file writes:** write to a hidden temp file in the same directory, flush + `os.fsync()`, set/preserve permissions (`0600`), and `temp_path.replace(target_path)` (over SSH shell: temp + `chmod` + `mv`). Always pass `encoding="utf-8"`.
+- **Mutation preview (`--dry-run`):** required on all mutating CLI / `run/` scripts (prints planned changes without mutating, exits `0`). In non-interactive contexts (Section 04.07), never auto-confirm prompts silently; require `--yes` or abort suggesting `--dry-run`.
+- **System reliability patterns:** watchdog state retention, multi-phase reboot migrations, `/proc` running-app checks, and vendor base-file hashing: see `network_ops_standards.md` (Sections 04.01-04.04).
 
-| Параметр         | Назначение                                                                                       |
-| ---------------- | ------------------------------------------------------------------------------------------------ |
-| `enabled`        | Флаг включения рассылки (true/false). Позволяет отключить отправку без удаления остальных настроек |
-| `smtp_host`      | Адрес SMTP-сервера (плейсхолдер `SMTP_HOST`)                                                     |
-| `smtp_port`      | Порт SMTP (плейсхолдер `SMTP_PORT`)                                                              |
-| `smtp_security`  | Тип шифрования: `ssl`, `starttls` или `none`                                                     |
-| `from`           | Адрес отправителя (плейсхолдер `FROM_ADDR`)                                                      |
-| `to`             | Адрес получателя (плейсхолдер `TO_ADDR`)                                                         |
-| `subject_*`      | Шаблоны тем писем с плейсхолдерами (например `{title}`, `{channel}`) для разных типов сообщений |
+## 03.02. SQL and DDL
 
-Учетные данные (логин, пароль приложения) - только в `.env`, никогда в `config.ini`:
+Store SQL in `sql/{ddl,queries,dml,migrations}/` and load at runtime with parameterized queries. See `cli_data_standards.md` (Section 04.01).
 
-```
-SMTP_USER=
-SMTP_PASSWORD=
-```
+### 03.02.01. SQL Index (`sql/_index_sql.md`)
 
-При отсутствии значений - запрашивать у пользователя. Письмо формировать в формате multipart: plain text и HTML (для корректного отображения в почтовых клиентах). Логику отправки выносить в модуль `src/email_sender.py` (или аналог), вызываемый из `run/email/` и при необходимости из точки входа.
+Maintain `sql/_index_sql.md` (`index_nav_standards.md`, Section 06.04) and read it before loading `.sql` files. See `cli_data_standards.md` (Section 04.01).
 
----
+### 03.02.02. SQL Placement Rules
 
-## 02.07. Подключение к машинам по SSH
+Place DDL in `sql/ddl/`, `SELECT`s in `sql/queries/`, seeds in `sql/dml/`, and live migrations in `sql/migrations/`. See `cli_data_standards.md` (Section 04.01).
 
-*Опционально - только если проект или рабочее окружение предусматривает SSH-доступ к другим машинам (деплой, удаленная диагностика, передача файлов).*
+### 03.02.03. Schema Migrations
 
-**Записи машин в ~/.ssh/config**
+Track `sql/migrations/M<N>_*.sql` in `schema_version` transactionally; never run `DROP + CREATE` on live data. See `cli_data_standards.md` (Section 04.02).
 
-Каждой машине - отдельный блок `Host` с коротким уникальным именем. Подключаться по имени блока, а не по сырому адресу: имя стабильно, адрес может смениться (DHCP, переход между сетями).
+## 03.03. Entry Points (`run/`)
 
-```
-Host <shortname>
-    HostName <host>
-    Port <port>
-    User <user>
-    IdentityFile ~/.ssh/<key>
-    HostKeyAlias <shortname>
-```
+Domain entry points live in `run/{db,api,ai,email}/` (`<domain>_<action>.py`). See `cli_data_standards.md` (Section 05.01).
 
-**HostKeyAlias обязателен**
+### 03.03.01. `run/db`
 
-Каждому блоку `Host` с конкретными именами назначать `HostKeyAlias`; значение - первый паттерн строки `Host`. Блоки с wildcard-паттернами (`*`, `?`) оставлять без алиаса: статическое имя для них задать нельзя. Уже заданные значения `HostKeyAlias` не перезаписывать - правило требует наличия, а не конкретного значения.
+`db_check_connection.py`, `db_check_schema.py`, `db_init.py`, `db_migrate.py`: see `cli_data_standards.md` (Section 05.01).
 
-Причина: без алиаса known_hosts связывает хост-ключи с адресом, а адреса частных подсетей повторяются из сети в сеть (192.168.1.0/24 и подобные). Две разные машины с одним адресом в разных сетях разрушают доверие друг другу (`REMOTE HOST IDENTIFICATION HAS CHANGED`) и приучают чистить known_hosts вслепую, что размывает проверку хост-ключей в целом. С `HostKeyAlias` хост-ключи хранятся под именами блоков: адрес в проверке не участвует, одинаковые адреса не конфликтуют.
+### 03.03.02. `run/api`
 
-**Изменившийся хост-ключ**
+`api_check_connection.py`, `api_test_requests.py`: see `cli_data_standards.md` (Section 05.01).
 
-При ошибке `REMOTE HOST IDENTIFICATION HAS CHANGED` не очищать known_hosts вслепую. Сначала установить причину и сверить отпечаток на самой машине:
+### 03.03.03. `run/ai`
 
-```bash
-ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
-```
+`ai_ollama_check.py`, `ai_ollama_pull_models.py`: see `cli_data_standards.md` (Section 05.01).
 
-Отпечаток сравнивается с предъявляемым в сообщении ошибки. Запись из known_hosts удалять по имени блока (`ssh-keygen -R <shortname>`), а не по адресу: с `HostKeyAlias` запись хранится под алиасом. Удалять только после подтверждения, что машина та (переустановка, смена адреса) и ключ на ней действительно сменился.
+### 03.03.04. `run/email`
 
-**Проверка соединения**
+`email_test_send.py`: see `cli_data_standards.md` (Section 05.01).
 
-```bash
-ssh -o BatchMode=yes <shortname> 'hostname; whoami'
-```
+## 03.04. CLI Conventions
 
-`BatchMode=yes` исключает запрос пароля: успех гарантирует аутентификацию по ключу. Для новых машин допустим `StrictHostKeyChecking=accept-new` (принять неизвестный ключ, отклонить изменившийся); `StrictHostKeyChecking=no` не использовать - оно отключает проверку ключа хоста полностью (аналогично 02.05).
-
-**Устройства без ключевого входа.** Класс встроенных устройств (роутеры, NAS) с SSH-сервером, не поддерживающим authorized_keys: сервер принимает только пароль. Неинтерактивная автоматизация - обертка askpass: хранение пароля и контракт обертки - `project_standards.md`, раздел 05.04, уровень 3 (файл 0600, в stdout ровно первая строка, предупреждения только в stderr, одна попытка на прогон); запуск с `SSH_ASKPASS_REQUIRE=force` (OpenSSH 8.4+), `-o PubkeyAuthentication=no`, `-o PreferredAuthentications=password`, `-o NumberOfPasswordPrompts=1`.
-
-**Лимиты устройства - ресурс.** Устройства с защитой от подбора (бан адреса после N неудач за окно) требуют отношения к попыткам аутентификации как к расходуемому ресурсу: не перебирать пароли и файлы паролей при отказе; опознать устройство до входа нельзя (баннеры безличные, веб-API без аутентификации не отвечает) - модель «опознание после первого успешного входа» немедленной identity-командой; корректность askpass проверять до обращения к устройству.
-
-**Вызов ssh из скриптов.** Терминальные обертки ssh (функции оболочки, мультиплексоры) ломают CLI встроенных устройств после успешной аутентификации: клиент доставляет terminfo, CLI устройства отвечает ошибкой и сессия рвется. В скриптах автоматизации вызывать бинарник ssh по абсолютному пути, а не через PATH, где может стоять функция или алиас.
+`argparse`, localized `--help` via `t()`, exit code `2` on unknown flags, and mutator `unavailable` vs `not applicable` contract: see `cli_data_standards.md` (Section 05.02).
 
 ---
 
-## 02.08. Сети с DPI и выборочная маршрутизация
+# 04. Output and Interface
 
-*Опционально - только если проект работает в сетях с активным DPI или строит выборочную маршрутизацию.*
+## 04.01. Localization (`i18n` and `src/localization.py`)
 
-**Поведение VPN-протоколов.** В сетях с государственным DPI классические IPsec/IKEv2-профили VPN-провайдеров недоступны: UDP-сигнатуры IKE распознаются, сервер молча не отвечает на первый пакет - в журнале только цепочки retransmit без единого ответа. Признак отличать от неверных учетных данных: конфигурация корректна, но рукопожатие не начинается. Работают протоколы с нераспознаваемыми сигнатурами; часть провайдеров в таких регионах вообще не выдает конфиги WireGuard/OpenVPN.
+- **Dual-language boundary:** all **user-facing UI and console output** (`menu`, `rich`, GUI widgets, `--help`, and user status/error notices in `plain` mode) is rendered in **Russian** via `t(key, *, count=None, **kwargs)` from `src/localization.py` (`config/translations.json` or SQLite `translations` table). Internal technical logs use **English** with `%s` formatting without `t()` (Section 04.06). Developer-only check scripts in `run/` may omit `t()` if recorded in the project spec.
+- **Keys & fallback:** dot-separated Latin keys (`menu.*`, `msg.*`, `error.*`, `title.*`, `prompt.*`, `label.*`, `help.*`) with plural suffixes (`.zero`, `.one`, `.few`, `.many`). Priority: `[app] language` -> `LANGUAGE` -> locale -> `"en"`. Fallback: `active_lang -> default_lang -> "!KEY!"`. No literal `{}` outside `{param}`.
+- **API contract:** `t(key, *, count=None, **kwargs) -> str`, `init(language=None) -> None`, `reload(language=None) -> None`. **Template:** `doc/standards/templates/localization.py`.
 
-**Порча DNS - два разных механизма.** Подмена ответов: разные заблокированные домены разрешаются в один и тот же чужой адрес; лечится DoT-аплинками (локальный резолвер с TLS-upstream), после чего домены отдают реальные адреса. Перехват голого UDP-53 наружу: запрос любому внешнему резолверу возвращает фиксированную пару адресов прозрачного прокси, одинаковую для любого домена; для DoT-конфигурации безвредно, но такие адреса попадают в результаты резолва и должны фильтроваться.
+## 04.02. Text Markers (No Emoji)
 
-**SNI-блокировка и обход.** DPI режет по SNI так, что TCP-соединение и TLS-рукопожатие проходят, а поток данных обрывается (типовые симптомы: код ответа есть, размер замирает, страница не открывается). Обход - двухслойная схема: локальный SOCKS5-десинк (разрез TLS-записи внутри SNI) скрывает имя сайта от фильтра, но аномальный ClientHello на прямом пути сам распознается как подозрительный - маршрут до цели дополнительно заворачивается в туннель, где DPI отсутствует; оба условия обязательны. DNS обязан идти через прокси, иначе домен резолвится напрямую и уходит мимо десинка.
+`_MarkerFormatter` in `src/logger.py` prefixes plain-mode and log-file lines with `[!]` (`ERROR`/`CRITICAL`), `[i]` (`INFO`/`DEBUG`), or `[*]` (`WARNING`). Never embed markers inside `t()` strings or log literals; never use emoji.
 
-**IPv6-ловушка туннелей.** В сетях, где DNS возвращает AAAA-записи при отсутствии глобального IPv6 и default-маршрута, туннель может перехватить весь глобальный IPv6 правилами маршрутизации, не проксируя его: приложения пробуют IPv6 первым, TLS обрывается с EOF (заметнее всего в программах без мгновенного отката на IPv4). Решение - режим только IPv4 у клиента туннеля либо системное отключение IPv6, если сеть его не использует.
+## 04.03. Language Split and Typography Rules
 
-**Выборочная маршрутизация по доменам.** У сервисов на общих CDN адреса поддоменов и статики не совпадают с адресами базового домена, и базовый домен их не покрывает; признак пробела - HTML грузится, а стили, скрипты и картинки падают по таймауту (диагностике подлежат именно падающие URL из консоли браузера, а не только адресная строка). Диапазоны общих CDN не маршрутизировать - это большая часть интернета; покрывать только разрешением доменов точечными адресами с регулярным обновлением. Прием проверки вины маршрутизации: запрос с подменой адреса (`curl --resolve <host>:443:<covered-ip>`) - успешный ответ доказывает, что виноваты маршруты, а не ресурс.
+- **Human Contour (Russian):** user chat responses, `README.md`, user guides, `doc/specs/`, `doc/change_requests/`, `data/lessons.md`, `SESSION.md`, and user-facing UI/console strings via `t()` (`translations.json`, `spec_ui.html`). Governed by `doc/standards/human_text_standards.md` and its three dictionaries.
+- **Agent and Code Contour (English):** code identifiers, filenames, config/translation keys (Latin only, no transliteration; `code_standards.md`, Section 02.01), code comments and docstrings, technical log records (`logger.*` with `%s`), git commit messages (Section 06.01), subagent briefs/reports, `AGENTS.md` / `CLAUDE.md`, `doc/standards/*.md`, `doc/skills/**`, and `_index_*.md`. (Cyrillic allowed only in `[app] name`, session folder names `YYYY-MM-DD_<Cyrillic-Slug>`, and user content filenames in `output/`/`data/`/`input/`/`backup/`).
+- **Typography Rules (mandatory across all contours):**
+  - **Hyphen-minus (`-`, U+002D) only:** never use em dash (U+2014) or en dash (U+2013), including number ranges (`10-15`).
+  - **Letter `е` (U+0435 / U+0415) only:** never use the letter with diaeresis (U+0451 / U+0401).
+  - **No ellipsis (`...` or U+2026), no emoji, no exclamation marks (`!`)**, and **no non-breaking/narrow spaces** (U+00A0, U+202F) or leading paragraph indentation.
+  - **No trailing period** on log lines, console status messages, or commit titles.
+  - **Normative present-state facts only:** no emotional qualifiers, no ALL-CAPS emphasis, no historical "was/became" narratives, no `CHANGELOG` unless requested, no raw DB/enum/config identifiers in user text, no host absolute paths in docs (except `spec_ui.html` footer), and Latin `<placeholder_name>` with zero-padded numbers (`item_001`).
 
-**Гео- и анти-VPN-гейты вендоров.** Часть вендоров закрывает выдачу загрузок гейтом, отвергающим и регион клиента, и датацентровые адреса выхода (сообщения класса «скрытие местоположения»); туннель такую проблему не решает, а иногда создает. Искать альтернативный официальный канал выдачи без гейта; при ошибке на странице загрузки в работающем туннеле проверять класс выходного адреса, а не маршрутизацию.
+## 04.04. Output Formatting
 
-**SMB-ресурсы.** Сервер: пакет Samba не создает конфиг по умолчанию - служба падает на первом старте, конфиг нужен до запуска; путь журнала задавать явно (умолчание указывает в незаписываемый каталог); служба имен NetBIOS нужна только для «сетевого окружения», шары по IP/DNS работают без нее. Клиент: монтирование через fstab с credential-файлом (права 600, вне домашних каталогов) и обязательной `nofail` - без нее машина не грузится при недоступном сервере.
+### 04.04.01. Line Format
 
----
+Log file (always, English) and `plain` console through `console_message()` (Russian): `YYYY-MM-DD HH:MM:SS [marker] message`. `menu` console: `message` (no prefix). `rich` console: styled via `src/rich_console.py` (Section 04.07.03).
 
-# 03. Архитектура и точки входа
+### 04.04.02. General Formatting Rules
 
-Идемпотентность, атомарность, SQL, точки входа, CLI. Требования к написанию кода (именование, docstrings, типизация, идиомы языков, линтеры) - `doc/standards/code_standards.md`
+One message per line; no separator lines (`=====`, `-----`), emoji, or trailing periods; zero-pad counters (`09/23`). Log files are monochrome; `menu`/`rich` colors follow `doc/specs/spec_ui.html` (`console_ui_standards.md`).
 
----
+### 04.04.03. Block Spacing
 
-## 03.01. Идемпотентность, атомарность и работа с файлами
+Separate logical stages in `plain` console and log files with one blank line (`\n\n`).
 
-*Обязательно.*
+### 04.04.04. Tables
 
-Скрипты проекта должны быть безопасны для повторного запуска. Сбой в середине выполнения не должен оставлять данные в неконсистентном состоянии.
+In log files, use `tabulate` (`grid`, `simple`, `pipe`, `outline`; text left, numbers right) with a localized title. In `menu`/`rich`, render dual-channel tables via `src/console_table.py` (`console_ui_standards.md`).
 
-**Идемпотентность:**
-- Повторный запуск скрипта должен приводить к тому же результату, что и первый запуск
-- Скрипты run/db: db_init корректно обрабатывает частично созданные таблицы (см. раздел 03.03.01)
-- Скрипты обработки данных: не создавать дубли при повторном запуске; использовать UPSERT, проверку существования записи или уникальные индексы
-- Загрузка данных: пропускать уже загруженные записи (по дате, ID или другому маркеру)
+### 04.04.05. Lists
 
-**Атомарность записи файлов:**
-- Для критичных файлов (конфиг, данные, состояние) использовать паттерн write-to-temp + rename:
-  ```python
-  temp_path = target_path.with_suffix(".tmp")
-  temp_path.write_text(content, encoding="utf-8")
-  temp_path.replace(target_path)
-  ```
-- replace() атомарен на обеих ОС (на Windows - при замене на ту же файловую систему)
-- Не записывать данные напрямую в целевой файл - при сбое (питание, Ctrl+C) файл будет поврежден
-- Полная форма для конфигов с правами: временный файл создается в том же каталоге со скрытым именем, после записи - flush + `os.fsync`, права задаются явно или наследуются от существующего файла (replace сбрасывает их на умолчание - критично для файлов 0600), при любом сбое временный файл удаляется
-- Запись на удаленных целях через SSH-шелл (окружения без SCP/SFTP): всегда во временный файл с последующим переносом - обрыв соединения не оставит обрезанный исполняемый файл, который затем исполнят хуки автозапуска; права исполнения выставляются временному файлу до переноса
+Localized header followed immediately by `- item` lines and optional summary (`console_message()` in `plain`; `log_file_only()` + frame body in `menu`/`rich`, `console_ui_standards.md`, Section 03.03).
 
-**Работа с файлами:**
-- При открытии файлов через `open()` всегда явно указывать `encoding="utf-8"` - для предсказуемого чтения и записи на обеих ОС
+### 04.04.06. Summaries
 
-**Атомарность БД:**
-- Все операции, изменяющие несколько таблиц или строк - внутри одной транзакции
-- Не коммитить промежуточные результаты по одной записи - собрать batch и выполнить одну транзакцию
-- При ошибке в середине - откат всей транзакции (rollback)
+Single-line `prefix: key: N, key: M` via `t()` without panels (`console_ui_standards.md`, Section 03.04).
 
-**Предпросмотр мутаций (`--dry-run`):**
-- Точки входа CLI / `run/`, которые **изменяют** файлы, БД, внешние ресурсы или систему, обязаны поддерживать явный флаг `--dry-run` (длинная форма обязательна; короткая - по желанию проекта)
-- В режиме `--dry-run`: вычислить и показать план действий (что было бы создано / изменено / удалено), **не выполнять** мутацию. Код выхода - успешный, если план построен без ошибок валидации
-- Без `--dry-run` мутация выполняется по обычному контракту. Не подменять dry-run «тихим пропуском» без флага и без вывода плана
-- Если у точки входа есть интерактивный confirm перед мутацией - в non-interactive контексте (признаки - раздел 04.07) не выполнять мутацию молча: либо требовать `--yes` / эквивалент, либо завершаться с ошибкой и подсказкой флага. `--dry-run` при этом остается доступен всегда
-- Наличие и смысл `--dry-run` фиксировать в README / help точки входа; для menu/rich с пакетным apply - отразить в `spec_ui.html` (карта или методика), если dry-run доступен и из UI
+## 04.05. Error Wording and Terminology
 
-**Периодическое построение состояния из ненадежного источника:**
-- Каждый внешний запрос ограничен по времени (watchdog-процесс или таймаут): зависший без ответа запрос блокирует цикл навсегда
-- Пустой общий результат не применяется - временный сбой источника не должен обнулять рабочее состояние
-- Элемент, промолчавший в текущем прогоне, удержывает значение прошлого прогона (поименные файлы состояния); снятие устаревших значений - только по ответившим
-- Состояние, не переживающее перезагрузку (маршруты, runtime-настройки), применяется полной перезаливкой из состояния на диске, а не дельтой между циклами
+Format user-facing errors as single-line human-readable messages via `t()` without raw subprocess `stderr`/`stdout` or internal jargon. Keep domain terminology uniform everywhere.
 
-**Миграции с отложенной деструктивной очисткой:**
-- Опасные миграции системного состояния (загрузчик, системные конфиги) выполняются фазами с перезагрузкой или рестартом службы между ними
-- Старые записи сохраняются для отката и удаляются отдельной командой только после объективного подтверждения нового состояния проверкой, а не сразу за миграцией
-- Очистка защищается инвариантами текущего состояния (например «целевой режим еще не активен - очистка запрещена»), а не только флагом подтверждения
+## 04.06. Dual-Language Logging (`src/logger.py`)
 
-**Конфиги, принадлежащие работающему приложению:**
-- Приложение-владелец перезапишет правку своего конфига: изменять только при остановленном владельце (остановка -> запись -> старт с ожиданием готовности)
-- Детект запущенности - чтением процессов (по /proc), без запуска утилит; при явном выборе элемента запущенность - ошибка и стоп, при пакетном применении - пропуск с предупреждением
-- Перед рестартом службы конфигурация проверяется штатной проверкой синтаксиса (например `sshd -t`): битый конфиг уронит службу на старте
+- **Dual-language contract:** `logger.debug/info/warning/error/exception` write **English** technical records to the **log file only**, using lazy `%s` formatting (`logger.info("Loaded %d rows from %s", count, table)`), never f-strings or `t()`. User-facing console output is **Russian** via `console_message(level, t("key", ...))` in `plain` mode; in `menu`/`rich` modes the presentation layer (`src/menu.py`, `src/rich_console.py`) renders the screen and `console_message()` is a no-op. Use `log_file_only(logger, message, level)` for explicit audit events.
+- **Files & levels:** one file per run at `log/log_<script_name>_<YYYY-MM-DD_HH-MM-SS>.log`. `[logging] file_level` (default `DEBUG`) sets the `FileHandler` level. `[logging] keep_last` (default `0`) rotates older logs per script. `_SecretFilter` masks `SECRET_KEYS` (Section 05.01).
+- **Permitted `print()` exemptions (no log file):** (1) `scripts/` in Anthropic skills (full `YYYY-MM-DD HH:MM:SS [marker] message` emulation required), (2) temporary scripts in `tmp/`/`debug/`, (3) agreed read-only check scripts in `run/`, (4) custom OpenCode tool scripts (`opencode_tool_standards.md`).
+- **Template:** `doc/standards/templates/logger.py`.
 
-**Производные от вендорских артефакты:**
-- Артефакт, построенный патчем поверх вендорского файла, фиксирует рядом путь и хеш базового источника
-- При изменении источника (обновление пакета) производный артефакт пересобирается; существующая копия без состояния не перезатирается принудительно - заводится базовый уровень
+## 04.07. Console Output Modes
+
+Select `mode="plain" | "menu" | "rich"` in `get_logger()`. **Interactive context (TTY):** `sys.stdout.isatty()` is true and neither `CI` nor `TERM=dumb` is set (plus `sys.stdin.isatty()` for `menu`). Decide fallback once at startup: outside interactive context, degrade to `plain` without `Live`/colors and never call `input()`.
+
+### 04.07.01. Strict Mode (`plain`) and `src/progress.py`
+
+Default mode. For long loops, use `src/progress.py` (`update_progress(line)` via `\r` and `clear_progress()` via `\r\033[K` on `sys.stdout`, bypassing the log file), calling `clear_progress()` on completion and `SIGINT` before printing the final summary via `console_message()`. **Template:** `doc/standards/templates/progress.py`.
+
+### 04.07.02. Interactive Menu (`menu`)
+
+Rendered by `src/menu.py` without raw ANSI cursor positioning; governed by `console_ui_standards.md` and `doc/specs/spec_ui.html`.
+
+### 04.07.03. Rich Console (`rich`)
+
+Rendered by `src/rich_console.py`, `src/console_table.py`, and `src/console_summary.py`; governed by `console_ui_standards.md` and `doc/specs/spec_ui.html`. Stop `Live`/progress on `SIGINT`/`SIGTERM`.
+
+## 04.08. Graphical User Interface (GUI)
+
+Launch from `main.py` (`{APP_NAME} v{APP_VERSION}` title, `tkinter` by default), isolating UI in `src/gui/` with all strings via `t()` and blocking I/O on background threads. Run startup validation (Section 01.05) before opening the window; on critical failure, report via `t()` and exit with **`sys.exit(2)`**.
 
 ---
 
-## 03.02. SQL и DDL
+# 05. Security and Reliability
 
-*Опционально - только если проект предусматривает работу с БД.*
+## 05.01. Security
 
-- Хранить SQL-запросы и DDL-схемы в отдельных файлах с расширением .sql в папке sql
-- Читать запросы и DDL из файлов в runtime; не встраивать текст в код
-- Не хардкодить SQL-запросы, DDL, имена таблиц, параметры подключения и настройки, которые пользователь может менять
-- Использовать параметризованные запросы; не подставлять пользовательский ввод в строку запроса (защита от SQL-инъекций)
+- **Secrets:** keep secrets only in `.env` (`0600` on POSIX); enforce two-tier log protection (call-site whitelist + `_SecretFilter` blacklist in `src/logger.py`). Store external app config secrets in separate `0600` files and sanitize skill snapshots/reports.
+- **External input:** validate every external value before use (schema, type, range, length); reject or normalize invalid input at the boundary. Never pass raw user, network, file, or API data into SQL, shell, paths, or templates.
+- **SQL, subprocess, TLS, paths:** use parameterized SQL, `subprocess.run(["cmd", ...], shell=False)`, `verify=True` on TLS requests, and `Path(user_path).resolve()` containment checks under `PROJECT_ROOT / "data"`.
+- **`/etc/sudoers.d/` fragments:** narrow Level 2 commands only (exact `command -v` paths and args, explicit `user`/`host`, no `*`, `ALL`, shells, or root-equivalent write/unit primitives; cloud-init image provisioning exempt). Stage via `mktemp` (`0600`), filename without dots, validate with `visudo -cf` before installing `root:root` `0440`, then verify with `visudo -c`.
 
-**Структура папки sql/ (если в проекте есть БД):**
+## 05.02. Error Handling
 
-Файлы .sql распределяются по подпапкам по типу SQL-оператора:
+Catch specific exceptions (never bare `except:` or `except Exception: pass`), log unexpected tracebacks with `logger.exception()` and expected errors with `logger.error()`, chain with `raise ... from err`, and define domain exceptions under `ProjectError(Exception)` in `src/exceptions.py`.
 
-| Подпапка       | Содержимое                            | Примеры               |
-|----------------|--------------------------------------|-----------------------|
-| `sql/ddl/`     | DDL: CREATE TABLE, ALTER, индексы    | `create_users.sql`    |
-| `sql/queries/` | SELECT-запросы для runtime-выборок   | `get_active_users.sql` |
-| `sql/dml/`    | DML: INSERT, UPDATE, DELETE          | `seed_categories.sql`  |
-| `sql/migrations/` | Поэтапная эволюция схемы работающей БД | `M001_add_status.sql` |
+## 05.03. Graceful Shutdown and Exit Codes
 
-### 03.02.01. Индекс SQL-файлов
+Close DB connections, roll back uncommitted transactions, clean up `tmp/`, and clear progress on exit or `SIGINT`/`SIGTERM` (never rely on `atexit` for critical cleanup). Propagate failed step codes in orchestrators.
+- **Exit codes:** `0` = success (or clean daemon `SIGTERM` stop), `1` = runtime error, `2` = startup validation (Sections 01.05, 04.08) or CLI usage error (`cli_data_standards.md`, Section 05.02), `130` = `SIGINT` (`Ctrl+C`), `143` = CLI `SIGTERM`.
 
-*Обязательно при наличии SQL-файлов.*
+## 05.04. Privileged Operations (`root`, `sudo`)
 
-Файл `sql/_index_sql.md` - реестр всех SQL-файлов проекта. Агент и субагенты:
-
-1. Добавляют в контекст `sql/_index_sql.md`, а не отдельные .sql-файлы
-2. По индексу определяют, какой SQL-файл нужен для задачи
-3. Читают только релевантный .sql-файл
-
-Формат индекса - таблица по каждой подпапке: файл, назначение, параметры (переменные, подставляемые в запрос), скрипты-потребители. При любом изменении SQL-файлов (добавление, удаление, изменение назначения или параметров) индекс актуализируется.
-
-**Эталонный шаблон `sql/_index_sql.md`:** канон индексов, обязательный скелет и эталонный шаблон SQL-индекса - `index_nav_standards.md` (раздел 06.04). Здесь - только правила использования.
-
-### 03.02.02. Правила размещения
-
-*Обязательно при наличии SQL-файлов.*
-
-- Схема БД (CREATE TABLE) хранится в файлах `sql/ddl/` (например, `create_users.sql`, `create_orders.sql` или разбито по доменам)
-- Все DDL - только в `sql/ddl/`, не в коде
-- Скрипты `run/db` читают DDL из `sql/ddl/` рекурсивно (все .sql-файлы)
-- Список ожидаемых таблиц и колонок определяется из DDL-файлов; проверка соответствия - через db_check_schema
-- SELECT-запросы, выполняемые в runtime - в `sql/queries/`
-- INSERT/UPDATE/DELETE (сиды, миграции данных) - в `sql/dml/`
-- Изменения схемы работающей БД с накопленными данными - в `sql/migrations/` (раздел 03.02.03), не через DDL и не через dml
-
-### 03.02.03. Миграции схемы
-
-*Обязательно для проектов с БД, накапливающей данные между запусками.*
-
-**Назначение.** db_init (раздел 03.03.01) пересоздает таблицы и предназначен для баз без живых данных (разработка, тестовые, воспроизводимо загружаемые справочники). Эволюция схемы работающей БД выполняется миграциями - прямыми поэтапными изменениями без пересоздания таблиц.
-
-**Конвенция:**
-
-- Служебная таблица `schema_version` хранит список примененных миграций: колонки `version` (TEXT, PRIMARY KEY), `applied_at` (TEXT, время применения)
-- Файлы миграций - в `sql/migrations/`, имя `M<N>_<description>.sql` с лидирующими нулями номера (например `M001_add_orders_status.sql`, `M012_create_mart_indexes.sql`); N - сквозной возрастающий номер
-- Каждая миграция применяется ровно один раз и после применения не редактируется; исправление ошибки предыдущей миграции - новой миграцией
-- Применение миграции и запись строки в `schema_version` - одна транзакция (раздел 03.01): сбой откатывает и изменение, и запись
-- Скрипт `run/db/db_migrate.py` (раздел 03.03.01) применяет все непримененные миграции по порядку номера; перед применением выводит список; по завершении - сводку примененного
-- Миграции включаются в индекс `sql/_index_sql.md` (раздел 03.02.01) отдельной таблицей
-
-**Запреты:**
-
-- Агент не выполняет DROP TABLE, DROP + CREATE и иные разрушающие операции на работающей БД с живыми данными; вместо этого - генерация миграции или команды для пользователя
-- Любое удаление или очистка таблиц - только после явного запроса подтверждения пользователем; в non-interactive контексте (раздел 04.07) - отказ от мутации с подсказкой `--dry-run` (раздел 03.01)
+By default, agents never run `sudo`, `su`, `pkexec`, or `sudo -S`; explain the command and ask the user to run it manually.
+- **Privilege levels for scripts (Linux only):**
+  - **Level 0 (PTY `tmux`/`screen`):** on explicit user request in the current session, print the command, create an isolated `tmux -L <sock>` session running `sudo <abs_interp> <abs_script>`, and let the user type their password within `passwd_timeout` (5 min). The agent never passes the password through `tmux send-keys`, the clipboard, or argv; a closed session return code is not proof of success - verify the resulting system state.
+  - **Level 1 (GUI askpass):** script self-elevates via `sudo -k -A` with GUI askpass.
+  - **Level 2 (Narrow `NOPASSWD`):** script runs `sudo -k -n <exact_cmd>` against a validated `/etc/sudoers.d/` rule (Section 05.01).
+  - **Level 3 (File askpass):** wrapper reads first line of a user-created `0600` file (in `0700` dir outside repo/`/tmp`, max 4096B, non-symlink) once per run (single-attempt marker prevents AD/LDAP lockout) for `sudo -k -A`. Agents never read/print the password file.
+- **Protocol (Levels 1-3):** requires a targeted `doc/specs/overrides.md` row (`05.04`, skill/script, level `1`/`2`/`3`, date) verified by the script itself before self-elevation; never downgrade to Level 3 on failure (exit `1` and print manual commands). The agent never constructs or executes `sudo` commands directly for Levels 1-3; the script performs self-elevation. After execution, verify state objectively, `chown "$SUDO_UID:$SUDO_GID"` created artifacts, include `sbin` in `PATH`, and use `runuser` with `XDG_RUNTIME_DIR` for user-session tools.
 
 ---
 
-## 03.03. Точки входа run/
+# 06. Documentation and Versioning
 
-*Опционально - только если проект предусматривает одноименные домены.*
+## 06.01. Git and Pre-Commit Integrity Gate
 
-В `run/` размещаются скрипты, которые пользователь запускает сам для получения результата. Подпапки - по доменной логике (db, api, ai, email). Оркестратор уровня репозитория - `main.py` в корне (раздел 01.01); оркестратор сессии - `run/` папки сессии с префиксом `orch_`; отдельных оркестраторов в корневом `run/` репозитория не создается. Имя файла: префикс домена + описание действия. Обязательные проверочные скрипты по доменам - в подразделах ниже.
+- Single branch `master`; `.gitattributes` with `* text=auto eol=lf`; `.gitignore` from `doc/standards/templates/gitignore.template` (with `.gitkeep` in used ignored folders).
+- **Commit messages:** English Conventional Commits `<type>(<scope>): <imperative summary>` (`feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `style`), lowercase imperative verb, no trailing period, no AI mention.
+- **Dynamic author:** set `git config --local user.name "$(whoami)"` and `user.email "$(whoami)@$(hostname)"` before committing (never `-c`). When asked to commit, stage all non-ignored modified/untracked files after checking `git status`.
+- **Pre-commit gate (`.githooks/pre-commit`, activated via `git config core.hooksPath .githooks`):** blocks commits if (1) `doc/standards/*.md` is staged without `_index_standards.md`, (2) package versions mismatch across `doc/standards/*.md` and `AGENTS.md`/`README.md`/`CLAUDE.md`, (3) `CLAUDE.md` diverges from `AGENTS.md`, or (4) any `Section NN.NN` / `раздел NN.NN` / `(NN.NN` reference in staged standards is broken. Never use `--no-verify`.
 
-В описаниях логики ниже показан итоговый вид строки консоли: маркер `[i]` / `[!]` / `[*]` вставляется форматтером логгера (раздел 04.04.01), в t()-строки и литералы маркер не включается.
+## 06.02. `README.md` and `AGENTS.md`
 
-### 03.03.01. run/db
+Write `README.md` in Russian per `repo_info_doc_standards.md` (linking to `spec_ui.html` for menu maps) and `AGENTS.md` in compact English per `index_nav_standards.md` (Section 07). Include the package version marker (Section 07.04).
 
-*Опционально - только если проект предусматривает работу с БД.*
+## 06.03. Debugging Discipline
 
-Для проектов с БД создавать в run/db/ скрипты:
+Keep debug scripts in `debug/` and scratch files in `tmp/<domain>/`. Follow `superpowers:systematic-debugging` for root-cause investigation (reproduce -> localize boundary -> verify hypothesis via Section 07.06 -> minimal fix) and stop after **3 failed fix attempts** to re-evaluate architecture or escalate to the user.
 
+## 06.04. Testing
 
-| Скрипт                 | Назначение                                                           |
-| ---------------------- | -------------------------------------------------------------------- |
-| db_check_connection.py | Проверка соединения с БД                                             |
-| db_check_schema.py     | Проверка наличия в БД нужных таблиц в соответствии со схемой из sql/ |
-| db_init.py             | Создание или пересоздание таблиц по схеме; очистка при соответствии  |
-| db_migrate.py          | Применение миграций из sql/migrations/ (раздел 03.02.03); обязателен для проектов с накопленными данными |
-
-
-**Логика db_check_connection:** подключение к БД по настройкам (config.ini / .env). При успехе - `[i] Соединение с БД установлено`. При ошибке - `[!]` и exit(1).
-
-**Логика db_check_schema:** читает DDL из sql/ddl/ (рекурсивно, все .sql-файлы с CREATE TABLE), проверяет наличие в БД всех таблиц и всех колонок каждой таблицы. Если схема соответствует - `[i] Схема соответствует`. Если не соответствует - `[*] Схема не соответствует - рекомендуется выполнить db_init`.
-
-**Логика db_init:** проверяет схему (как db_check_schema). Если схема соответствует: запрос «Очистить таблицы? 1 - да, 0 - нет»; при 1 - очистка таблиц: TRUNCATE для СУБД с его поддержкой, в SQLite - DELETE FROM по каждой таблице и очистка sqlite_sequence (сброс автоинкремента при наличии AUTOINCREMENT-таблиц); при 0 - выход. Если схема не соответствует: запрос «Пересоздать таблицы по схеме? 1 - да, 0 - нет»; при 0 - выход; при 1 - для каждой таблицы из схемы: если таблица не существует - выполнить CREATE из sql/ddl/; если таблица существует, но структура отличается - выполнить DROP TABLE, затем CREATE из sql/ddl/.
-
-**Ограничение db_init.** Пересоздание таблиц (DROP + CREATE) допустимо только на БД без живых данных: разработка, тестовая база, справочная база с воспроизводимой загрузкой. На работающей БД с накопленными данными агент не выполняет DROP + CREATE - эволюция схемы через миграции (раздел 03.02.03). Перед любым удалением или очисткой таблиц скрипт обязан получить явное подтверждение пользователя; в non-interactive контексте (раздел 04.07) - отказаться от мутации и предложить `--dry-run` (раздел 03.01).
-
-**Логика db_migrate:** читает примененные миграции из `schema_version`, сравнивает с файлами `sql/migrations/`, выводит список непримененных и применяет их по порядку номера; каждая миграция - в транзакции вместе с записью в `schema_version` (раздел 03.02.03).
-
-### 03.03.02. run/api
-
-*Опционально - только если проект предусматривает работу с внешними API.*
-
-**Правила работы с API:**
-
-- URL базовый, эндпоинты, метод аутентификации - из config/config.ini или .env
-- Токены и ключи API - только в .env, не в config.ini
-- Тестовые запросы и ожидаемые эндпоинты - в конфиге проекта или в спецификации `doc/specs/`
-
-Для проектов с внешними API создавать в run/api/ два скрипта:
-
-
-| Скрипт                  | Назначение                                           |
-| ----------------------- | ---------------------------------------------------- |
-| api_check_connection.py | Проверка соединения с API (доступность, health/ping) |
-| api_test_requests.py    | Отправка тестовых запросов и вывод ответов           |
-
-
-**Логика api_check_connection:** подключение к API (GET health/ping или базовый URL). При успехе - `[i] Соединение с API установлено`. При ошибке - `[!]` и exit(1).
-
-**Логика api_test_requests:** отправка тестовых запросов по списку из конфига (эндпоинты, методы). Вывод в лог и консоль: метод, URL, статус-код, тело ответа (или краткая выдержка). При ошибке - `[!]` с контекстом.
-
-### 03.03.03. run/ai
-
-*Опционально - только если проект предусматривает работу с Ollama.*
-
-**Правила работы с Ollama:**
-
-- Адрес API, модель, устройство (cpu/gpu), параметры - из config/config.ini или .env
-- Тестовый промпт - в конфиге или в коде скрипта (простой фиксированный текст)
-
-Для проектов с Ollama создавать в run/ai/ два скрипта:
-
-| Скрипт                   | Назначение                                                                 |
-| ------------------------ | -------------------------------------------------------------------------- |
-| ai_ollama_check.py       | Проверка соединения с Ollama, отправка тестового промпта и получение ответа |
-| ai_ollama_pull_models.py | Загрузка всех моделей из конфига, после загрузки - проверка их работы     |
-
-**Логика ai_ollama_check:** подключение к Ollama API (проверка доступности). Отправка тестового промпта (из конфига или фиксированного, например «Ответь: Ок»). Вывод в лог и консоль: промпт, ответ модели, статус. При успехе - сообщение об успешной проверке. При ошибке - `[!]` и exit(1).
-
-**Логика ai_ollama_pull_models:** читает список моделей из конфига (config.ini или .env). Для каждой модели выполняет pull (ollama pull или API /api/pull). После загрузки всех моделей - проверка работы каждой (тестовый промпт). Вывод в лог и консоль: прогресс загрузки, результат проверки. При ошибке - `[!]` и exit(1).
-
-### 03.03.04. run/email
-
-*Опционально - только если проект предусматривает рассылку почты.*
-
-**Правила работы с почтой:**
-
-- Параметры SMTP-подключения - в секции `[email]` файла `config/config.ini` (раздел 02.06)
-- Логин и пароль приложения (SMTP_USER, SMTP_PASSWORD) - только в `.env`, не в `config.ini`
-- Отправку выполнять через модуль `src/email_sender.py` (или аналог), не дублировать SMTP-логику в `run/`
-
-Для проектов с рассылкой почты создавать в `run/email/` скрипт:
-
-| Скрипт             | Назначение                                                |
-| ------------------ | --------------------------------------------------------- |
-| `email_test_send.py` | Отправка тестового письма и проверка работоспособности SMTP |
-
-**Логика email_test_send:** читает настройки секции `[email]` (config.ini) и учетные данные из `.env` (SMTP_USER, SMTP_PASSWORD). Если `from` и/или `to` не заполнены или содержат плейсхолдер - подставляется значение `SMTP_USER` (рассылка себе). Отправляет тестовое письмо с демонстрационным текстом (через `src/email_sender.py`). Вывод в лог и консоль: адрес получателя, результат отправки. При успехе - сообщение об успешной отправке. При ошибке - `[!]` с контекстом и `exit(1)`.
+Store agent reference tests in `test/<domain>/` (`cli_data_standards.md`, Section 02.04) using `pytest` (`test_<topic>.py`, fixtures, parametrize, mocked DB/API/Ollama, synthetic data). Prioritize testing retry backoff/`Retry-After` (02.04), idempotency (03.01), log rotation (04.06), migrations (03.02.03), and core `src/{config,logger,localization}.py`.
 
 ---
 
-## 03.04. Конвенции CLI
+# 07. Workflow
 
-*Обязательно для точек входа с аргументами командной строки.*
+## 07.01. General Workflow Rules and Superpowers Integration
 
-- Библиотека парсинга - `argparse` из стандартной библиотеки; сторонние библиотеки парсинга (click, typer и аналоги) - только с обоснованием в `requirements.txt` (раздел 01.06)
-- `--help` обязателен для каждой точки входа с аргументами; тексты справки - через `t()` (раздел 04.01)
-- Имена аргументов - длинные с `--`, на английском, kebab-case (`--output-dir`, `--mode`); короткие однобуквенные - опциональны и не заменяют длинные
-- Неизвестный флаг или аргумент - ошибка использования: вывод справки и завершение с кодом 2 (раздел 05.03); не игнорировать молча
-- Значения по умолчанию берутся из config.ini; аргумент командной строки переопределяет конфиг, не наоборот
-- Мутирующие точки входа - `--dry-run` (раздел 03.01); режимы пайплайна - `--mode` (раздел 01.01.03)
-- Коды завершения - раздел 05.03
+1. Never change existing business logic without user approval.
+2. **Superpowers delegation:** use `superpowers:brainstorming` (design exploration), `superpowers:writing-plans` (implementation plans), `superpowers:test-driven-development` (TDD), `superpowers:subagent-driven-development` / `superpowers:executing-plans` (execution, model selection, ruling ledger, two-stage review), `superpowers:systematic-debugging` (Section 06.03), `superpowers:verification-before-completion` (fresh command output required before any completion claim), and `superpowers:writing-skills` (creating or editing skills).
+3. **Subagent language contract:** write subagent briefs in **English** (passing large inputs via file paths) with `Respond in English; keep verbatim repo quotes in Russian`. Subagent repo outputs must obey Section 04.03.
+4. **Documentation sync:** update `README.md` and `doc/specs/spec_ui.html` on structural/UI changes; ask before deleting outdated docs.
 
-**Контракт мутатора с набором элементов:**
-- Различать «недоступно» (предусловие не выполнено - устранимо) и «неприменимо» (структурно не подходит этой среде - не предлагается и проблемой не считается)
-- Явный выбор элемента: недоступность - ошибка и стоп; пакетное применение (`--all`): недоступность - пропуск с предупреждением
+## 07.02. User Communication, Requirement Clarification, and Execution Trigger
 
----
+- Communicate with the user in **Russian** (Section 04.03).
+- **Superpowers delegation:** use `superpowers:brainstorming` for design exploration and task classification, `superpowers:writing-plans` for written specs and implementation plans (including the `Review Focus` rubric).
+- **Task classification & ratchet:** classify tasks as **Spike**, **Bounded**, or **Architectural**; halt and ratchet up if hidden complexity appears.
+- **Clarification modes:** ask once per dialogue whether to use **Interactive mode** (one prioritized question at a time via the `question` tool with ranked options citing Section 07.06 sources, updating the spec incrementally) or **Batch mode** (`doc/agent_questions/questions_YYYY-MM-DD_HH-MM.md` with ranked options and `Ответ:` blocks, moved to `.trash/` once answered).
+- **Russian specifications (`doc/specs/`):** pre-MVP specs in `doc/specs/init/` (`init_base.txt` -> `init_final.md`), archived to `doc/specs/.arch/` at MVP; post-MVP modular specs in `doc/specs/spec_<module>.md` (with up to 5 **Review Focus** out-of-scope failure classes) fed by `doc/change_requests/cr_<slug>.md` and indexed in `doc/specs/_index_specs.md`.
+- **User screenshots:** when mentioned without a path, inspect the newest image in `~/Pictures/Screenshots`, `~/Рабочий стол`, `~/Desktop` (or Windows/macOS equivalents), copy to `tmp/<domain>/` if needed, and ask on ambiguity.
+- **Execution trigger (`ДЕЛАЙ` or `GO`):** stay in read/plan/spec mode until the user sends uppercase `ДЕЛАЙ` or `GO` (word-boundary match; authorizes one major task).
+- **Data UI recon & mockup:** before building any first UI over real data, run read-only data recon into `tmp/<domain>/`, review anomalies with the user, and obtain approval on a single-file interactive HTML+JS mockup in `tmp/<domain>/` before `ДЕЛАЙ` / `GO`.
 
-# 04. Вывод и интерфейс
+## 07.03. Project Initialization Sequence (14 Steps)
 
-i18n, маркеры, текст, форматирование, ошибки; логирование и режимы вывода (строгий, меню, rich), GUI
+Verify `doc/standards/project_standards.md` exists, then: (1) ask for `[app] name`, (2) save `doc/specs/init/init_base.txt`, (3) clarify requirements (07.02), (4) write `doc/specs/init/init_final.md` & `_index_specs.md`, (5) agree on `doc/specs/spec_ui.html` if UI output exists, (6) `git init` + `.gitignore` + `.gitattributes`, (7) create needed folders (01.01), (8) create `.env` (`0600`), `.env.example`, `config/config.ini` (`0.1.0`), `requirements.txt`, `.python-version`, (9) create `.venv` (`--copies`), check `pip.conf` (01.07), install deps, (10) scaffold `src/{config,logger,localization,exceptions}.py` from `doc/standards/templates/` and test, (11) implement domain `src/` & `run/`/`main.py`, (12) verify TTY output vs `spec_ui.html`, (13) write `README.md` & `AGENTS.md`, (14) set local git author and commit `feat: initialize project`.
 
-Раздел построен по двум слоям. **Содержание вывода** (04.01-04.05) - правила формирования текста и оформления, независимые от режима. **Режимы и каналы** (04.06-04.08) - куда и как выводится: лог-файл и три консольных режима (строгий, меню, rich), а также GUI. Базовый инвариант: лог-файл - полная plain-запись событий; консоль - слой представления, вид которого зависит от режима (раздел 04.06).
+## 07.04. Standard Compliance Audit and Upgrade Procedure
 
----
+Version marker in `AGENTS.md`, `README.md`, and `CLAUDE.md`: `Standard version: X.Y.Z` (or `Соответствует стандарту: X.Y.Z`). When auditing: compare `project_standards.md` H1 version with repo markers, verify `spec_ui.html` against code, and if discrepancies exist, output a numbered remediation list citing sections (always including version marker update, Section 04.03 text/language check, and `doc/` indexes) without mutating files until approved. On package upgrades (`hub-sync-standards`), apply PATCH/MINOR/MAJOR diffs or record overrides in `doc/specs/overrides.md`.
 
-## 04.01. Мультиязычность (i18n)
+## 07.05. Editing Standards in the Hub
 
-*Обязательно.*
+Edit `doc/standards/*.md` only in the `project_standards` hub (read-only in derivative repos). Never bump package SemVer without an explicit user request (`_index_standards.md`). Whenever any `doc/standards/*.md` changes, update `_index_standards.md` in the same commit and verify with `.githooks/pre-commit` and `python3 doc/skills/hub-sync-indexes/scripts/collect_meta.py`.
 
-Все выводы приложения, видимые пользователю (пользовательские сообщения в консоль, лог-сообщения entry-point скриптов, элементы меню, ошибки, промпты, тексты GUI), проходят через единую функцию `t(key, **kwargs)` из модуля `src/localization.py`.
+## 07.06. Decision and Fact-Checking Cascade
 
-**Область обязательности:**
-
-| Слой кода | Обязательность t() | Обоснование |
-| --------- | ------------------ | ----------- |
-| `run/`, `main.py`, GUI (`src/gui/`), меню (`src/menu.py`) | Обязательно | Текст видит конечный пользователь - локализация нужна по определению |
-| `src/` (доменные модули, утилиты) | Обязательно для сообщений, попадающих в лог/консоль; допустимо для внутренних исключений без вывода использовать доменные классы исключений (раздел 05.02) | Внутренние модули не формируют пользовательский интерфейс напрямую; текст-исключение может транслироваться в t() на уровне обработчика |
-
-**Запреты:**
-- Строковые литералы на естественном языке в выводе (logger.info(), print(), raise с текстом для пользователя) - не допускаются, кроме исключений ниже
-- Исключение: файлы переводов, комментарии в коде, docstrings
-
-**Упрощение для утилитарных скриптов без интерфейса:**
-- Скрипты `run/db/db_check_connection.py` и аналогичные проверочные утилиты допускается писать без полной таблицы переводов, если их единственный потребитель - разработчик, а не конечный пользователь. В таком случае вывод напрямую на русском через logger допустим, но при появлении пользовательского режима (CLI-флаги, меню) - переводится на t()
-- Решение фиксируется в спецификации проекта (`init_final.md` или модульной `spec_<module>.md` - раздел 07.02): указывается, какие скрипты остаются без i18n
-
-**Принципы:**
-- Все текстовые строки вынесены из кода в хранилище переводов (БД или JSON)
-- Доступ к переводам - через единую функцию `t(key, **kwargs)`
-- Каждый ключ имеет перевод на всех поддерживаемых языках (нет частичной локализации)
-- Fallback-цепочка: текущий язык -> язык по умолчанию -> сигнатура `!KEY_NAME!`
-- Поддержка плюрализации для языков с разными формами множественного числа
-
-**Хранилище переводов:**
-- Для проектов с SQLite - таблица `translations` (key TEXT + lang TEXT composite PK, value TEXT). Добавление нового языка не требует ALTER TABLE
-- Для проектов без БД - JSON-файл `config/translations.json` с секциями meta (default_lang, languages) и translations
-
-**Модуль src/localization.py:**
-- `init(language=None)` - определение языка, загрузка переводов, сборка словаря
-- `t(key, *, count=None, **kwargs)` - единственная точка доступа к переводам. Поддержка интерполяции через str.format() и плюрализации через параметр count
-- `reload(language=None)` - перезагрузка словаря (смена языка без перезапуска)
-- Кэш в памяти: словарь `{key: text}` на текущем языке. Загрузка при первом импорте (early initialization)
-
-**Именование ключей:**
-Иерархическая схема с точкой-разделителем. Пространства: `menu.*`, `msg.*`, `error.*`, `title.*`, `prompt.*`, `label.*`, `help.*`. Латинские буквы, точка, нижнее подчеркивание. Ключи стабильны: не переименовывать. Для плюральных форм - суффикс: `msg.items_found.one`, `msg.items_found.many`.
-
-**Фигурные скобки в переводах:** в значениях переводов используются только как плейсхолдеры интерполяции; литеральные фигурные скобки в текстах переводов не допускаются - `t()` форматирует строку методом str.format
-
-**Плюрализация:**
-Суффиксы ключей: `.zero`, `.one`, `.few`, `.many`. Русский: 4 формы. Английский: 2 формы (one/many). Выбор формы по правилам языка автоматически при указании count.
-
-**Определение языка (приоритет):**
-1. Параметр `language` в секции `[app]` config/config.ini
-2. Переменная окружения `LANGUAGE` (POSIX)
-3. Системная локаль
-4. `en` по умолчанию
-
-**Интеграция с логированием:**
-Все вызовы logger.info(), logger.error() и т.д. используют t():
-```python
-logger.info(t("msg.load_started"))
-logger.error(t("error.connection_failed", detail=str(e)))
-```
-
-**Интеграция с меню:**
-Пункты меню хранят ключи переводов, не текст. Рендер через t() в момент отображения (см. раздел 04.07.02).
-
-**Заполнение начальных переводов:**
-При инициализации проекта - заполнить хранилище переводов начальными переводами для всех поддерживаемых языков: для SQLite - в `db_init.py` (раздел 03.03.01), для JSON-хранилища - отдельным шагом инициализации.
-
-**Эталонная реализация `src/localization.py`** (хранилище JSON `config/translations.json`; для SQLite-хранилища меняется только загрузка словаря в `_load`, контракт API тот же):
-
-```python
-"""
-Общий модуль локализации проекта.
-
-Хранилище - config/translations.json (секции meta, translations).
-Fallback-цепочка: текущий язык -> язык по умолчанию -> !KEY!.
-
-Использование:
-    from src.localization import t
-    logger.info(t("msg.items_found", count=5))
-"""
-
-import json
-import locale
-import os
-import threading
-
-from src.config import PROJECT_ROOT, config
-
-_LOCK = threading.Lock()
-# глобальное состояние кэша переводов - осознанное исключение:
-# доступ только через t() и reload() (code_standards.md, раздел 02.02)
-_CACHE: dict[str, str] = {}
-_DEFAULT_LANG = "en"
-_LANG = _DEFAULT_LANG
-
-
-def _detect_language() -> str:
-    """Определить язык: config.ini [app] language -> LANGUAGE -> локаль -> en."""
-    value = config.get("app", "language", fallback="").strip().lower()
-    if value:
-        return value
-    env = os.environ.get("LANGUAGE", "").split(":")[0].lower()
-    if env:
-        return env[:2]
-    try:
-        code = locale.getlocale()[0] or ""
-    except ValueError:
-        code = ""
-    return code[:2].lower() or _DEFAULT_LANG
-
-
-def _load(language: str) -> None:
-    """Загрузить словарь переводов в кэш с fallback на язык по умолчанию."""
-    path = PROJECT_ROOT / "config" / "translations.json"
-    data: dict = {}
-    if path.exists():
-        with open(path, encoding="utf-8") as fh:
-            data = json.load(fh)
-    table = data.get("translations", {})
-    default_lang = data.get("meta", {}).get("default_lang", _DEFAULT_LANG)
-    with _LOCK:
-        global _CACHE, _LANG
-        _CACHE = {
-            key: value.get(language) or value.get(default_lang) or f"!{key}!"
-            for key, value in table.items()
-        }
-        _LANG = language
-
-
-def _plural_suffix(count: int) -> str:
-    """Выбрать суффикс плюральной формы по правилам текущего языка."""
-    if _LANG == "ru":
-        if count % 10 == 1 and count % 100 != 11:
-            return "one"
-        if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14:
-            return "few"
-        return "many"
-    return "one" if count == 1 else "many"
-
-
-def t(key: str, *, count: int | None = None, **kwargs) -> str:
-    """Вернуть перевод ключа с интерполяцией и плюрализацией."""
-    if count is not None:
-        if count == 0 and f"{key}.zero" in _CACHE:
-            key = f"{key}.zero"
-        else:
-            plural_key = f"{key}.{_plural_suffix(count)}"
-            if plural_key in _CACHE:
-                key = plural_key
-        kwargs.setdefault("count", count)
-    text = _CACHE.get(key, f"!{key}!")
-    return text.format(**kwargs) if kwargs else text
-
-
-def init(language: str | None = None) -> None:
-    """Инициализировать локализацию (выполняется при импорте модуля)."""
-    _load(language or _detect_language())
-
-
-def reload(language: str | None = None) -> None:
-    """Перезагрузить словарь (смена языка без перезапуска)."""
-    _load(language or _detect_language())
-
-
-init()
-```
+Priority order: (1) current dialogue user instructions -> (2) `SESSION.md` overrides (01.01.01) -> (3) `doc/specs/overrides.md` (01.01.02) -> (4) repo indexes (`_index_standards.md`, skill indexes, `_index_sql.md`) -> (5) repo precedent -> (6) verified external sources -> (7) documented platform conventions -> (8) reversible agent judgment (ask user for irreversible choices).
+- **Fact-checking cascade (never guess):** on any unfamiliar API, version/compatibility doubt, new dependency, pattern choice, or unexplained error, check in order: Local code/standards -> **Context7 MCP (`context7`)** for library/API/SDK docs -> **GitHub MCP (`github`)** for real-world patterns, code, and issues -> Web search for exact error strings. Cite sources for key decisions; if uncheckable (offline/missing source), stop and ask the user (Section 07.02).
 
 ---
 
-## 04.02. Текстовые маркеры (вместо эмодзи)
+# 08. Terminology
 
-*Обязательно.*
+## 08.01. Package Glossary
 
-Использовать только эти маркеры для префиксации сообщений (таблица ниже; применение в логере - разделы 04.06 и 04.04). Эмодзи не использовать.
-
-
-| Маркер | Назначение               | Уровень logging |
-| ------ | ------------------------ | ---------------- |
-| [!]    | Ошибка                   | ERROR / CRITICAL |
-| [i]    | Информационное сообщение | INFO / DEBUG     |
-| [*]    | Предупреждение           | WARNING          |
-
-
----
-
-## 04.03. Требования к написанию текста
-
-*Обязательно.*
-
-Требования раздела применяются только к человекочитаемому тексту, предназначенному для человека: сообщения в логах и консоли, документация, комментарии в коде, сообщения пользователю, общение агента с пользователем в чате, тексты в сообщениях коммитов, план-файлы в режиме планирования. План-файл создается по тем же правилам к тексту, что и остальной человекочитаемый вывод. Требования не распространяются на исполняемый код (логику, синтаксис, программные строковые литералы). Пользовательские строки, встроенные в код (подписи интерфейса, справки, подсказки, сообщения об ошибках, тексты инструкций, легенды выгрузок), - человекочитаемый текст, а не программный литерал; под исключение попадают только служебные строки, не адресованные человеку (ключи, коды, технические идентификаторы, отладочные строки).
-
-- Все текстовые строки для вывода (лог, консоль, меню) в слоях с обязательностью t() - через функцию t() из src/localization.py (раздел 04.01). Не использовать строковые литералы на естественном языке в коде
-- Язык комментариев в коде и документации: русский
-- В документации и комментариях - без оценочных суждений: восклицаний, призывов, сравнений «лучше/хуже», выражений типа «важно», «критично», «правильно», «невероятно» и т.п. Текст - нормативное описание факта или требования, не мнение
-- Не использовать заглавные буквы для усиления акцента (например, СРОЧНО, ВНИМАНИЕ). Для выделения использовать обычный регистр (Срочно) или маркеры из раздела 04.02
-- Соблюдать правила русского языка: орфография, пунктуация, согласование, управление
-- В человекочитаемом тексте использовать кириллическую букву без диакритического знака над ней: строчная U+0435, прописная U+0415. Не использовать в русских словах варианты с диакритическим знаком: строчная U+0451, прописная U+0401. Сохранять исходный регистр
-- Весь технический нейминг (переменные, функции, классы, модули, имена файлов, ключи конфигов и переводов, идентификаторы) - на английском языке латиницей. Транслит русских слов запрещен. Стили регистра - `code_standards.md` (раздел 02.01). Исключение: рекомендуемые кириллические имена папок сессий (01.01.01) и человекочитаемое `app.name` (01.03)
-- Граница технического имени и контентного артефакта: если имя используется кодом как идентификатор (шаблон поиска, glob, контракт, литерал в коде) - только латиница, кириллица и транслит запрещены. Для контентных артефактов в `output/`, `data/`, `input/`, `backup/` кириллица в именах допустима, когда имя отражает содержание для пользователя, а код обращается к файлу через переменную или конфиг, не через литерал
-- Плейсхолдеры по умолчанию - латиницей: `<script_name>`, `<module_name>`, `[timestamp]`, `<title>`. В текстах для агентов (нормы и шаблоны стандартов, шаблоны технических имен, образцы файлов, которые заполняет агент) кириллические плейсхолдеры запрещены. В человекочитаемых документах для пользователя (README, инструкции по установке и использованию, шаблоны писем и отчетов) кириллические плейсхолдеры допустимы как опция - например `<название приложения>`; по умолчанию и там используется латиница. Языки плейсхолдеров внутри одного шаблона не смешивать
-- Каноничный нейминг: если пользователь явно не задал иное имя, использовать уже принятые в стандарте и в проекте имена сущностей, файлов, разделов, ключей и терминов; не вводить синонимы и альтернативные варианты без явного запроса
-- Текст для человека не содержит имен таблиц и полей, идентификаторов, названий внутренних систем, значений перечислений кода и ключей настроек. Техническая сущность называется человеческим словом: «учетная система» вместо имени базы, «согласовано» вместо кода статуса. Исключение - служебные части выгрузки или лога, не адресованные пользователю
-- Сокращение или аббревиатура раскрывается полностью при первом употреблении в документе; далее допустимо сокращение
-- При использовании цифр в неймингах применять лидирующие нули для выравнивания текста (например: item_001, step_02, batch_003)
-- Документация и комментарии описывают текущее каноничное состояние по факту. Писать так, будто документ создан с нуля: без истории решения проблем, без нарратива «было / стало / выяснили / исправили», без ретроспективы правок
-- Писать только результат: норму, значение или факт - без суждений агента и пути решения (пояснений вида «где смотреть значение», «почему так решено», «как это нашли»). Ссылка на файл или раздел допустима, только когда она - часть самой нормы, а не указатель, где норму искать
-- Истории изменений, CHANGELOG и аналогичные разделы в документации и комментариях - только по явному запросу пользователя. Git-история (сообщения коммитов) этим правилом не запрещается
-- В документации не писать абсолютные пути хоста: только относительные пути от корня репозитория или плейсхолдеры (`<repo>/`, `PROJECT_ROOT`, `$HOME` и т.п.), если пользователь явно не запросил иное. Исключение: обязательный футер `doc/specs/spec_ui.html` с полным абсолютным путем по `console_ui_standards.md`
-- Использовать дефис-минус (U+002D) вместо длинного тире (U+2014) и короткого тире (U+2013) во всех человекочитаемых текстах
-- Не использовать многоточия: ни последовательность из трех символов U+002E, ни единый символ U+2026 - нигде в человекочитаемом тексте
-- Не использовать неразрывные и узкие пробелы (U+00A0, U+202F) - только обычный пробел U+0020
-- Не начинать новые строки текста с пробелов (U+0020) или символов табуляции (U+0009) - ни с одного, ни с нескольких. Лидирующие пробелы и табы в начале абзацев и строк недопустимы
-- Жанровая структура, стили речи (шесть стилей), словари стоп-слов, маркеров ИИ-текста и канон-лексики, механизм репо-оверрайдов - `human_text_standards.md` и три словаря пакета
+- **Session / Override:** subproject directory with `SESSION.md` (`01.01.01`, `cli_data_standards.md` 03.01) / agreed deviation in `SESSION.md` or `doc/specs/overrides.md` (`01.01.02`).
+- **Execution Trigger:** uppercase word `ДЕЛАЙ` or `GO` authorizing one major task (`07.02`).
+- **Hub / Skills (`pr_glob`, `pr_loc`):** `project_standards` repo (`07.05`) / `pg-` skills in `doc/skills/` vs local skills in `data/skills/` (`skill_anthropic_standards.md` 01.03).
+- **Data Mart / Pipeline Modes:** local `data/mart.sqlite` snapshot and `local` / `refresh` modes (`01.01.03`, `cli_data_standards.md` 01.01-01.02).
+- **Lessons Log / Agent Memory:** append-only `data/lessons.md` (`01.01.07`) vs persistent context in `data/memory/` (`memory_standards.md`).
+- **Orchestrator / Migration:** pipeline entry point `main.py` or `orch_*` (`01.01`) / one-time `sql/migrations/M<N>_*.sql` in `schema_version` (`03.02.03`, `cli_data_standards.md` 04.02).
+- **Dual-Channel / Interactive Context:** English file logs (`logger.*`) vs Russian console UI (`console_message`, `menu`/`rich`) (`04.06`) / TTY without `CI` or `TERM=dumb` (`04.07`).
+- **Frame / Role / Batch CLI / `spec_ui.html`:** console screen unit, semantic style role, two-line rich-progress CLI, and visual UI/log spec (`console_ui_standards.md`).
+- **Init vs Active Specs:** pre-MVP `doc/specs/init/` (archived to `.arch/` at MVP) vs modular `doc/specs/spec_<module>.md` (`07.02`, `07.03`).
+- **Front / Backend / Pre-Commit Hook:** nginx server block vs FastAPI uvicorn process (`web_standards.md` 01.02) / `.githooks/pre-commit` gate (`06.01`).
 
 ---
 
-## 04.04. Форматирование вывода
+# 09. Cross-References and Versioning
 
-*Обязательно.*
+## 09.01. Related Standards
 
-### 04.04.01. Формат строки
+- **Core & Architecture:** `_index_standards.md` (registry, routing, SemVer), `cli_data_standards.md` (`mart.sqlite`, `diag/`/`tmp/`/`test/`, `SESSION.md`, `sql/`, `run/`), `network_ops_standards.md` (retries, SSH, DPI/routing/SMB, config mutations), `code_standards.md` (languages & linters).
+- **UI & Text:** `console_ui_standards.md` (`menu`, `rich`, `spec_ui.html`), `human_text_standards.md` + `human_text_*_standards.md` (Russian text rules and dictionaries), `repo_info_doc_standards.md` (`README.md`), `software_doc_standards.md` (install guides).
+- **Deploy & Web:** `deploy_standards.md`, `deploy_lin_standards.md`, `deploy_win_standards.md`, `deploy_docker_standards.md`, `deploy_hyperv_standards.md`, `web_standards.md`.
+- **Agent Ecosystem:** `skill_anthropic_standards.md`, `skill_data_standards.md`, `opencode_tool_standards.md`, `memory_standards.md`, `index_nav_standards.md`, `change_request_standards.md`.
 
-*Обязательно.*
+## 09.02. Versioning
 
-- Формат строки в консоли зависит от режима логгера (раздел 04.06); в лог-файл всегда пишется plain-вариант:
-  - Строгий режим (`mode="plain"`): `YYYY-MM-DD HH:MM:SS [marker] сообщение`, например: `2025-03-02 14:30:15 [i] Загрузка данных начата`
-  - Режим меню (`mode="menu"`): `сообщение` (без префикса), например: `Загрузка данных начата`
-  - Rich-режим (`mode="rich"`): формат строки задается модулем rich-вывода (раздел 04.07.03)
-- Timestamp в формате `YYYY-MM-DD HH:MM:SS` - единый формат эталона `src/logger.py`; пишется только в строгом режиме
-- Уровень сообщения указывать маркером в квадратных скобках (из раздела 04.02: [!], [i], [*]) в зависимости от типа
-- Маркер уровня вставляется автоматически форматтером логгера (`_MarkerFormatter` в `src/logger.py`); в текст сообщения маркер не включать: `logger.info(t("msg.load_started"))`, а не `logger.info(t("msg.load_started_marker"))`
-
-### 04.04.02. Общие правила оформления
-
-*Обязательно.*
-
-- Одна строка - одно сообщение; при переносе длинного текста использовать отступ для продолжения
-- По возможности сокращать количество строк: объединять связанные данные в одну строку, если это сохраняет смысл и читаемость
-- Вывод в лог и консоль идентичен по формату в строгом режиме; в режимах `menu` / `rich` кадр строится каналом представления (`src/menu.py`, `src/rich_console.py` - см. `console_ui_standards.md`), не info-логгером. `logger.info()` в этих режимах идет и в консоль, и в файл; события, которые не должны попадать в консоль поверх кадра, - через `log_file_only` (раздел 04.06). Кадр меню и таблицы UI - отдельный канал представления, не дублировать одно и то же разным форматом без необходимости
-- Цвет и оформление консоли:
-  - В строгом режиме (`plain`) без UI-кадра и в лог-файле всегда - без цветового выделения; строки логгера и маркеры `[i]` / `[!]` / `[*]` в файле - без цвета
-  - Базовая цветовая шкала для режимов `menu` / `rich`: успех - зеленый, предупреждение - желтый, ошибка - красный. Палитра ролей проекта фиксируется в `spec_ui.html`; hex-цвета и шрифт оформления допускается менять по явному запросу пользователя (с bump SemVer макета в том же изменении), имена ролей и контракт кадра при этом не меняются
-  - Режимы `menu` / `rich` (роли, цвет TTY, breadcrumb, кадр) - `doc/standards/console_ui_standards.md`; эталон кадров проекта - `doc/specs/spec_ui.html`
-- Эмодзи запрещены во всех режимах
-- Не ставить точку в конце сообщений: `Загрузка завершена`, а не `Загрузка завершена.`
-- Не использовать строки-разделители (`=====`, `-----` и подобные) - ни в логе, ни в консоли
-- Числовые счетчики в выводе выравниваются лидирующими нулями по ширине максимального значения (`09/23`, `042/5047`)
-
-### 04.04.03. Структурирование вывода
-
-*Обязательно.*
-
-- Логические блоки в plain-выводе и в лог-файле (этапы выполнения, результаты операций, группы связанных сообщений) визуально отделяются друг от друга пустой строкой: `\n\n` (ровно одна пустая строка между блоками)
-- Внутрикадровые пробелы menu frame - `console_ui_standards.md`
-
-### 04.04.04. Таблицы
-
-*Обязательно.*
-
-- В **лог-файле**: предпочтительны строки, списки (04.04.05) и сводки (04.04.06); `tabulate` допускается при необходимости табличной структуры; ручная сборка строк и пробельное выравнивание не допускаются. Для `tabulate`: форматы `grid`, `simple`, `pipe`, `outline`; `colalign` (текст left, числа right); перед таблицей - заголовок через `t()`
-- Консольные таблицы `menu` / `rich`, dual-render, title - `console_ui_standards.md`; модуль `src/console_table.py` обязателен при выводе таких таблиц. Прочий rich (Live, progress) - `src/rich_console.py` (04.07.03)
-
-### 04.04.05. Списки
-
-*Обязательно.*
-
-- Блок: заголовок -> `- элемент` -> при необходимости сводка (04.04.06); тексты через `t()`; без лидирующих пробелов; между заголовком и элементами пустой строки нет; между соседними блоками - одна пустая строка
-- В режиме `plain`: заголовок и каждый элемент - отдельные вызовы `logger.info()`. В режимах `menu` / `rich` запись списка в лог - через `log_file_only` (не голый `logger.info`, который попадет в консоль); на кадре - pending-body по `console_ui_standards.md` (раздел 03.03)
-
-### 04.04.06. Сводки
-
-*Обязательно.*
-
-- Формат: `префикс: ключ: N, ключ: M` (через `t()` / шаблон); без лишних разделителей
-- Цвет метрик, модуль сводок, запрет panel - `console_ui_standards.md`; в логе - plain без ANSI
-
----
-
-## 04.05. Формулировка сообщений об ошибках и терминология
-
-*Обязательно.*
-
-**Сообщения об ошибках для пользователя:**
-
-- Сообщения об ошибках в логе и консоли формулировать кратко, на понятном языке, без технического жаргона - одна строка, суть ошибки
-- Не выводить пользователю сырой stderr/stdout системных утилит; вместо этого анализировать код возврата и текст ошибки, и выдавать человекопонятное описание
-- Для известных кодов и паттернов ошибок - заменять технический текст на понятное сообщение; для неизвестных - выводить исходный текст ошибки
-- Не использовать внутренние технические термины (имена системных файлов, конфигураций, протоколов), если они не входят в рабочий лексикон пользователя проекта
-
-**Единообразие терминологии:**
-
-- Во всех пользовательских сообщениях (логи, консоль, меню) использовать единый набор терминов для одних и тех же сущностей; не смешивать синонимы
-
----
-
-## 04.06. Логирование
-
-*Обязательно.*
-
-- Использовать общий модуль `src/logger.py` для всех скриптов; загрузку config и .env вынести в `src/config.py`
-- Отступление от общего логгера (вывод напрямую через print()) допустимо только для категорий скриптов из исчерпывающего списка ниже; скрипты вне этих категорий выводят только через общий логгер, расширение списка - оверрайд (01.01.02) или правка стандарта:
-  - скрипты навыков - исполняемые файлы `scripts/` пакетов формата Anthropic; без `src/logger.py` и лог-файлов; канон - `skill_anthropic_standards.md`; для них допустима только полная эмуляция
-  - временные разведочные скрипты - одноразовые проверки и прототипы, не точки входа проекта
-  - проверочные скрипты `run/` доменов (раздел 03.03) и утилиты точечной проверки состояния без изменения данных проекта; результат - только консольный отчет. Расширенная диагностика и исследование состояния - папка `diag/` (раздел 01.01.04), не это отступление
-  - внешние скрипты кастомных tools opencode - исполняемые файлы, вызываемые плагином opencode; канон - `opencode_tool_standards.md` (разделы 03.01-03.02)
-- Формат строки в отступлении - один из двух вариантов (два оверрайда вывода без логгера); выбор варианта - только по явному согласованию с пользователем (раздел 07.02), фиксируется один раз на скрипт (комментарием в коде скрипта либо в `SESSION.md` сессии, где выбор согласован); без согласованного выбора применяется полная эмуляция; смешение вариантов в одном выводе не допускается:
-  - полная эмуляция строгого режима: `YYYY-MM-DD HH:MM:SS [marker] сообщение` - дата, время, маркер уровня, текст (04.04.01)
-  - упрощенный вывод: только текст сообщения, без метки времени и маркера уровня - консольный стиль режимов menu / rich (04.04.01); типовой случай - вывод в контексте деградации rich до plain (04.07, 04.07.03)
-- Лог-файлы в отступлении не создаются: требование «всегда создавать лог-файл» (пункты ниже) действует только для скриптов с общим логгером (`src/logger.py`); вывод без логгера существует только в консоли, папка `log/` и лог-файлы для него не заводятся
-- Строки в отступлении допускается писать литералами, без t(): категории отступления не имеют локализуемого пользовательского интерфейса; остальные требования к тексту (раздел 04.03) действуют
-- Типовой паттерн инициализации логгера в начале каждого скрипта:
-  ```python
-  from pathlib import Path
-
-  from src.config import PROJECT_ROOT, APP_NAME, APP_VERSION
-  from src.logger import get_logger
-  from src.localization import t
-  logger = get_logger(Path(__file__).stem, log_dir=PROJECT_ROOT / "log", mode="plain")
-  logger.info(t("msg.app_started", name=APP_NAME, version=APP_VERSION))
-  ```
-- Всегда создавать лог-файл для каждого скрипта из run и для main.py; делать это по умолчанию, даже если пользователь не просил явно; на отступления от логгера не распространяется (пункты выше)
-- Создавать лог-файлы в папке log
-- Имя файла: `log_<script_name>_<timestamp>.log`, где script_name - stem файла точки входа (латиница, `code_standards.md` раздел 02.01 и `project_standards.md` раздел 04.03), timestamp - момент запуска в формате `YYYY-MM-DD_HH-MM-SS` (формат эталона logger.py). В именах лог-файлов кириллица и транслит запрещены
-- Один запуск скрипта - один лог-файл
-- Лог-файл всегда содержит полную plain-запись событий (timestamp + маркер + сообщение, монохром, без перерисовки) независимо от режима консоли
-- Использовать единый логгер проекта для вывода в файл и консоль; не вызывать print() (исключения - модули вывода в режимах 04.07.01, 04.07.02, 04.07.03 и допустимые отступления от логгера - пункт выше)
-- Сообщения в логе: краткие, без лишних слов, без эмодзи
-- Логгер принимает параметр `mode` (`plain`/`menu`/`rich`, по умолчанию `plain`). Назначение `mode` - только формат консольного вывода; на уровни логирования `mode` не влияет. Режим фиксируется первым вызовом `get_logger`: повторный вызов с тем же именем и другим `mode` возвращает уже созданный логгер с исходным режимом
-
-**Ротация лог-файлов (опционально, по умолчанию выключена):**
-
-- Ротация включается ключом `keep_last` в секции `[logging]` config.ini - количество последних лог-файлов на скрипт (например `keep_last = 20`); без ключа и при значении 0 файлы не удаляются
-- При создании нового лог-файла устаревшие файлы того же скрипта (старее N последних) удаляются; файлы других скриптов не затрагиваются
-- Ротация - осознанное включение проекта, не дефолт: агент предлагает ключ при инициализации проектов с частыми запусками (расписание, батчи, оркестраторы), пользователь подтверждает
-- Функция очистки входит в эталон `src/logger.py` (ниже)
-
-**Уровни логирования:**
-- Порог файлового handler задается в секции `[logging]` config.ini параметром `file_level` (значения: `DEBUG`, `INFO`, `WARNING`, `ERROR`; по умолчанию `DEBUG`)
-- Порог консольного handler определяется режимом:
-  - `plain` - равен `file_level` (консоль зеркалирует файл)
-  - `menu` / `rich` - зафиксирован на `INFO`
-- При отсутствии секции `[logging]` или некорректном значении - `file_level = DEBUG`
-- Логгер читает `[logging]` из config.ini самостоятельно (импортирует `config` из `src.config`)
-- Консольный handler в menu/rich режиме на уровне `INFO` пропускает только осознанные сообщения разработчика; `logger.debug()` в библиотечных модулях уходит только в файл
-
-**Инвариант:** лог-файл - полная plain-запись событий. Консоль - слой представления: в plain режиме идентична файлу по формату, в menu/rich - без префикса, только INFO+. Исключение - индикация прогресса (раздел 04.07.01): промежуточные строки выводятся в консоль и не дублируются в лог-файл; итоговая строка пишется через `logger.info()`.
-
-**Два канала записи (menu / rich):**
-- Когда кадр или Live-прогресс рисует канал представления (`src/menu.py`, `src/rich_console.py`, `src/console_table.py`), смысловые события, которые не должны дублироваться в консоль поверх кадра, пишутся в лог-файл через `log_file_only(logger, message)` (или эквивалент): фильтры логгера (в т.ч. маскирование секретов) применяются, консольные handler-ы пропускаются
-- `logger.info()` в menu/rich по-прежнему идет и в консоль, и в файл - его используют для сообщений, которые допустимы в обоих каналах
-- В режиме `rich` консольный handler обязан писать через **тот же** объект `rich.Console`, что и модуль представления (Live перехватывает вывод одного Console). Отдельный `StreamHandler(sys.stdout)` в rich-режиме ломает прогресс
-
-```ini
-[logging]
-file_level = DEBUG
-```
-
-**Эталонная реализация `src/logger.py`** (режимы - 04.07, маскирование секретов - 05.01, чтение `[logging]` из config.ini; `log_file_only` и rich-handler - ниже после `get_logger`):
-
-```python
-"""
-Общий модуль логирования проекта.
-
-Режимы вывода (параметр mode):
-    plain - строгий режим (по умолчанию): консоль зеркалирует файл
-    menu  - интерактивное меню: сообщения логгера в консоль без префикса, уровень INFO;
-            кадр меню рисуется каналом представления (src/menu.py), не этим handler
-    rich  - rich-консоль: сообщения логгера через общий rich.Console представления;
-            Live/progress - в src/rich_console.py; таблицы - в src/console_table.py
-
-Уровни логирования:
-    file_level - порог файлового handler из секции [logging] config.ini (по умолчанию DEBUG)
-    В plain режиме консольный handler использует тот же уровень (зеркало)
-    В menu/rich режиме консольный handler зафиксирован на INFO
-
-В лог-файл всегда пишется полный plain-вариант (timestamp + маркер + сообщение),
-независимо от режима консоли (раздел 04.06).
-
-log_file_only(logger, message) - запись только в FileHandler (dual-channel для menu/rich).
-
-Ротация: ключ [logging] keep_last (по умолчанию выключен) - при создании нового
-лог-файла удаляются устаревшие файлы того же скрипта старее keep_last последних.
-
-Использование:
-    from pathlib import Path
-
-    from src.config import PROJECT_ROOT
-    from src.logger import get_logger, log_file_only
-    logger = get_logger(Path(__file__).stem, log_dir=PROJECT_ROOT / "log")
-    logger.info(t("msg.load_started"))
-"""
-
-import configparser
-import logging
-import re
-import sys
-from datetime import datetime
-from pathlib import Path
-
-# ключи, значения которых маскируются в выводе (раздел 05.01)
-SECRET_KEYS = (
-    "password",
-    "passwd",
-    "pwd",
-    "secret",
-    "token",
-    "access_token",
-    "refresh_token",
-    "api_key",
-    "apikey",
-    "api_secret",
-    "auth",
-    "authorization",
-    "bearer",
-    "smtp_user",
-    "smtp_password",
-)
-
-LEVEL_MAP: dict[str, int] = {
-    "DEBUG": logging.DEBUG,
-    "INFO": logging.INFO,
-    "WARNING": logging.WARNING,
-    "ERROR": logging.ERROR,
-}
-
-
-class _SecretFilter(logging.Filter):
-    """Маскировать значения известных секретных ключей в сообщении лога."""
-
-    _PATTERN = re.compile(
-        r"(?i)(" + "|".join(re.escape(k) for k in SECRET_KEYS) + r")\s*[:=]\s*\S+"
-    )
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        message = record.getMessage()
-        record.msg = self._PATTERN.sub(r"\1=***", message)
-        record.args = None
-        return True
-
-
-class _MarkerFormatter(logging.Formatter):
-    """Форматтер с маркерами [!], [i], [*] вместо стандартных уровней."""
-
-    MARKERS = {
-        logging.ERROR: "[!]",
-        logging.CRITICAL: "[!]",
-        logging.WARNING: "[*]",
-        logging.INFO: "[i]",
-        logging.DEBUG: "[i]",
-    }
-
-    def __init__(self, *, with_prefix: bool = True) -> None:
-        super().__init__()
-        self._with_prefix = with_prefix
-
-    def format(self, record: logging.LogRecord) -> str:
-        marker = self.MARKERS.get(record.levelno, "[i]")
-        message = record.getMessage()
-        if self._with_prefix:
-            timestamp = datetime.fromtimestamp(record.created).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
-            return f"{timestamp} {marker} {message}"
-        return message
-
-
-def _read_file_level() -> int:
-    """Читать file_level из секции [logging] config.ini. При отсутствии - DEBUG."""
-    try:
-        from src.config import config
-    except ImportError:
-        return logging.DEBUG
-    try:
-        level_name = config.get(
-            "logging", "file_level", fallback="DEBUG"
-        ).strip().upper()
-        return LEVEL_MAP.get(level_name, logging.DEBUG)
-    except (configparser.NoSectionError, configparser.NoOptionError):
-        return logging.DEBUG
-
-
-def _console_level_for_mode(mode: str, file_level: int) -> int:
-    """Вернуть порог консольного handler для заданного режима."""
-    if mode == "plain":
-        return file_level
-    return logging.INFO
-
-
-def _read_keep_last() -> int:
-    """Читать keep_last из секции [logging] config.ini. При отсутствии - 0 (выкл)."""
-    try:
-        from src.config import config
-    except ImportError:
-        return 0
-    try:
-        return max(0, config.getint("logging", "keep_last", fallback=0))
-    except (configparser.NoSectionError, configparser.NoOptionError, ValueError):
-        return 0
-
-
-def _cleanup_old_logs(log_dir: Path, script_name: str, keep_last: int) -> None:
-    """Удалить устаревшие лог-файлы скрипта, оставив keep_last последних."""
-    if keep_last <= 0:
-        return
-    files = sorted(
-        (p for p in log_dir.glob(f"log_{script_name}_*.log") if p.is_file()),
-        key=lambda p: p.stat().st_mtime,
-        reverse=True,
-    )
-    for stale in files[keep_last:]:
-        try:
-            stale.unlink()
-        except OSError:
-            pass
-
-
-def get_logger(
-    script_name: str,
-    log_dir: Path,
-    mode: str = "plain",
-) -> logging.Logger:
-    """
-    Создать и вернуть логгер с выводом в консоль и в файл.
-
-    Args:
-        script_name: имя скрипта (используется в имени лог-файла).
-        log_dir: путь к папке log/ (объект Path).
-        mode: режим консольного вывода - plain, menu, rich (раздел 04.07).
-
-    Returns:
-        Настроенный экземпляр Logger.
-    """
-    if mode not in ("plain", "menu", "rich"):
-        mode = "plain"
-
-    log_dir.mkdir(parents=True, exist_ok=True)
-
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    log_file = log_dir / f"log_{script_name}_{timestamp}.log"
-
-    # ротация: ключ [logging] keep_last (по умолчанию выключен)
-    _cleanup_old_logs(log_dir, script_name, _read_keep_last())
-
-    logger = logging.getLogger(script_name)
-    logger.setLevel(logging.DEBUG)
-
-    # не добавлять дублирующие обработчики при повторном вызове
-    if logger.handlers:
-        return logger
-
-    # маскирование секретов - один фильтр на логгер (раздел 05.01)
-    logger.addFilter(_SecretFilter())
-
-    file_level = _read_file_level()
-    console_level = _console_level_for_mode(mode, file_level)
-
-    # файловый handler: всегда полный plain-формат
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(file_level)
-    file_handler.setFormatter(_MarkerFormatter(with_prefix=True))
-    logger.addHandler(file_handler)
-
-    # консольный handler: формат зависит от режима, уровень - от режима и file_level.
-    # В rich - единый канал с src/rich_console.py (Live); в plain/menu - StreamHandler.
-    if mode == "rich":
-        console_handler = _RichLevelHandler()
-    else:
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(
-            _MarkerFormatter(with_prefix=(mode == "plain"))
-        )
-    console_handler.setLevel(console_level)
-    logger.addHandler(console_handler)
-
-    return logger
-
-
-class _RichLevelHandler(logging.Handler):
-    """Консольный handler rich-режима: вывод через общий rich.Console представления."""
-
-    _STYLE: dict[int, str] = {
-        logging.CRITICAL: "red",
-        logging.ERROR: "red",
-        logging.WARNING: "yellow",
-    }
-
-    def emit(self, record: logging.LogRecord) -> None:
-        try:
-            from rich.text import Text
-
-            # импорт внутреннего объекта допустим: контракт пары модулей
-            # представления (раздел 04.07.03), вне их не используется
-            from src.rich_console import _console
-
-            message = record.getMessage()
-            style = self._STYLE.get(record.levelno)
-            if style:
-                _console.print(Text(message, style=style))
-            else:
-                _console.print(message, markup=False)
-        except Exception:
-            self.handleError(record)
-
-
-def log_file_only(
-    logger: logging.Logger,
-    message: str,
-    level: int = logging.INFO,
-) -> None:
-    """Записать сообщение только в FileHandler, минуя консоль."""
-    record = logging.LogRecord(
-        name=logger.name,
-        level=level,
-        pathname="",
-        lineno=0,
-        msg=message,
-        args=None,
-        exc_info=None,
-    )
-    for flt in logger.filters:
-        if not flt.filter(record):
-            return
-    for handler in logger.handlers:
-        if isinstance(handler, logging.FileHandler):
-            handler.handle(record)
-```
-
----
-
-## 04.07. Режимы вывода в консоль
-
-*Обязательно для выбора режима; конкретный режим применяется по необходимости проекта.*
-
-Консольный вывод проекта работает в одном из трех режимов. Режим определяет формат строки и допустимые средства (цвет, перерисовка). Выбор режима - свойство точки входа; задается при инициализации логгера:
-
-`get_logger(name, log_dir, mode="plain")` - параметр `mode` управляет только форматом консольного вывода; на уровни логирования не влияет. Значения: `plain` (строгий, по умолчанию), `menu` (интерактивное меню), `rich` (rich-консоль).
-
-Правила выбора:
-- `plain` - пакетные скрипты (`run/`), фоновые задачи, утилиты обслуживания: важна полная дословная запись
-- `menu` - entry-point с текстовым меню (раздел 04.07.02)
-- `rich` - интерактивные утилиты с акцентом на пользовательский опыт (раздел 04.07.03)
-
-Инвариант для всех режимов: лог-файл - полная plain-запись событий (раздел 04.06). Консоль - слой представления; ее формат зависит от режима. В строгом режиме консоль зеркалирует файл по формату и уровню (`file_level` из `[logging]`). В режимах меню и rich консоль - без префикса, на уровне INFO; в лог попадают все события согласно `file_level`, а оформительские элементы и промежуточные кадры прогресса существуют только в консоли.
-
-Индикация прогресса:
-- строгий режим - модуль `src/progress.py` через `\r` (раздел 04.07.01)
-- rich-консоль - `rich.progress` (раздел 04.07.03)
-- в обоих случаях итог пишется через `logger.info()`
-
-**Интерактивный контекст (TTY) vs non-interactive** (каноническое определение - этот раздел; остальные упоминания в пакете ссылаются сюда):
-- Режимы `menu` и `rich` рассчитаны на интерактивный терминал. Live, цветной кадр и двухстрочный прогресс включаются только в интерактивном контексте
-- Интерактивный контекст: `sys.stdout.isatty()` истинно **и** окружение не помечено как non-interactive. Признаки non-interactive (достаточно одного):
-  - переменная окружения `CI` задана и непуста (типично `CI=true` в CI/CD);
-  - `TERM=dumb`
-- Для menu frame дополнительно учитывать `sys.stdin.isatty()`: без TTY на stdin - не запрашивать `input()`, деградировать или завершаться по контракту точки входа
-- Вне интерактивного контекста: Live/перерисовка/цветной rich-кадр не используются; вывод - plain через логгер (или dual-channel хелперы в режиме «только лог»). Решение о fallback принимать один раз при инициализации точки входа
-- Визуальный контракт menu/rich и `spec_ui.html` - `doc/standards/console_ui_standards.md`. В лог-файл декоративные элементы и цвет не пишутся
-
-### 04.07.01. Строгий режим (plain)
-
-*Обязательно как режим по умолчанию.*
-
-- Режим по умолчанию для всех скриптов, кроме явно использующих меню или rich
-- Вывод в лог и консоль идентичен по формату и уровню (консольный handler использует file_level из [logging])
-- Формат строки - `YYYY-MM-DD HH:MM:SS [marker] сообщение` (раздел 04.04.01)
-- Без цвета и эмодзи (раздел 04.04.02)
-
-**Индикация прогресса в строгом режиме:**
-
-*Опционально - только если проект предусматривает длительные операции с обратной связью.*
-
-Для операций, где требуется показывать прогресс в реальном времени (обработка файлов, загрузка данных, длительные циклы), используется перезапись одной строки через символ возврата каретки `\r`. Вывод идет напрямую в `sys.stdout`, минуя логгер - строки прогресса не дублируются в лог-файл. В лог-файл попадает только итоговая строка через `logger.info()`.
-
-В проекте создается модуль `src/progress.py`:
-
-```python
-import sys
-
-def update_progress(line: str) -> None:
-    """Перезаписать текущую строку в консоли."""
-    sys.stdout.write(f"\r{line}")
-    sys.stdout.flush()
-
-def clear_progress() -> None:
-    """Очистить строку прогресса (после завершения)."""
-    sys.stdout.write("\r\033[K")
-    sys.stdout.flush()
-```
-
-`\033[K` - ANSI-escape «стереть до конца строки» (EL - Erase in Line). Работает на Linux и macOS без оговорок; на Windows - в терминалах с обработкой VT-последовательностей (Windows Terminal обрабатывает по умолчанию; классической консоли нужен флаг ENABLE_VIRTUAL_TERMINAL_PROCESSING, иначе последовательность не обрабатывается). В классической консоли без VT прогресс деградирует до простых сообщений (раздел 04.07)
-
-**Пример использования:**
-
-```python
-from src.progress import update_progress, clear_progress
-from src.logger import get_logger
-from src.localization import t
-
-total = 5047
-for i in range(1, total + 1):
-    pct = i / total * 100
-    update_progress(t("msg.process_progress", pct=f"{pct:5.1f}", current=i, total=total))
-
-clear_progress()
-logger.info(t("msg.files_processed", count=total))
-```
-
-Вывод в консоли (одна меняющаяся строка):
-
-```
-Обработка  45.2%  (2285/5047)
-```
-
-**Правила:**
-
-- `update_progress()` не вызывает перевод строки - каждый следующий вызов перезаписывает ту же строку
-- После завершения операции обязателен вызов `clear_progress()` - иначе строка прогресса останется в консоли
-- Прогресс не пишется в лог-файл: `sys.stdout.write()` минует логгер
-- Итоговый результат всегда через `logger.info()` - он попадает и в консоль, и в лог
-- Тексты прогресса - через `t()` из `src/localization.py` (раздел 04.01); к ним применяются общие требования раздела 04.03: дефис вместо тире, без многоточий, без эмодзи, без точки в конце
-- При прерывании скрипта (Ctrl+C) обработчик сигнала (раздел 05.03) должен вызвать `clear_progress()` перед завершением
-- Использование `sys.stdout.write()` в этом модуле - допустимое исключение из общего правила «не вызывать print()» (аналогично `src/menu.py` в разделе 04.07.02)
-- Зависимости: не требуются - только `sys` из стандартной библиотеки
-
-### 04.07.02. Интерактивное меню
-
-*Опционально - только если проект предусматривает интерактивные меню.*
-
-- Полный контракт кадра, клавиш, ролей, каналов и модулей - `doc/standards/console_ui_standards.md`; кадры проекта - `doc/specs/spec_ui.html`
-- Логгер entry-point: `mode="menu"` (раздел 04.06); кадр меню - канал представления (`src/menu.py`), не info-логгер в консоль
-- `print()` / `clear_screen` в `src/menu.py` - допустимое исключение из запрета прямого вывода вне логгера. Кадр строится обычным выводом + `input()`, без ANSI cursor tricks (CUP, CSI s/u, DECSTBM): один путь TTY и non-TTY
-
-### 04.07.03. Rich-консоль
-
-*Опционально - только если проект предусматривает интерактивный вывод с акцентом на пользовательский опыт.*
-
-- Лог-файл по-прежнему полная plain-запись (раздел 04.06); консоль - слой представления
-- Библиотека `rich` - с обоснованием в `requirements.txt`; не дублировать rich ручными ANSI вне модулей представления; не смешивать `rich` с самописным выводом каретки (`\r` из `src/progress.py` и аналогов)
-- Модули: `src/rich_console.py` (Live, `rich.progress`, прочий rich); логгер `mode="rich"`; таблицы - `src/console_table.py`
-- Оформление ролей (включая «заголовок колонки» th, «прибавление»/«убавление» для сводок, «подсказку»), цвет сводок по направлению изменения и batch CLI - `console_ui_standards.md` / `spec_ui.html`; эмодзи запрещены (04.03)
-- Вне интерактивного контекста (нет TTY / `CI` / `TERM=dumb` - см. 04.07) Live/перерисовка деградируют до plain; поведение fallback определяется один раз при инициализации; итоги - через `logger.info()` / `log_file_only`; промежуточный прогресс - только в интерактивной консоли
-- Обработчик сигнала (05.03) обязан завершить Live/progress перед выходом; API rich - только в `src/rich_console.py`, таблицы - только в `src/console_table.py`
-- **Роли модулей batch/rich (методика, не домен):**
-  - `src/rich_console.py` - общий `Console`, баннер/секции/прогресс, dual-channel запись в лог через `log_file_only`
-  - `src/console_table.py` - dual-render таблиц (цвет в консоль, plain/`tabulate` в лог)
-  - `src/console_summary.py` - сводки по правилам `console_ui_standards.md` (раздел 03.04; пометричная раскраска)
-- Batch CLI: порядок кадра, dual-channel, двухстрочный прогресс, `status_col` - `console_ui_standards.md` (разделы 04.04, 03.02); колонки и шаблоны сводки - в `spec_ui.html` проекта
-
----
-
-## 04.08. Графический интерфейс (GUI)
-
-*Опционально - только если проект предусматривает графический интерфейс.*
-
-Графический интерфейс - один из возможных режимов точки входа для пользователя, наряду с CLI-скриптами (`run/`) и текстовым меню (раздел 04.07.02). Проект может использовать любой режим или их комбинацию; GUI не отменяет необходимости CLI-скриптов проверки и обслуживания (`run/db`, `run/api`, `run/ai`), если соответствующие домены присутствуют.
-
-**Точка входа и запуск:**
-- Запуск GUI выполняется из `main.py` - он создает и отображает главное окно
-- Сразу после инициализации логера `main.py` выводит название и версию через `logger.info(t("msg.app_started", name=APP_NAME, version=APP_VERSION))` - в соответствии с разделами 01.03 и 04.06
-- Заголовок главного окна: `{APP_NAME} v{APP_VERSION}`
-- Перед стартом окна выполняется стартовая валидация окружения (раздел 01.05): при критических проблемах - вывод сообщений через `t()` и `exit(1)` вместо открытия окна
-
-**Технология:**
-- Рекомендуемая библиотека по умолчанию - `tkinter` (стандартная библиотека Python, кросс-платформенная: Windows и Linux, не требует внешних зависимостей). Это соответствует принципу предпочитать стандартную библиотеку (раздел 01.06)
-- Прочие библиотеки (`customtkinter`, `PySide6`/`PyQt`, `textual` и подобные) допустимы - с обоснованием необходимости в `requirements.txt` и при условии кросс-платформенности (Windows и Linux, раздел 01.04)
-- Не использовать библиотеки, привязанные к одной ОС
-
-**Расположение кода:**
-- Код графического интерфейса размещается в подпапке `src/gui/`: окна, виджеты, компоновки, обработчики событий
-- `src/gui/` - аналог модуля `src/menu.py` (раздел 04.07.02) для текстовых меню, но для графического интерфейса
-- Бизнес-логика остается в `src/` и `run/`; модули `src/gui/` отвечают только за отображение и обработку взаимодействия с пользователем
-
-**Текст интерфейса:**
-- Весь текст виджетов (заголовки окон, надписи, кнопки, сообщения, подсказки) - только через `t()` из `src/localization.py` (раздел 04.01)
-- Строковые литералы на естественном языке в коде виджетов не допускаются
-- Переключение языка интерфейса - через `reload()` модуля локализации (раздел 04.01) без перезапуска приложения
-
-**Логирование:**
-- Действия пользователя логируются как смысловые события через `t()` (канон `[>] N` / `Выбран пункт` не используется; см. `console_ui_standards.md`)
-- Сам рендер окна, перерисовка виджетов и оформительские элементы через логгер не дублируются
-- Логгер инициализируется стандартным образом через `src/logger.py`; длительные операции логируют этапы выполнения через `logger.info()`/`logger.error()`
-- Экраны и поток GUI - в `doc/specs/spec_ui.html` (`console_ui_standards.md`)
-
-**Длительные операции:**
-- Операции, способные заблокировать интерфейс (сетевые запросы, запросы к БД, вызовы `run/`-скриптов, работа с Ollama), выполняются в фоновом потоке (`threading` или аналог) - не в главном потоке обработки событий окна
-- Прогресс длительной операции отображается в окне; промежуточные строки прогресса в лог не пишутся (по аналогии с разделом 04.07.01)
-- По завершении - итоговый результат через `logger.info()`
-
-**Корректное завершение:**
-- Закрытие главного окна корректно освобождает ресурсы (раздел 05.03): закрытие подключений к БД, откат незавершенных транзакций, удаление временных файлов
-- Обработка закрытия окна привязывается к сигналу завершения окна (например, `WM_DELETE_WINDOW` в tkinter) - не оставлять orphan-процессов и незакрытых ресурсов
-
-**Кросс-платформенность:**
-- Выбранная библиотека GUI обязана работать на Windows и Linux (раздел 01.04)
-- Пути к ресурсам интерфейса (иконки, шаблоны) строить через `pathlib.Path` относительно `PROJECT_ROOT` - без захардкоженных разделителей
-
----
-
-# 05. Безопасность и надежность
-
-Безопасность, обработка ошибок, корректное завершение, привилегии
-
----
-
-## 05.01. Безопасность
-
-*Обязательно.*
-
-**Секреты:**
-- Не помещать пароли, токены, ключи API в код и в config.ini
-- Использовать файл .env для секретов; загружать через переменные окружения (python-dotenv или аналог)
-- При создании `.env` выставлять права `0600` - чтение только владельцу (Linux: `path.chmod(0o600)`); обновление прав при каждой записи файла. Для Windows прямого аналога прав POSIX нет - полагаться на права папки пользователя
-- Не включать в лог пароли, токены, ключи API и любые другие секреты - даже в контексте ошибки
-
-**Фильтрация секретов в логах - два рубежа:**
-- Первый рубеж (whitelist): в точках вызова логировать только явно разрешенные поля - секретные поля в вызовы логгера не передавать; новое поле попадает в лог только после осознанного решения, что оно безопасно
-- Второй рубеж (blacklist): `_SecretFilter` в `src/logger.py` (custom `logging.Filter`) маскирует значения известных секретных ключей из перечня `SECRET_KEYS` - защита от случайной утечки, не основной механизм. При добавлении в проект нового секрета пополнять `SECRET_KEYS`. Whitelist на уровне фильтра невозможен: фильтр видит сформированную строку сообщения, а не структурированные поля
-
-**SQL:**
-- Все SQL-запросы выполнять через параметризацию; не конкатенировать строки в текст запроса
-
-**Подпроцессы:**
-- Запрет на `subprocess.run(..., shell=True)` (и `os.system`) при участии в команде данных из внешних источников (пользовательский ввод, файлы, ответы API). Использовать передачу аргументов списком: `subprocess.run(["cmd", arg1, arg2])` без `shell=True`
-- `shell=True` допустим только для полностью статичных команд без переменных частей - с обоснованием в комментарии
-
-**Сетевые запросы:**
-- Проверка TLS-сертификатов включена по умолчанию (`verify=True` в requests/httpx). Отключение (`verify=False`) - только при обоснованной необходимости (внутренний self-signed сертификат в контролируемой среде) с комментарием и ограничением области применения
-
-**Валидация ввода и пути:**
-- Данные из внешних источников (пользовательский ввод, файлы, API) валидировать по схеме/типу/диапазону до использования - не передавать сырые значения в логику
-- При обработке путей из внешнего ввода проверять вхождение результирующего пути в разрешенный корень (`Path(user_path).resolve()` и сравнение с `PROJECT_ROOT / "data"`), чтобы предотвратить path traversal
-
-**Секреты в конфигах пользовательских приложений:**
-- Управляемый навыком конфиг вне проекта может требовать секрет: значение хранится в отдельном файле с правами 600, в конфиге - ссылка на файл (поддерживаемым синтаксисом приложения)
-- Найденный в конфиге открытый секрет переносится в файл с заменой на ссылку
-- Значения, попадающие в артефакты навыка (снимки, отчеты), проходят санитизацию по маркерам (token, api-key, префиксы известных видов токенов, passwd, private): значение заменяется заглушкой; снимки декларируют, что приватные ключи не сохраняются - только имена файлов и отпечатки
-
-**Установка sudoers-фрагмента:**
-- Правило `NOPASSWD` выдается только на узкий набор (уровень 2 раздела 05.04): точные пути и аргументы, без `*`, без `ALL` в поле команды, без оболочек и интерпретаторов; пользователь и хост перечисляются явно
-- До установки каждая строка проверяется на root-эквивалентность: команда, которой можно записать файл в системный каталог, загрузить юнит или выполнить произвольный код, дает полный root, а не узкое право
-- Правило не распространяется на шаблоны первичной настройки одноразовых образов (cloud-init user-data): там `NOPASSWD:ALL` - средство провижининга, а не постоянное право рабочей машины
-- Имя файла в `/etc/sudoers.d/` - без точки: sudo молча пропускает файлы с точкой из includedir
-- Фрагмент готовится через mktemp (уникальное имя и режим 0600), а не по фиксированному пути в /tmp, где файл можно подменить между проверкой и установкой
-- Синтаксис проверяется `visudo -cf` до установки: поврежденный файл ломает sudo целиком, проверять после установки - поздно
-- В правиле NOPASSWD указывается путь, которым бинарник реально резолвится (`command -v`), иначе правило не сработает и sudo запросит пароль
-- Итоговое состояние: владелец root:root, режим 0440, затем `visudo -c` целиком и проба вызова без пароля
-
----
-
-## 05.02. Обработка ошибок
-
-*Обязательно.*
-
-**Логирование ошибок:**
-- Указывать контекст: имя скрипта, этап выполнения, релевантные входные данные (исключая секреты - раздел 05.01)
-- Для неожиданных исключений использовать `logger.exception(...)` - пишет полный traceback автоматически; для ожидаемых и заранее обработанных - `logger.error(...)` с человекочитаемым сообщением без трейсбека
-
-**Перехват исключений:**
-- Ловить конкретные классы исключений (`requests.ConnectionError`, `sqlite3.OperationalError`), не `except:` без указания типа и не `except Exception:` без осмысленной обработки
-- Запрет на `except:` и `except Exception: pass` (глушение) - такие конструкции скрывают ошибки и затрудняют диагностику
-- При повторном возбуждении исключения сохранять цепочку причин через `raise NewError(...) from err` - не терять исходный контекст
-- Использовать контекстные менеджеры (`with`) для ресурсов, требующих освобождения - не полагаться на ручной close() в except-блоке
-- Крафт конструкций исключений (минимальный `try`, границы `assert`, выбор встроенного класса) - `doc/standards/code_standards.md`, раздел 02.06
-
-**Иерархия исключений проекта:**
-- Доменные ошибки проекта выносятся в модуль `src/exceptions.py` (или аналог) с собственной иерархией, наследуемой от базового класса проекта (например `ProjectError(Exception)`)
-- Доменные исключения позволяют бизнес-логике реагировать на конкретные ситуации (нет данных, нарушение ограничения, пропуск этапа), не анализируя текст системной ошибки
-- Использовать `from None` только при осознанном скрытии внутренних деталей от пользователя (например, при трансляции технической ошибки в пользовательское сообщение)
-
----
-
-## 05.03. Корректное завершение
-
-*Обязательно.*
-
-При завершении скрипта (как штатном, так и по сигналу прерывания) корректно освободить все ресурсы. Пользователь не должен терять данные из-за Ctrl+C.
-
-**Ресурсы для освобождения:**
-- Подключения к БД - закрыть соединения (connection.close())
-- Открытые файлы - закрыть через контекстные менеджеры (with open(...))
-- Временные файлы - удалить из папки tmp/ (раздел 01.01.04)
-- Незавершенные транзакции - откатить (rollback) при прерывании, не оставлять partial state
-
-**Обработка сигналов:**
-- SIGINT (Ctrl+C): перехватить через signal или try/except KeyboardInterrupt; выполнить очистку; при необходимости вывести сообщение о завершении; выйти с кодом 130 (`sys.exit(130)`)
-- SIGTERM: для долгоживущих процессов и сервисов (контейнеры, systemd, supervisor) - перехватывать так же, как SIGINT, с очисткой. Контейнерные оркестраторы и менеджеры служб завершают процессы через SIGTERM, не SIGINT; без обработчика процесс обрывается без cleanup. Код завершения: CLI - `128 + sig` (SIGTERM - 143), сервис при штатной остановке - 0
-- Платформенная оговорка: SIGTERM как внешний сигнал - Linux и контейнеры. На Windows SIGTERM от внешних процессов не доставляется: `os.kill` с SIGTERM вне CTRL_C_EVENT / CTRL_BREAK_EVENT завершает процесс через TerminateProcess без вызова обработчиков. Штатное завершение консольных процессов идет через console events (CTRL_C_EVENT, CTRL_BREAK_EVENT) и закрытие окна - основной контракт завершения на Windows - KeyboardInterrupt и обработчик закрытия окна (GUI - раздел 04.08)
-- Сообщение о прерывании (`msg.interrupted`) опционально: допустимы оба варианта - короткое сообщение или завершение без него. Недопустимо одно - подавлять прерывание и продолжать работу: процесс обязан завершиться
-- Если сообщение выводится: в режиме `plain` - `logger.info(t("msg.interrupted"))`; при menu frame - `console_ui_standards.md` (раздел 04.03) (`emit_session_notice` / `print` + `log_file_only`, не info-логгер в консоль кадра)
-
-**Коды завершения (единая конвенция для всех точек входа - run/, main.py, оркестраторы):**
-
-| Код | Значение |
-|-----|----------|
-| 0   | Успех |
-| 1   | Ошибка выполнения: сбой логики, внешнего ресурса, данных |
-| 2   | Ошибка валидации окружения: конфигурация, пути, обязательные параметры (раздел 01.05) |
-| 130 | Прерывание по SIGINT (Ctrl+C); в обработчике - `sys.exit(130)` |
-| 143 | Прерывание по SIGTERM (128 + 15); для CLI. Штатная остановка сервиса - 0 |
-
-- Ошибка валидации при запуске (раздел 01.05) завершает скрипт кодом 2, ошибка выполнения - кодом 1
-- Шаг оркестратора, завершившийся с ненулевым кодом, останавливает пайплайн; итоговый код оркестратора - код упавшего шага
-- Коды 130 / 143 - конвенция Linux (128 + номер сигнала): SIGINT -> 130, SIGTERM -> 143. Штатная остановка сервиса по SIGTERM - 0 (успех), чтобы `Restart=on-failure` не поднимал сервис заново. На Windows перехваченное прерывание завершается кодом 130 (`sys.exit(130)`) - единая конвенция без исключений
-
-**Паттерн через signal:**
-```python
-import signal
-import sys
-
-def _signal_handler(sig, frame):
-    logger.info(t("msg.interrupted"))  # сообщение опционально
-    # cleanup
-    sys.exit(128 + sig)  # SIGINT -> 130, SIGTERM -> 143; сервис при штатной остановке - sys.exit(0)
-
-signal.signal(signal.SIGINT, _signal_handler)
-signal.signal(signal.SIGTERM, _signal_handler)
-```
-
-Или через try/finally:
-```python
-try:
-    main()
-except KeyboardInterrupt:
-    logger.info(t("msg.interrupted"))
-    sys.exit(130)
-finally:
-    # cleanup: закрыть подключения, удалить временные файлы
-```
-
-**Правила:**
-- Не полагаться на atexit для критичных ресурсов: обработчики не вызываются при завершении неперехваченным сигналом (SIGKILL, SIGTERM без обработчика Python), при фатальной внутренней ошибке интерпретатора и при `os._exit()`; `sys.exit()`, в том числе из обработчика сигнала в главном потоке, обработчики выполняет. Освобождение критичных ресурсов - контекстные менеджеры и cleanup в обработчике сигнала
-- Использовать контекстные менеджеры (with) для файлов и подключений - автоматическое закрытие
-- Не оставлять orphan-процессов при работе с subprocess
-
----
-
-## 05.04. Привилегированные операции (root, sudo)
-
-*Обязательно.*
-
-- Если для выполнения задачи агенту требуются права root или sudo (установка системных пакетов, изменение системных конфигов, работа с системными службами и т.п.) - не выполнять такие команды самостоятельно вне уровней, описанных ниже
-- Вместо этого агент должен: сообщить пользователю, какая именно команда требует повышенных привилегий и зачем она нужна; попросить пользователя выполнить ее вручную; дождаться от пользователя подтверждения выполнения; продолжить работу только после подтверждения
-- Вне этих уровней не использовать `sudo` в командах, запускаемых агентом; не пытаться обойти ограничения через `su`, `pkexec` и аналогичные механизмы
-
-**По умолчанию - строгий порядок.** Привилегированные операции агент не выполняет и передает пользователю для ручного выполнения, как описано выше. Ни один скрипт навыка не получает право на повышение привилегий без объявленного уровня, а для уровней 1-3 - и без оверрайда; на уровне 0 согласие дает сам пользователь вводом пароля.
-
-**Уровни применения.** Привилегированная операция скрипта выполняется только одним из уровней, объявленным заранее:
-
-- **Уровень 0 - человек за терминалом.** Агент запускает скрипт под псевдотерминалом (tmux или screen) командой `sudo <абсолютный интерпретатор> <абсолютный скрипт>`; весь скрипт идет от root, пользователь подключается к сессии и вводит пароль в приглашении обычного `sudo`. askpass не участвует, `-A` не используется: sudo видит настоящий tty
-- **Уровень 1 - графическая сессия.** Скрипт поднимается через `sudo -A` с GUI-askpass, пароль вводит пользователь в системном диалоге
-- **Уровень 2 - безлюдный прогон с фиксированным набором команд.** Установлено узкое правило `NOPASSWD` в `/etc/sudoers.d/` (раздел 05.01), скрипт вызывает `sudo -n`
-- **Уровень 3 - безлюдный прогон с невыразимым набором команд.** Файловый askpass: обертка читает пароль из файла и отдает его `sudo -A`
-
-Выбор уровня фиксируется до запуска: для уровней 1-3 - в записи оверрайда, для уровня 0 - явной просьбой пользователя в текущей сессии. Скрипт не подбирает уровень по обстоятельствам и не переходит на более слабый уровень (в сторону файлового askpass) при невыполнении условий: при несоответствии - код завершения 1 и печатный блок готовых команд для ручного выполнения. Молчаливое сползание на файловый askpass запрещено: иначе секрет на диске становится значением по умолчанию.
-
-**Уровень 0: порядок.**
-- Отдельная запись оверрайда не нужна: согласие дает ввод пароля, ручной шаг в модели сохраняется. Запуск допускается только по явной просьбе пользователя в текущей сессии
-- До запуска агент печатает точную команду в чат; та же команда выводится в панели над приглашением, чтобы пользователь видел, что авторизует
-- Сессия создается отдельным сокетом и именем (`tmux -L <name> new-session -d -s <session>`), чтобы не пересечься с пользовательскими сессиями
-- Пароль вводит пользователь руками; передача пароля через `tmux send-keys`, буфер обмена или аргументы командной строки запрещена
-- Подключиться нужно в пределах `passwd_timeout` (по умолчанию 5 минут); истекшее приглашение - повтор с новой сессией, а не бесконечное ожидание
-- Код возврата закрывшейся сессии не используется как признак результата: успех определяется только объективной перепроверкой состояния, как и для остальных уровней
-
-**Уровень 2: порядок.**
-- Правило состоит из точных путей и аргументов (`user host = (root) NOPASSWD: /абс/путь арг1 арг2`), без `*`, без `ALL`, без оболочек и интерпретаторов
-- Каждая строка проверяется на root-эквивалентность до установки: `NOPASSWD` на `install`, `cp` или редактор в системный каталог, на интерпретатор, на `systemctl` с созданием юнита дает полный root, а не узкое право
-- Установка фрагмента - по разделу 05.01: имя без точки, `mktemp` 0600, `visudo -cf`, владелец root:root, режим 0440, проба вызова без пароля
-- Скрипт вызывает `sudo -k -n`; отказ - код 1 и печатный блок команд, без повторов и без перехода на уровень 3
-- Отзыв - удаление фрагмента; после отзыва машина возвращается к строгому порядку
-- `sudo -k -n` при установленном узком фрагменте не считается запрещенным неинтерактивным повышением прав: правило установлено пользователем вручную и ограничено перечисленными командами. Флаг `-k` исключает опору на ранее выданный timestamp, поэтому без фрагмента (и без другого NOPASSWD-правила на эту команду) вызов падает
-
-**Уровень 3: файловый askpass.**
-- Хранение: каталог 0700, файл 0600, обычный файл (не симлинк), владелец - инвокер, вне репозитория, не в `/tmp`, не в синхронизируемой папке. Расположение постоянное: безлюдный прогон не имеет ни графической сессии, ни keyring, ни гарантированного `XDG_RUNTIME_DIR`
-- Файл создает только пользователь: `install -m 600 /dev/null <путь>` и ввод через `read -rsp` - без эха и без истории команд. Агент вправе напечатать эти команды, но не выполняет их с литеральным паролем
-- Обертка печатает в stdout ровно одну строку (первая строка файла, `\r` срезан); диагностику - только в stderr; аргумент-приглашение игнорирует; на любую аномалию (нет файла, чужой владелец, права не ровно 0600, симлинк, пустая первая строка, размер больше 4096 байт) - ненулевой код
-- Конфигурацию обертка берет из собственного расположения и проектного соглашения, а не из переменных окружения, унаследованных через sudo: состав передаваемого окружения не гарантирован
-- Одна попытка на прогон: обертка отвечает один раз, повторный вызов завершается отказом. Иначе `passwd_tries` (по умолчанию 3) сожжет три попытки, а для AD/LDAP это блокировка учетной записи. Маркер попытки - файл без секрета в приватном каталоге 0700; путь маркера обертка определяет по тому же проектному соглашению
-- Агент не читает, не копирует, не перемещает и не печатает файл; единственный потребитель - обертка
-- Провал громкий: отдельный код завершения, диагностика без секрета, маркер в отчете. Смена пароля ломает уровень 3 по своей природе и ловится обязательной перепроверкой состояния, а не разбором вывода sudo
-
-**Точечный оверрайд по явному запросу.** Если пользователь явно запрашивает выполнение конкретной привилегированной операции скриптом навыка без ручного шага, агент оформляет точечный проектный оверрайд по разделу 01.01.02: запись в `doc/specs/overrides.md` со ссылкой на 05.04, указанием конкретного навыка, скрипта, уровня (1, 2 или 3) и даты согласования. Оверрайд выдается на конкретную операцию конкретного скрипта, а не на `sudo` вообще. На уровнях 1-3 запускается только сам скрипт; агент не конструирует и не выполняет команды с `sudo` напрямую, включая инлайн `sudo -A` и `sudo -k -n`. Прямой `sudo` без объявленного уровня, `sudo -S` (`--stdin`), `su`, `pkexec` и повышение прав вне объявленного уровня запрещено всегда. Область - Linux; повышение прав на Windows не расширяется.
-
-**Протокол скрипта при действующем оверрайде (уровни 1-3):**
-- Самоподъем: скрипт перезапускает себя через exec с `sudo -k -A` (уровни 1 и 3), когда совпадают все условия: запуск не от root; нет маркера уже выполненного подъема в окружении (защита от рекурсии); для уровня 1 - есть графическая сессия и найден askpass (переменная `SUDO_ASKPASS` или каскад штатных GUI-askpass); для уровня 3 - файл пароля соответствует правилам блока «Уровень 3»; оверрайд в `doc/specs/overrides.md` упоминает 05.04, имя навыка и тот же уровень. Скрипт сам проверяет свой оверрайд, а не доверяет вызывающему
-- Уровень 2 привилегии не поднимает: скрипт выполняет каждую команду отдельным вызовом `sudo -k -n <точная команда>` и падает при отсутствии правила; серия без внутренних sudo-префиксов не требуется, пароля нет
-- Уровни 1 и 3: одна авторизация на серию - `sudo -k -A <абсолютная команда>`, серия собирается в один вызов без внутренних sudo-префиксов. Флаг `-k` заставляет игнорировать кэш и не обновлять его: действующий timestamp после прогона не остается, отдельная пре-авторизация `sudo -v` не нужна
-- После привилегированного прогона - объективная перепроверка состояния; «команды выполнены, но элемент не подтвержден» - отдельный результат, требующий ручной проверки, а не успех
-- При любом несоответствии условий - без повышения: код завершения 1 и печатный блок готовых команд для ручного выполнения
-
-**Ловушки sudo-окружения:**
-- Артефакты, созданные под root, возвращаются инвокеру: chown по `SUDO_UID`/`SUDO_GID` на файлы и созданные каталоги - иначе пользователь и агент не могут их читать и править
-- Часть утилит не работает от root в принципе (сервисы пользовательской сессии, графические утилиты): такие команды выполняются от имени инвокера с восстановлением его окружения (runuser с `XDG_RUNTIME_DIR`; сессии Wayland/X11 обнаруживаются по сокетам в `/run/user/<uid>` и `/tmp/.X11-unix`)
-- sudo подменяет PATH значением secure_path без sbin-каталогов: перед поиском системных утилит PATH дополняется sbin-каталогами явно
-- При запуске всего скрипта от root (уровень 0) домашний каталог и конфиг пользователя берутся из `SUDO_USER`/`SUDO_UID`, а не из `$HOME`; повторный самоподъем не выполняется
-
----
-
-# 06. Документация и версионирование
-
-Git, README, AGENTS, отладка, тестирование
-
----
-
-## 06.01. Git
-
-*Обязательно.*
-
-**Инициализация:**
-- При начале работы над проектом сразу выполнить `git init` и создать `.gitignore`
-- Первый коммит выполнять после того, как код написан и структура проекта сформирована - не в самом начале
-- Использовать одну ветку: `master`
-
-**Файл .gitignore** должен исключать: `.env`, `log/`, `debug/`, `tmp/`, `.trash/`, `input/`, `output/`, `data/`, `.arch/`, `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `.venv/`, `.vscode/`, `.claude/`, `.opencode/` (кроме `.opencode/plugins/` - плагины с кастомными tools коммитятся, `opencode_tool_standards.md` 01.03), `.kilo`, `.cursor`, `web/var/` (рантайм веб-подсистемы - `web_standards.md` 02.07), а также транзитная подпапка `doc/`: `doc/agent_questions/`. Сами папки `doc/standards`, `doc/specs`, `doc/skills`, `doc/change_requests` коммитить - они содержат проектные артефакты (канон заданий на изменение - `change_request_standards.md`); папка `diag/` с диагностическими скриптами и индексом также коммитится (раздел 01.01.04); папка `test/` с эталонными тестами - коммитится (раздел 01.01.05). Из игнорируемого `data/` исключения - подпапка `data/skills/` с локальными навыками (`pr_loc`) (раздел 01.01): паттерн `!data/skills/`; файл журнала уроков `data/lessons.md` (раздел 01.01.07): паттерн `!data/lessons.md`; подпапка `data/memory/` с памятью агентов (`doc/standards/memory_standards.md`): паттерн `!data/memory/`; зоны рантайм-данных навыков (`doc/standards/skill_data_standards.md`): паттерны `!data/registries/`, `!data/journals/`, `!data/state/`; кэш навыков `data/cache/` остается в игноре.
-
-**Сохранение пустых папок в Git:** Git не хранит пустые директории. Для папок, которые исключены в `.gitignore`, но реально используются в проекте (упоминаются в коде, конфиге или структуре проекта), размещать в папке файл `.gitkeep`. В `.gitignore` исключать содержимое папки, но не сам `.gitkeep`:
-
-```
-log/*
-!log/.gitkeep
-```
-
-Так папка сохраняется в репозитории как пустая, а ее реальное содержимое (логи, отладочные файлы и т.д.) не попадает в коммиты. Паттерн применяется ко всем исключаемым папкам с локальным содержимым: `log`, `debug`, `input`, `output`, `data`, `doc/agent_questions`:
-
-```
-doc/agent_questions/*
-!doc/agent_questions/.gitkeep
-```
-
-Папка `tmp/` исключается целиком, без `.gitkeep`: она создается по требованию и в репозитории не хранится. Файл `.gitkeep` создавать только для тех папок из `.gitignore`, которые реально нужны проекту (log, debug, input, output и др.) - не добавлять `.gitkeep` в папки, которые заведомо не используются.
-
-**Полный пример `.gitignore` для производного проекта:**
-
-```
-.env
-.venv/
-__pycache__/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.vscode/
-.claude/
-.kilo
-.cursor
-web/var/
-
-# служебная обвязка opencode: плагины с кастомными tools коммитятся
-.opencode/*
-!.opencode/plugins/
-
-# папки с локальным содержимым - коммитить только .gitkeep
-data/*
-!data/.gitkeep
-!data/skills/
-!data/lessons.md
-!data/memory/
-!data/registries/
-!data/journals/
-!data/state/
-log/*
-!log/.gitkeep
-debug/*
-!debug/.gitkeep
-input/*
-!input/.gitkeep
-output/*
-!output/.gitkeep
-
-# разовые артефакты - целиком, без .gitkeep
-tmp/
-
-# карантин удаляемого - целиком, без .gitkeep
-.trash/
-
-# архивы .arch - на любой глубине, без .gitkeep
-.arch/
-
-# транзитная папка doc/
-doc/agent_questions/*
-!doc/agent_questions/.gitkeep
-```
-
-Исключение `!data/skills/` возвращает подпапку `data/skills/` в git: она коммитится целиком (локальные навыки (`pr_loc`), раздел 01.01). Исключение `!data/lessons.md` возвращает файл журнала уроков (раздел 01.01.07). Исключение `!data/memory/` возвращает подпапку памяти агентов (`doc/standards/memory_standards.md`). Остальное содержимое `data/` остается локальным.
-
-**Файл .gitattributes (обязателен):** при кросс-платформенной разработке (раздел 01.04) контролирует окончания строк и предотвращает попадание CRLF в коммиты, что необходимо для корректной работы shell-скриптов и читаемого diff. Минимальное содержимое в корне репозитория:
-
-```
-* text=auto eol=lf
-```
-
-Правила:
-- Все текстовые файлы хранятся с LF (Unix-окончания)
-- Платформенные Windows-скрипты (.bat, .cmd, .ps1 с CRLF) и бинарные ресурсы (.png, .xlsx и т.п.) помечаются инлайн при добавлении таких файлов в репозиторий - точечные `*.bat text eol=crlf`, `*.png binary`. Полный предзаполненный список не ведется - добавляется по мере появления файлов соответствующих типов
-- Файл `.gitattributes` коммитится в репозиторий (не исключается)
-
-**Формат сообщений коммитов** - Conventional Commits, язык русский:
-
-```
-<type>(<scope>): <short_description>
-<type>: <short_description>
-```
-
-Scope указывает область изменений (например: `db`, `api`, `config`, `logger`, `docs`). Формат со scope и без scope равнозначны - выбор зависит от контекста изменения. Если изменение изолировано в конкретной области - использовать scope. Если изменение затрагивает несколько областей или не относится к конкретной - коммит без scope.
-
-Типы:
-
-| Тип      | Назначение                                                   |
-| -------- | ------------------------------------------------------------ |
-| feat     | Новая функциональность                                       |
-| fix      | Исправление ошибки                                           |
-| refactor | Рефакторинг без изменения поведения                          |
-| chore    | Обслуживание: зависимости, конфиги, инструменты              |
-| docs     | Изменения только в документации                              |
-| test     | Добавление или исправление тестов                            |
-| style    | Форматирование, пробелы, переносы - без изменения логики     |
-
-Примеры:
-```
-feat(api): добавить загрузку данных из API
-fix: исправить обработку пустого ответа сервера
-chore(deps): добавить зависимости в requirements.txt
-docs: обновить README - инструкция по запуску
-```
-
-**Правила:**
-- Описание - на русском, в инфинитиве, с маленькой буквы, без точки в конце
-- Одна логическая единица изменений - один коммит; не смешивать несвязанные правки
-- Не коммитить файлы из `.gitignore`; не коммитить секреты
-- Не упоминать в сообщениях коммитов и комментариях к коду, что изменения сделаны ИИ-агентом, нейросетью или инструментом автоматической генерации кода
-
-**Авторство коммитов AI-агента:** при выполнении коммита агент определяет данные автора динамически из системы и сохраняет в локальный конфиг репозитория:
-- `user.name` = вывод команды `whoami`
-- `user.email` = `$(whoami)@$(hostname)`
-- Не задавать фиксированные значения; всегда вычислять на текущей машине
-- При первом коммите: вычислить значения и сохранить в локальный конфиг:
-  ```bash
-  git config --local user.name "$(whoami)"
-  git config --local user.email "$(whoami)@$(hostname)"
-  ```
-- При последующих коммитах: проверить сохраненные значения в локальном конфиге; если текущие whoami/hostname не совпадают - автоматически обновить локальный конфиг на новые значения
-- Не использовать флаги `-c` в команде `git commit`; полагаться на локальный конфиг репозитория
-
-**Состав коммита по запросу пользователя:**
-Если пользователь явно просит сделать коммит, включать в него все измененные и неотслеживаемые файлы, которые не входят в `.gitignore`, - независимо от того, кто их создал (агент, скрипт, пользователь). Не ограничиваться только файлами, измененными в рамках текущей задачи агента. Перед коммитом выполнить `git status`, убедиться что ни один файл из `.gitignore` не попадает в индекс, и только затем выполнять `git add` и коммит.
-
-**Предкоммитные проверки целостности пакета (ворота коммита).** Репозиторий с пакетом стандартов оснащается хуком `.githooks/pre-commit`: эталон - файл в хабе `project_standards`, в производные репо он приезжает вместе с пакетом (навык `hub-sync-standards`). Хук активируется на каждой машине явно - `git config core.hooksPath .githooks` из корня репозитория (после клонирования, до первого коммита); без этой команды хук не действует. Проверки выполняются по staged-состоянию коммита:
-
-1. Правка любого `doc/standards/*.md` без обновления `_index_standards.md` в том же коммите - блок
-2. Единая версия пакета (при правке стандартов в коммите): версии в заголовках всех `doc/standards/*.md` равны между собой и строкам «Соответствует стандарту» в `AGENTS.md`, `README.md`, `CLAUDE.md` (если есть); расхождение - блок
-3. Зеркало: `CLAUDE.md` совпадает с `AGENTS.md` с точностью до известных строк (H1 и строка интро), если `doc/specs/overrides.md` не содержит собственной политики CLAUDE.md; расхождение - блок
-4. Контекстные ссылки: ссылки вида «раздел NN.NN» и «(NN.NN» в staged файлах пакета ведут на существующие разделы пакета; несуществующий номер - блок. Ограничение: голые упоминания NN.NN вне контекста не проверяются - защита от ложных срабатываний на примеры в тексте (номера версий, даты, IP-адреса); ссылки на разделы верхнего уровня («(01, 07)») и диапазоны («(02-04)») паттерном не охватываются - известная слепая зона проверки
-
-Нарушение исправляется до коммита; подавление хука (`--no-verify`) не применяется.
-
----
-
-## 06.02. README.md и AGENTS.md
-
-*Обязательно.*
-
-Структура `README.md`, правило применимости секций и актуализация - `repo_info_doc_standards.md`. `AGENTS.md` - обязательный файл инструкций агента: точки входа сессии, слои, таксономия разделов, каркас и политика `CLAUDE.md` - `index_nav_standards.md`.
-
-Требования, остающиеся в этом разделе:
-
-- Строка версии пакета `Соответствует стандарту: X.Y.Z` - в `AGENTS.md`, `README.md` и `CLAUDE.md` (если файл есть); формат и правила bump - раздел 07.04
-- `AGENTS.md` - маршрутизатор: явные ссылки на индексы репозитория как точки входа сессии (перечень и правила оформления - `index_nav_standards.md`, раздел 02.02)
-- Карта меню проекта в README не дублируется; единственный источник - `doc/specs/spec_ui.html` (`console_ui_standards.md`)
-- Язык обоих файлов (AGENTS.md и README.md) - русский по умолчанию; английский - по явному запросу пользователя, без смешения языков в одном документе
-
----
-
-## 06.03. Отладка
-
-*Обязательно.*
-
-- Не создавать отладочные скрипты и разовые артефакты в корне проекта
-- Отладочные скрипты размещать в папке debug
-- Разовые артефакты (скриншоты, выгрузки, черновики) размещать в папке tmp; после коммита агент удаляет из tmp созданные им артефакты (раздел 01.01.04)
-
-**Дисциплина отладки.** Поиск первопричины идет фазами, без правок наугад:
-
-1. Воспроизвести сбой и зафиксировать точные условия: команда, вход, окружение, ожидание против факта
-2. Локализовать границу: уровень или модуль, где поведение впервые отклоняется от ожидания; при необходимости - инструментировать границу (временный лог, минимальный воспроизводящий скрипт в debug/)
-3. Сформулировать гипотезу первопричины, объясняющую все наблюдения, а не только симптом; ошибку, не объяснимую локальным кодом, проверять по каскаду раздела 07.06
-4. Минимальный фикс по гипотезе, затем проверить исходное воспроизведение и смежные сценарии
-
-**Правило трех фиксов.** Три подряд неудачные попытки исправить один сбой - остановка: первопричина выбрана неверно либо проблема в архитектуре. Дальше - пересмотр гипотезы на уровне архитектуры или эскалация пользователю; переносимый вывод фиксируется в `data/lessons.md` (раздел 01.01.07)
-
----
-
-## 06.04. Тестирование
-
-*Опционально.*
-
-- Постоянные проверки работы проекта оформляются как эталонные тесты агентов в папке `test/` (раздел 01.01.05); переиспользуемые диагностические скрипты - в `diag/` (раздел 01.01.04); разовые проверки и артефакты - в `tmp/`
-- Для Python-проектов каноничный фреймворк тестов - pytest; иной стек - фреймворк по умолчанию стека. Правила тестов: файлы `test_<topic>.py`, проверки - функции `test_<behavior>`; подготовка состояния - фикстурами, без копипасты в теле проверки; однотипные проверки над разными данными - параметризацией; внешние подключения (БД, API, Ollama) - на моках; тестовые данные - синтетические, боевыми данными тесты не питаются
-- Тесты и проверочные скрипты не держать в корне проекта
-
-**Приоритетные инварианты для проверки** (покрывают механики, невидимые до сбоя в работе; кандидаты в `test/` по согласованию с пользователем):
-
-- retry (раздел 02.04): количество попыток, экспоненциальный backoff, отсутствие retry для ошибок аутентификации и валидации (401/403/400/422), обработка `Retry-After`
-- идемпотентность (раздел 03.01): повторный запуск операции не создает дублей (UPSERT, пропуск загруженного, уникальные индексы)
-- ротация логов (раздел 04.06, при включенном `keep_last`): удаляются только файлы своего скрипта, соблюдается `keep_last`
-- миграции (раздел 03.02.03, при наличии): миграция применяется один раз, примененная миграция не изменяется
-
-**Приоритетные объекты проверки инфраструктуры** (присутствуют в каждом проекте по стандарту и проверяются в первую очередь):
-
-- `src/config.py` - вычисление `PROJECT_ROOT`, загрузка `[app]`, поведение при отсутствии секции
-- `src/logger.py` - создание файла лога, формат `_MarkerFormatter` во всех режимах (`mode`: plain/menu/rich), отсутствие дублирования handlers при повторном вызове `get_logger`
-- `src/localization.py` - `t()` с интерполяцией, fallback-цепочка (текущий -> дефолт -> `!KEY!`), плюрализация по count, `reload()` со сменой языка
-- Внешние подключения (БД, API, Ollama) в проверках мокаются - проверки не должны требовать живого окружения
-
----
-
-# 07. Рабочий процесс
-
-Правила работы, общение, инициализация, проверка, редактирование
-
----
-
-## 07.01. Общие правила работы
-
-*Обязательно.*
-
-1. Не менять существующую бизнес-логику и поведение без явного согласования с пользователем
-2. При необходимости искать решение в интернете
-3. После значимых изменений обновлять проектную документацию, включая README.md и, при наличии пользовательского вывода, `doc/specs/spec_ui.html` (при изменении меню, кадров вывода или формата лога - синхронно обновить макет и его SemVer по `console_ui_standards.md`). Стиль текста при обновлении - раздел 04.03 (каноничный текст по факту, без историй и changelog без явного запроса)
-4. При обновлении документации: активно выявлять устаревший контент (противоречия, дублирование, неактуальные инструкции). Удалять устаревший контент - только после явного подтверждения пользователя: описать что именно устарело и почему, предложить удалить, дождаться ответа. Без подтверждения - не удалять и не сокращать ничего
-5. При запросе пользователя актуализировать документацию: перечитать весь проект (структуру папок, все файлы, конфигурацию), обновить README.md и `spec_ui.html` в соответствии с текущим состоянием - в том числе таблицу структуры файлов и директорий, пайплайн, раздел запуска, карту и кадры макета
-6. Точечные изолированные задачи (поиск в репозитории, анализ и чтение файлов, аудит, проверки, подготовка отчетов) выполнять через субагентов, а не в контексте основной сессии; основной агент - уточнение требований, декомпозиция, постановка задач субагентам, сводка результатов, коммуникация с пользователем. Делегирование избыточно для одиночного чтения файла, прямого ответа на вопрос и задач, требующих диалога с пользователем. Постановка задачи субагенту включает цель, границы (что можно и нельзя трогать), контекст и формат отчета; модель подбирается под класс работы - механический поиск и сборка выполняются более дешевой моделью, ревью, архитектура и каноничные тексты - сильной, выбор фиксируется в постановке. Объемные брифы и данные передаются субагенту файлами, а не вставкой в промпт: вставленный текст занимает контекст сессии до ее конца. Языки при обмене с субагентами: бриф и ответ субагента - служебный транзитный текст, в репозиторий не попадают и на язык проекта (04.03) не распространяются. Брифы субагентам основной агент пишет на английском; русский текст в брифе - только дословные цитаты из файлов репозитория и русскоязычные поисковые ключи. Ответы субагентов исполняются к английскому шаблонным блоком брифа (по умолчанию - `Respond in English; keep verbatim repo quotes in Russian`), который основной агент добавляет в каждую постановку автоматически; случай нарушения безвреден - русский ответ читает и пересказывает основной агент. Англоязычный обмен дешевле по токенам и устойчивее читается дешевыми моделями; сводку пользователю основной агент пишет сам своим языком (07.02). Язык содержимого, которое субагент производит для репозитория (код, комментарии, тексты артефактов), - по 04.03 независимо от языка брифа и ответа. Задача, где язык выхода принципиален (редактура русского текста, отчет на заданном языке, материал для прямой вставки пользователю), включает языковой контракт в постановке явным переопределением шаблонного блока: контракт целиком замещает его и действует на бриф, артефакт и язык ответа, а не дополняет его; в переопределении отдельно указываются язык брифа, язык артефакта и допустимость языка, отличного от английского, в ответе
-7. Верификация заявлений: любое заявление о результате («исправлено», «работает», «тесты проходят», «соответствует стандарту») делается только после свежего запуска соответствующей команды и прочитанного вывода. Минимальные доказательства по типам заявлений: «код исправлен» - diff измененных строк; «проверки проходят» - команда и фактический вывод; «соответствует стандарту» - раздел стандарта и как требование выполнено; «документация обновлена» - измененные строки документа
-8. Отклонение от согласованного плана или спецификации фиксируется явно: принятое решение - причина - цена ошибки при возврате к плану; в длинной задаче записи накапливаются в рабочем диалоге или SESSION.md сессии (раздел 01.01.01), финальный отчет по задаче включает перечень таких решений
-9. Ревью собственной работы двухстадийное: сначала соответствие задаче или спецификации (каждое требование закрыто), затем качество исполнения (код - `code_standards.md`, текст - 04.03 и `human_text_standards.md`, структура - 01.01); замечания делятся на блокирующие (исправляются до сдачи результата) и второстепенные (перечень с предложением, исправление - по решению пользователя)
-
-**Запрещенные рационализации.** Типовые обходы норм и контр-нормы к ним:
-
-- «Слишком простая правка, чтобы проверять» - верификация (пункт 7) обязательна независимо от размера правки
-- «Уверен, что работает» - уверенность не замещает запуск команды и чтение вывода
-- «Сделаю быстрее мимо канона» - нормы пакета применяются независимо от размера задачи и срочности
-- «Отклонение мелкое, можно не фиксировать» - фиксируются все отклонения (пункт 8); нефиксированное решение воспринимается другим агентом как норма
-
----
-
-## 07.02. Общение с пользователем, уточнение требований и триггер выполнения
-
-*Обязательно.*
-
-- Язык общения с пользователем: русский
-
-**Режимы уточнения требований.** При начале работы с агентом в новом диалоге агент первым действием уточняет режим уточнения требований: пакетный или интерактивный. Режим действует до конца диалога. Оба режима применяются одинаково в корне проекта и внутри сессий (раздел 01.01.01) - артефакты уточнения локализуются в папке сессии. Задачи, в которых очевидно, что делать, выполняются без уточнения в обоих режимах.
-
-**Класс тяжести задачи.** При постановке задачи агент классифицирует ее: разведка (вопрос о возможности или качестве решения; выход - ответ и рекомендация, код не сохраняется), точечная (малая правка существующего поведения; короткий дизайн в диалоге без отдельной спецификации), крупная (новая подсистема, изменение структуры или новое поведение; полная спецификация по этому разделу). Пограничный случай трактуется в сторону более тяжелого класса; скрытая сложность, обнаруженная в работе, переводит задачу в более тяжелый класс - работа останавливается до пересогласования процесса.
-
-**Скриншоты пользователя.** Когда пользователь в диалоге упоминает скриншот (например, «глянь скриншот», «что на скрине») и не называет файл, агент не просит прислать скриншот заново, а ищет его в стандартных папках скриншотов машины: Linux (KDE, GNOME) - `~/Pictures/Screenshots`, дополнительно `~/Рабочий стол` и `~/Desktop`; Windows - `C:\Users\<user>\Pictures\Screenshots` и рабочий стол; macOS - `~/Desktop`. Выбирается самый свежий файл - по дате в имени или mtime. Содержимое изображения читается по факту: то, что не извлекается из изображения достоверно, агент не выдумывает - неясные фрагменты и допущения проверяются вопросом пользователю в этом разделе. При сомнении, что найден именно тот скриншот, - короткий уточняющий вопрос. Скриншот, нужный для дальнейшего разбора, копируется в `tmp/<domain>/` (раздел 01.01.04): не коммитится, убирается после задачи. Нестандартное место сохранения скриншотов на машине фиксируется в проектном оверрайде (раздел 01.01.02).
-
-**Пакетный режим:**
-
-- Агент изучает проект, собирает полный пакет неясностей и оформляет все вопросы одним файлом
-- Вопросы задаются только через файл в папке `doc/agent_questions`; в чат вопросы не выносятся
-- Имя файла: `questions_[timestamp].md`, где timestamp - момент создания в формате YYYY-MM-DD_HH-MM; каждый новый набор вопросов - новый файл
-- Использовать структуру файла вопросов из конца этого раздела как образец
-- Нумерация вопросов сквозная в рамках файла
-- Если для вопроса уместны варианты ответа - перечислять их нумерованным списком непосредственно под вопросом; варианты сортируются по убыванию релевантности по оценке агента, наиболее подходящий - первым
-- Под каждым вопросом оставлять блок для ответа: строка `Ответ:`, затем две пустые строки
-- В чат писать только уведомление о том, что создан новый файл с вопросами, с указанием пути к файлу
-- В режиме согласования требований: не вносить изменения в проект до получения явного подтверждения пользователя; после записи вопросов - ожидать ответов перед следующим действием
-- Задавать вопросы итерационно: после получения ответов анализировать, появились ли новые неясности, и при необходимости задавать следующий набор вопросов
-- После получения ответов на все вопросы файла - перенести файл из doc/agent_questions в карантин `.trash/` (раздел 01.01.06). Переносить только когда все ответы получены и зафиксированы, дальнейшие вопросы не требуются
-
-**Интерактивный режим:**
-
-- Старт от высокого уровня: пользователь формулирует задачу через сценарии использования - кто пользуется, какие действия, какой результат; агент не требует полноты формулировки сразу и строит из стартовых юзкейсов каркас спецификации
-- Вопросы задаются через стандартный интерактив агентского инструмента - встроенный механизм вопросов с вариантами ответа (в opencode - инструмент `question`); если инструмент недоступен - текстом в чате. По одному, в порядке убывания приоритета: сначала вопросы, от которых зависят архитектура, поведение и контракты, затем детали. Ответ пользователя может менять состав и порядок следующих вопросов
-- С каждым вопросом агент предлагает варианты решения, отсортированные по релевантности: рекомендуемый - первым, с указанием источника по иерархии раздела 07.06; пользователь выбирает вариант или дает свой
-- Спецификация наполняется по мере ответов, а не в конце: документ создается в начале диалога (каркас юзкейсов), каждый согласованный ответ сразу переносится в свой раздел; к завершению диалога спецификация полная - остается финальная сверка и пометка готовности
-- Расположение спецификации: вне сессии - `doc/specs/spec_<slug>.md`; внутри сессии - `<session>/doc/specs/spec_<slug>.md` (раздел 01.01.01); `<slug>` - латинский слаг по правилам `code_standards.md` (раздел 02.01); при инициализации проекта - стартовые спеки `doc/specs/init/` по разделу 07.03 (единая итоговая `init_final.md`)
-- Состав спецификации: юзкейсы, по каждому вопросу - выбранное решение, затронутые компоненты, критерии приемки, Review Focus - до пяти классов входных данных или отказов, которые спецификация сознательно не покрывает, с привязкой каждого к будущей проверке. Документ самодостаточен для реализации в другой сессии
-- Переход из интерактивного режима в пакетный - только по явному запросу пользователя; смешение режимов не допускается
-
-**Декомпозиция спецификаций по модулям.** Боевые спецификации не сводятся в один монолит: материал делится по модулям (доменам) системы - один файл на модуль, имя `spec_<module>.md`, где `<module>` - имя домена или модуля латиницей (например `spec_db.md`, `spec_api.md`, `spec_export.md`). Каждая модульная спека строится по составу выше (юзкейсы, решения, компоненты, критерии приемки) в границах своего модуля и отражается в `doc/specs/_index_specs.md` отдельной строкой (раздел 01.01). Стартовая фаза (раздел 07.03) не декомпозируется: требования пользователя и итоговая спецификация инициализации - по одному файлу в `doc/specs/init/`.
-
-**Жизненный цикл спецификаций.** Спеки делятся на стартовые и боевые:
-
-- Стартовые спеки описывают систему на этапе разработки до MVP и лежат в `doc/specs/init/`: `init_base.txt` (требования пользователя в свободной форме) и `init_final.md` (итоговая спецификация инициализации; раздел 07.03)
-- Боевые спеки - инкрементальные модульные `spec_<module>.md`, создаваемые под задачи и изменения в ходе сопровождения (этот раздел); входящие требования - через `doc/change_requests/` с переносом согласованных заданий в боевые спеки (канон - `change_request_standards.md`)
-- Переход на боевые спеки выполняется по решению пользователя о достижении MVP: папка `doc/specs/init/` переносится целиком в `doc/specs/.arch/` по правилу «Архивация вместо удаления» (раздел 01.01), ее строки убираются из `_index_specs.md`
-- После перехода боевые спеки создаются по правилам этого раздела; имена стартовых спек в `.arch/` учитываются при проверке уникальности новых (раздел 01.01)
-
-**Общий критерий перехода к работе (оба режима):** переходить к работе только когда все аспекты задачи полностью понятны.
-
-**Триггер начала выполнения:**
-
-- Валидных триггеров запуска ровно два - `ДЕЛАЙ` и `GO` (оба в верхнем регистре); они равнозначны и разрешают серьезные правки. Прочие слова и формы (строчные `делай` / `go`, «поехали», «запусти» и подобные) триггером не являются
-- Распознавание: триггер считается, когда использован как отдельное слово с границами слова в любом месте сообщения - сам по себе или в сочетании с другими словами; вхождение подстрокой внутри другого слова (`GOOD`, `ПОДЕЛАЙ`) триггером не является
-- По умолчанию агент находится в подготовительном режиме: изучение, вопросы, план, спецификация, предложения решений - без мутаций проекта
-- Серьезные правки (реализация спецификации, изменение кода, многофайловые изменения, правки стандартов и проектной документации) агент не начинает без триггера `ДЕЛАЙ` или `GO` - даже когда все аспекты задачи ясны и уточнений не осталось; после уточнений агент сообщает готовность и ждет триггера
-- Триггер не требуется для: чтения, анализа, поиска, отчетов, ответов на вопросы; мелких очевидных правок (опечатка, одна строка, прямое указание «замени X на Y»)
-- Триггер действует на одну задачу: следующая серьезная задача снова ждет `ДЕЛАЙ` или `GO`
-
-**Живая разведка данных и живой макет перед первой разработкой UI:**
-
-- Область: первая разработка любого UI, отображающего реальные данные (дашборд, таблица, отчет, витрина - консольный или веб). Для последующих правок существующего UI правило не применяется - правки выполняются сразу по общим правилам этого раздела (триггер `ДЕЛАЙ` / `GO`)
-- Шаг 1 - разведка данных: до кода агент выполняет временную разведку на реальных базах (разведочные скрипты и запросы - разделы 01.01.04, 04.06), артефакты разведки - в `tmp/<domain>/`; фиксируются структура данных, объемы, аномалии (пропуски, дубли, нестандартные форматы, выбросы) и допущения разведки; все аномалии и допущения согласуются с пользователем до макета
-- Шаг 2 - живой макет: после согласования разведки агент формирует живой HTML-макет - один файл в `tmp/<domain>/` (например `dashboard_mockup.html`), статичный HTML+JS без серверных зависимостей; макет строго соответствует будущей реализации: реальные данные из разведки, разметка и поведение будущих экранов, все клики, переходы и фильтры рабочие - макет проверяется руками в браузере
-- Согласование макета: итеративное - замечания пользователя, правки макета, повторное согласование до явного подтверждения
-- Код UI - только после подтверждения макета и триггера `ДЕЛАЙ` / `GO`; писать код UI без разведки, макета и триггера запрещено
-- Артефакты разведки и макет не коммитятся (`tmp/`, раздел 01.01.04)
-
-**Структура файла вопросов** (`doc/agent_questions/questions_YYYY-MM-DD_HH-MM.md`, пакетный режим):
-
-```markdown
-# Уточняющие вопросы
-
-Файл формируется агентом в процессе уточнения требований.
-
----
-
-**1. [question_text_with_variants]**
-
-Варианты:
-1. Вариант первый
-2. Вариант второй
-3. Вариант третий
-
-Ответ:
-
-
-
----
-
-**2. [open_question_text]**
-
-Ответ:
-
-
-
----
-```
-
----
-
-## 07.03. Порядок действий при старте проекта (инициализация)
-
-*Обязательно.*
-
-**Предварительная проверка:** убедиться, что файл `doc/standards/project_standards.md` присутствует в репозитории. Если файл отсутствует - не приступать к работе, а попросить пользователя поместить актуальную версию стандарта в папку `doc/standards/` и дождаться подтверждения.
-
-1. Запросить у пользователя название приложения
-2. Получить требования от пользователя, записать в `doc/specs/init/init_base.txt`
-3. Задать уточняющие вопросы (раздел 07.02); продолжать задавать вопросы итерационно до тех пор, пока не будет полная ясность по всем аспектам задачи - только после этого переходить к следующему шагу
-4. Сформировать итоговую спецификацию инициализации `doc/specs/init/init_final.md` после полного уточнения (раздел 07.02)
-5. Сформировать и согласовать `doc/specs/spec_ui.html` по `console_ui_standards.md` - при наличии пользовательского вывода и **до** его реализации (разделы 01.01, 04)
-6. Выполнить `git init`, создать `.gitignore`
-7. Создать структуру папок - только те, которые нужны (раздел 01.01)
-8. Создать `.env`, `.env.example`, `config/config.ini` (с секцией `[app]`: name от пользователя, version = `0.1.0`), `requirements.txt`, `.python-version`
-9. Создать виртуальное окружение `python3 -m venv --copies .venv`, установить зависимости
-10. Написать инфраструктурные модули `src/`: `config.py`, `logger.py`, `localization.py` (и `exceptions.py` по разделу 05.02). Проверить их работу изолированно
-11. Написать доменную логику и точки входа: `src/` (домен), `run/`, при необходимости `main.py`, `menu.py` / `console_table.py` - по согласованному `spec_ui.html`
-12. Проверить работу скриптов в TTY против макета
-13. Написать `README.md` по `repo_info_doc_standards.md` (для проектов с меню - явная ссылка на `doc/specs/spec_ui.html` как источник карты меню, раздел 02.03 канона)
-14. Сделать первый коммит: `feat: инициализировать проект`
-
----
-
-## 07.04. Проверка соответствия стандарту
-
-*Обязательно.*
-
-Агент применяет стандарт на всех этапах работы с проектом: инициализация, разработка, рефакторинг, сопровождение. При любом обращении к проекту агент сверяется с актуальной версией стандарта.
-
-**Формат строки версии пакета** (не путать с SemVer макета `spec_ui.html` и версией приложения):
-
-Во всех репозиториях (хаб и производные) - `Соответствует стандарту: X.Y.Z` в `AGENTS.md` (обязательно), `README.md` и в `CLAUDE.md` (если файл есть в репозитории).
-
-**Если пользователь указал на файл `doc/standards/project_standards.md`** (упомянул в сообщении, сослался на стандарт, попросил проверить) - выполнить полную проверку репозитория на соответствие:
-
-1. Прочитать версию стандарта из заголовка `doc/standards/project_standards.md` (строка вида `Версия X.Y.Z`)
-2. Прочитать версию стандарта, по которой создан текущий проект: из `AGENTS.md`, `CLAUDE.md` или `README.md` (строка `Соответствует стандарту:`)
-3. Независимо от совпадения версий пакета - проверить `doc/specs/spec_ui.html` по `console_ui_standards.md` (обязателен при наличии пользовательского вывода - run/, `main.py`, меню, rich, batch CLI; в т.ч. футер с абсолютным путем) и реверс макета с кодом вывода. Устаревший или отсутствующий макет при наличии вывода - расхождение
-4. Если версии пакета совпадают и реверс `spec_ui` без замечаний - сообщить, что проект соответствует актуальной версии стандарта (с учетом макета), и завершить проверку
-5. Если версии пакета отличаются и/или есть замечания по `spec_ui`/коду:
-   а. Полностью изучить репозиторий проекта: структуру папок, все файлы кода и конфигурации, README.md, AGENTS.md, `spec_ui.html`
-   б. Полностью изучить актуальный стандарт
-   в. Сравнить требования стандарта с текущим состоянием проекта по каждому применимому разделу
-    г. Составить список расхождений: что именно не соответствует и в каком разделе стандарта описано требование
-    д. Дать рекомендации по рефакторингу: для каждого расхождения - конкретное действие (что изменить, добавить или удалить), приоритет (обязательно / опционально) и ссылку на раздел стандарта
-    е. Не вносить никаких изменений без явного подтверждения пользователя
-
-**Формат предложения модификаций.** Список модификаций - строго пронумерованными пунктами, чтобы пользователь мог выбрать нужные номера и ответить ими. По каждому пункту - что изменить и ссылка на раздел стандарта.
-
-**Обязательные пункты для выбора (всегда включать при расхождении):**
-1. Обновить версию стандарта в проектной документации (строки `Соответствует стандарту:` в `AGENTS.md`, `README.md` и в `CLAUDE.md`, если файл есть)
-2. Проверить требования к текстам (комментарии, сообщения лога, документация - раздел 04.03)
-3. Проверить папки в `doc/` - создать обязательные по стандарту при наличии в них содержимого (индексы, документы); папки-пустышки без содержания не создавать (раздел 01.01: создавать только реально используемые папки)
-
-**Рекомендуемые пункты (включать при расхождении):**
-- Приведение к требованиям кода: `code_standards.md` (именование - 02.01, docstrings - 02.03, типизация - 02.04, идиомы - 02.05)
-- Приведение к требованиям безопасности (раздел 05)
-
-**Что не включать в список:** создание сущностей (папок, файлов, скриптов), нерелевантных для текущего проекта.
-
-**Обновление производного репозитория при новой версии пакета** (пакет синхронизирован из хаба - навык `hub-sync-standards`):
-
-1. Прочитать новую версию из `doc/standards/_index_standards.md` и сравнить со строкой `Соответствует стандарту:` в `AGENTS.md` (и `README.md`, `CLAUDE.md`)
-2. PATCH: точечные уточнения норм - проверить проект по затронутым diff пакета разделам, расхождения устранить
-3. MINOR: по diff пакета составить перечень новых и измененных требований; применить к проекту каждое: устранить расхождение либо оформить проектный оверрайд `doc/specs/overrides.md` с причиной отклонения (раздел 01.01.02)
-4. MAJOR: полная проверка проекта по этому разделу (пункты 5а-5е)
-5. Обновить строку `Соответствует стандарту:` во всех файлах; изменения закоммитить тем же изменением, что и обновление пакета
-
----
-
-## 07.05. Редактирование файла стандарта
-
-*Обязательно.*
-
-Пакет `doc/standards/` (включая `project_standards.md`, `console_ui_standards.md` и прочие документы пакета) редактируется только в хабе. Правила зависят от имени текущего репозитория:
-
-- Если имя репозитория - `project_standards`: агент работает в центральном репозитории стандарта и может редактировать файлы `doc/standards/*.md`. Именно здесь вносятся все изменения в пакет стандартов.
-- Во всех остальных репозиториях: агент не редактирует `doc/standards/*.md`. Файлы доступны только для чтения. Все обновления пакета вносятся только в центральном репозитории `project_standards`.
-
-**Версионирование пакета.** Папка `doc/standards/` - единый пакет стандартов с общей версией (не индивидуальные версии документов). Политика версионирования, реестр документов и карта маршрутизации - в `doc/standards/_index_standards.md`.
-
-Версионирование - семантическое (SemVer): `MAJOR.MINOR.PATCH` (например `4.0.0`). Формат заголовка: `# <document_name>. Версия X.Y.Z` - без даты (политика - в `doc/standards/_index_standards.md`).
-
-**Bump номера версии пакета - только по явному запросу пользователя.** Агент правит содержимое стандартов по задаче и **не** поднимает SemVer сам. При запросе bump - поднять версию (PATCH/MINOR/MAJOR по смыслу, если уровень не указан) и проставить во все локации: заголовки всех `doc/standards/*.md`, `_index_standards.md`, `AGENTS.md`, `README.md`, а также `CLAUDE.md` если он есть в репозитории.
-
-Правила выбора уровня при запрошенном bump (PATCH/MINOR/MAJOR) - канон в `doc/standards/_index_standards.md`, раздел «Политика версионирования»; здесь не дублируются.
-
-**Актуализация индекса и ревизия диффа.** После правки любого файла в `doc/standards/` (кроме `_index_standards.md`) - выполнить автоактуализацию `doc/standards/_index_standards.md`: обновить реестр документов и карту маршрутизации по процедуре, описанной в самом индексе (раздел «Автоактуализация индекса»). Скелет и правила качества индексов - `index_nav_standards.md`. Номер версии в заголовке индекса меняется только вместе с запрошенным bump. Перед коммитом правок `doc/standards/` агент ревизует дифф: реестр и карта индекса отражают изменение, версия пакета едина, перекрестные ссылки `NN.NN` ведут на существующие разделы, зеркало `CLAUDE.md` синхронно. Контроль - воротами коммита (раздел 06.01, хук `.githooks/pre-commit`, активация на каждой машине: `git config core.hooksPath .githooks`).
-
-**Перенумерация разделов.** Изменение номеров разделов `project_standards.md` - кросс-документная операция: на номера ссылаются все документы пакета. При перенумерации: искать маску `NN.NN` по всему `doc/standards/`, обновлять ссылки и оглавления в том же изменении, затем актуализировать `_index_standards.md` по процедуре выше.
-
----
-
-## 07.06. Иерархия источников при принятии решений
-
-*Обязательно.*
-
-Единый порядок действий агента при любом техническом выборе (структура, именование, библиотека, паттерн, реализация). Порядок поиска - сверху вниз; решение берется с первого уровня, давшего однозначный ответ:
-
-1. Явные указания пользователя текущего диалога
-2. Сессионный оверрайд (блок в `SESSION.md`, раздел 01.01.01)
-3. Проектный оверрайд (`doc/specs/overrides.md`, раздел 01.01.02)
-4. Индексы репозитория: пакет стандартов (`doc/standards/_index_standards.md`), индекс навыков, `sql/_index_sql.md` (раздел 03.02.01)
-5. Прецедент репозитория: как аналогичная задача уже решена в этом репо - делать аналогично
-6. Интернет: как задачу решают другие (официальная документация, GitHub - код реальных проектов, issues, обсуждения, примеры); при сработавших маркерах проверки (см. ниже) поиск по каскаду обязателен; источник указывается в ответе пользователю
-7. Общепринятые практики платформы и экосистемы: без проверенного источника находятся ниже интернета - апелляция «все так делают» без документа-источника основанием решения не является
-8. Собственное решение агента - только если предыдущие уровни не дали ответа
-
-**Проверка фактов и запрет на выдумывание.** Перед техническим ответом или кодом агент проверяет маркеры: незнакомый API, сигнатура, параметры библиотеки; любое сомнение в поведении, версии или совместимости библиотеки, фреймворка, SDK; новая зависимость или версия, их совместимость; выбор паттерна, подхода, лучшей практики; ошибка, не объяснимая локальным кодом. При сработавшем маркере агент не выдумывает - выполняется каскад проверки до первого надежного источника: локальный контекст (код, зависимости, стандарты) -> внешние источники по классу запроса: факт об API (сигнатура, параметры, версия, поведение, совместимость) - контекст-сервер документации (context7), при недоступности - официальная документация; лучшая практика, паттерн или аналогичное решение - GitHub MCP (код реальных проектов, README, issues, обсуждения) -> поиск по тексту ошибки (issues, Stack Overflow). Ключевое решение (библиотека, паттерн, подход, версия) сопровождается ссылкой на источник в ответе пользователю; мелкие факты - без формализма. Проверить факт невозможно (сеть недоступна, источник не найден) - стоп и вопрос пользователю по разделу 07.02; ответ гипотезой без явной пометки «не проверено» недопустим, молчаливое выдумывание запрещено всегда.
-
-**Контекст-сервер документации (context7).** При любом сомнении в факте о библиотеке, фреймворке, SDK или внешнем API (сигнатура, параметры, версия, поведение, совместимость) агент обращается к подключенному контекст-серверу документации, не откладывая проверку до ошибки. Сомнение само по себе - достаточное основание для запроса, отдельное обоснование не требуется. Контекст-сервер дополняет, а не заменяет локальный контекст и стандарты: каскад по-прежнему начинается с них.
-
-**GitHub MCP.** Для задач о лучших практиках, паттернах и аналогичных решениях первичный внешний источник - GitHub MCP: поиск по коду реальных проектов, README, issues и обсуждения. Задача такого класса - достаточное основание для обращения сразу, не дожидаясь ошибки; выбор между кандидатами подхода - тоже. Разделение с context7 - по классу запроса: факт об API - контекст-сервер документации, практика или аналог - GitHub MCP; смешанный запрос проверяется по обоим источникам. При недоступности GitHub MCP действует общий порядок: проверка невозможна - стоп и вопрос пользователю по разделу 07.02.
-
-**Приоритет при конфликте.** Явные указания диалога > сессионные оверрайды > проектные оверрайды > стандарт > прецедент репозитория > интернет > внешние практики. При отсутствии оверрайда действует норма стандарта; оверрайд отменяет норму, на которую ссылается, в пределах своей области (проект или сессия).
-
-**Правила применения:**
-
-- Прецедент не копируется, если противоречит общепринятым практикам: расхождение выносится пользователю (раздел 07.02); молчаливое копирование антиварианта недопустимо
-- Уровень 8 - только обратимые решения, с пояснением выбора пользователю; для необратимых (схема данных, внешний контракт, архитектура) - вопрос пользователю по разделу 07.02 вместо уровня 8
-- Область действия - технические решения. Изменение бизнес-логики - по разделу 07.01, неясность требований - по разделу 07.02; лестница не отменяет эти ворота согласования
-- Каскад проверки и маркеры проверки расширяемы на уровне репозитория: проект может дополнить или изменить их (порядок, источники, состав) - только проектным оверрайдом (`doc/specs/overrides.md`, раздел 01.01.02); без оверрайда действует каскад этого раздела
-- Индексы пакета ссылаются на этот раздел как на канон порядка принятия решений
-
----
-
-# 08. Термины
-
-Словарь пакета стандартов. Канон каждого определения живет в разделе-источнике; здесь - краткое указание для навигации. При расхождении побеждает раздел-источник.
-
-| Термин | Определение | Источник |
-|--------|-------------|----------|
-| Сессия | Самодостаточный подпроект в папке с маркером `SESSION.md`; на нее распространяется весь стандарт кроме отдельного git | 01.01.01 |
-| Оверрайд | Согласованное с пользователем отклонение от нормы стандарта, зафиксированное явно (в `SESSION.md` или `doc/specs/overrides.md`) | 01.01.01, 01.01.02 |
-| Триггер запуска | Слово, разрешающее серьезные правки: ровно `ДЕЛАЙ` или `GO` (верхний регистр, по границе слова, сам по себе или в сочетании с другими словами); действует на одну задачу | 07.02 |
-| Хаб | Центральный репозиторий `project_standards` - единственное место правки стандартов и общих/хаб-навыков | 07.05 |
-| Проектный навык (`pr_glob`) | Навык с префиксом `pg_` / `pg-`, синхронизируемый в хаб для инвентаризации: в `doc/skills/`, агрегируется в `doc/skills/ext/<repo-name>/` | skill_plain_standards.md (раздел 01.03), skill_anthropic_standards.md (раздел 01.03) |
-| Локальный навык (`pr_loc`) | Навык с префиксом `pl_` / `pl-` или без префикса, вне синхронизации каталога навыков: живет только в одном репозитории, в `data/skills/`; оба формата - plain (плоский файл) и Anthropic (`SKILL.md`); коммитится, отражен в собственном индексе `data/skills/_index_skills_pl.md` | skill_plain_standards.md (раздел 01.03), skill_anthropic_standards.md (раздел 01.03), 01.01 |
-| Витрина данных | Локальный снимок данных из внешней БД (`data/mart.sqlite`) для сборки результатов без обращения к источнику | 01.01.03 |
-| Режимы пайплайна | `local` - сборка из витрины; `refresh` - перезагрузка витрины из источника и сборка | 01.01.03 |
-| Журнал уроков | Файл `data/lessons.md`: накопление переносимого опыта парами «контекст - урок»; источник для обогащения хаба знаниями | 01.01.07 |
-| Память агентов | Постоянный контекст между сессиями: `data/memory/` с точкой входа `memory.md` и закрытым перечнем тематических файлов (`decisions.md`, `env.md`, `preferences.md`); охваты проектная и сессионная; уроки - только в журнал уроков | memory_standards.md |
-| Оркестратор | Единая точка входа повторяющейся последовательности шагов: `main.py` уровня репозитория, `orch_*` уровня сессии | 01.01 |
-| Миграция | Файл `sql/migrations/M<N>_*.sql` с поэтапным изменением схемы работающей БД; применяется один раз, не редактируется после применения | 03.02.03 |
-| Dual-channel | Разделение вывода: смысловые события - в лог-файл (`log_file_only`), кадр и Live - только в консоль | 04.06, console_ui (04.02) |
-| Интерактивный контекст | Состояние терминала, при котором доступны кадр, Live и цвет; каноническое определение признаков | 04.07 |
-| Кадр | Один экран консольного вывода: навигационный заголовок, пункты, тело, строка ввода | console_ui (02.01) |
-| Роль | Именованная семантическая единица оформления консольного UI (цвет, шрифт); имена стабильны, hex - в `spec_ui.html` | console_ui (03.01) |
-| Batch CLI | Точка входа без интерактивного меню: потоковый вывод, двухстрочный rich-прогресс, `status_col` | console_ui (04.04) |
-| Стартовая спецификация | Спеки до MVP в `doc/specs/init/`: `init_base.txt` - требования пользователя в свободной форме, `init_final.md` - итоговая спецификация инициализации; при MVP папка переносится в `.arch/` | 07.02, 07.03 |
-| Боевая спецификация | Модульная спека сопровождения `doc/specs/spec_<module>.md`, создается под задачи и изменения после MVP | 07.02 |
-| spec_ui.html | Спецификация вывода: эталон UI/вывода и лога репозитория (обязательна при пользовательском выводе); своя SemVer макета | console_ui (01.02) |
-| Фронт | Экземпляр nginx (server block) с собственным портом, привязкой, набором статики и списком проксируемых префиксов; бэкенд один - фронтов может быть несколько | web_standards (01.02, 07.04) |
-| Бэкенд | Приложение FastAPI под uvicorn - единственный процесс обслуживания API для всех фронтов | web_standards (01.02, 03.01) |
-| Pre-commit хук | Ворота целостности пакета `.githooks/pre-commit`: актуальность индекса, единая версия, зеркало CLAUDE.md, контекстные ссылки NN.NN; универсален для хаба и производных репо | 06.01 |
-
----
-
-# 09. Связь и версионирование
-
-## 09.01. Связь с другими документами
-
-| Документ | Связь |
-|----------|-------|
-| `doc/standards/code_standards.md` | Канон написания кода по языкам: Python, JavaScript, HTML/CSS, Shell, Windows (PowerShell, batch); форматы данных; линтеры |
-| `doc/standards/console_ui_standards.md` | Контракт консольного UI и эталон `doc/specs/spec_ui.html` (при пользовательском выводе) |
-| `doc/standards/human_text_standards.md` | Канон человеческого текста: документация, коммуникация, стили и самопроверка |
-| `doc/standards/human_text_dict_standards.md` / `human_text_dict_ai_standards.md` / `human_text_allowlist_standards.md` | Словари человеческого текста: стоп-слова русского текста, маркеры ИИ-текста, allowlist оборотов |
-| `doc/standards/deploy_standards.md` | Общее ядро деплоя Python-проекта как CLI-инструмента |
-| `doc/standards/deploy_lin_standards.md` / `deploy_win_standards.md` | OS-overlay деплоя: Linux и Windows |
-| `doc/standards/deploy_docker_standards.md` | Развертывание Docker-сервисов |
-| `doc/standards/deploy_hyperv_standards.md` | Развертывание Linux-ВМ (веб-сервер) на Windows-хосте средствами Hyper-V |
-| `doc/standards/web_standards.md` | Разработка и развертывание веб-приложений (FastAPI + nginx) |
-| `doc/standards/skill_plain_standards.md` | Plain-формат навыков |
-| `doc/standards/skill_anthropic_standards.md` | Формат навыков Anthropic Agent Skills |
-| `doc/standards/skill_data_standards.md` | Рантайм-данные навыков: каталог `data/`, зоны, реестры и журналы |
-| `doc/standards/skill_review_standards.md` | Ревью и контроль качества навыков обоих форматов |
-| `doc/standards/memory_standards.md` | Память агентов: состав, чтение в начале сессии, ведение |
-| `doc/standards/opencode_tool_standards.md` | Кастомные tools opencode: регистрация через плагин V2, тонкая обертка, права |
-| `doc/standards/index_nav_standards.md` | Индексы репозитория и каркас `AGENTS.md` |
-| `doc/standards/change_request_standards.md` | Задания на изменение (CR): формат, индекс, жизненный цикл |
-| `doc/standards/repo_info_doc_standards.md` | README и человеческие документы |
-| `doc/standards/software_doc_standards.md` | Шаблон документов установки ПО |
-| `doc/standards/_index_standards.md` | Реестр пакета, карта маршрутизации, политика версионирования |
-
----
-
-## 09.02. Версионирование
-
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`; формат версии и перечень локаций - раздел 07.04; правила редактирования пакета - раздел 07.05. Bump версии пакета - только по явному запросу пользователя (см. _index_standards.md).
+Unified package SemVer is governed by `doc/standards/_index_standards.md` (see Sections 07.04 and 07.05). Never bump the package version without an explicit user request.

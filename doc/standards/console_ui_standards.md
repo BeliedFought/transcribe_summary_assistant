@@ -1,92 +1,92 @@
-# Стандарт консольного UI. Версия 4.16.0
+# Console UI Standards. Version 5.0.0
 
-Документ фиксирует визуальный и навигационный контракт интерактивного консольного UI (режимы `menu` / `rich`) и обязательный эталон `doc/specs/spec_ui.html`. Является дополнением к `doc/standards/project_standards.md` и применяется поверх него. Все требования основного стандарта остаются в силе, кроме случаев, явно описанных в данном документе.
+This document fixes the visual and navigation contract of the interactive console UI (`menu` / `rich` modes) and the mandatory reference `doc/specs/spec_ui.html`. It supplements `doc/standards/project_standards.md` and applies on top of it. All core standard requirements remain in force unless this document explicitly states otherwise.
 
-Источник методики - переносимый контракт интерактивных проектов с кадром «меню сверху, тело посередине, `[>]` внизу» и одним путем TTY/non-TTY без ANSI cursor tricks. Доменные правила конкретного приложения в универсальный стандарт не входят: они фиксируются в `spec_ui.html` проекта.
+The method comes from a portable contract for interactive projects with a frame of "menu on top, body in the middle, `[>]` at the bottom" and a single TTY/non-TTY path without ANSI cursor tricks. Domain rules of a specific application are not part of the universal standard: they are fixed in the project `spec_ui.html`.
 
-**Приоритет:** при расхождении примеров кадров в `spec_ui.html` с методикой побеждают методика настоящего документа (и методика проекта в `spec_ui`) и код. Примеры кадров иллюстративны.
-
----
-
-## Оглавление
-
-**01. Основа:** 01.01 Назначение - 01.02 Обязательный артефакт `doc/specs/spec_ui.html`
-
-**02. Кадр и навигация:** 02.01 Кадр экрана - 02.02 Навигационный заголовок - 02.03 Клавиши меню - 02.04 Навигация после действий - 02.05 Условные пункты меню
-
-**03. Оформление:** 03.01 Цвета (роли) и шрифт - 03.02 Таблицы - 03.03 Списки результатов - 03.04 Сводки - 03.05 Тексты и локализация
-
-**04. Каналы, сессия и границы:** 04.01 После выбора пункта - 04.02 Два канала (консоль и лог) - 04.03 Сообщения сессии - 04.04 Batch / non-menu CLI - 04.05 Примеры vs методика
-
-**05. Перенос:** 05.01 Чеклист переноса в другой репозиторий - 05.02 Связь с другими документами - 05.03 Версионирование
+**Priority:** when frame examples in `spec_ui.html` conflict with the method, the method in this document (and the project method in `spec_ui`) and the code win. Frame examples are illustrative.
 
 ---
 
-## 01.01. Назначение
+## Table of Contents
 
-*Обязательно.*
+**01. Foundation:** 01.01 Purpose - 01.02 Mandatory `doc/specs/spec_ui.html` Artifact
 
-- Эталон и настоящий стандарт фиксируют **визуальный и навигационный контракт**: кадр TTY, клавиши, переходы после действий (контракт проекта), таблицы, сводки, отличие консоли от лог-файла.
-- Консоль - цветное кадрированное представление (меню сверху, тело посередине, `[>]` внизу; семантика статусов цветом).
-- Лог - полная хронологическая plain-лента без ANSI и без очистки экрана.
-- Правила стиля описывают **роли** (заголовок, навигация, секция, ключ-цифра, ключ-служба, команда, подсказка, роли статусов и сводок), не бренд приложения и не предметную область.
-- Доменные строки берутся из translations / кода проекта; в примерах эталона не выдумываются.
+**02. Frame and Navigation:** 02.01 Screen Frame - 02.02 Navigation Header - 02.03 Menu Keys - 02.04 Post-Action Navigation - 02.05 Conditional Menu Items
+
+**03. Presentation:** 03.01 Colors (Roles) and Font - 03.02 Tables - 03.03 Result Lists - 03.04 Summaries - 03.05 Texts and Localization
+
+**04. Channels, Session, and Boundaries:** 04.01 After an Item Is Selected - 04.02 Two Channels (Console and Log) - 04.03 Session Messages - 04.04 Batch / Non-Menu CLI - 04.05 Examples vs Method
+
+**05. Porting:** 05.01 Porting Checklist for Another Repository - 05.02 Related Documents - 05.03 Versioning
 
 ---
 
-## 01.02. Обязательный артефакт `doc/specs/spec_ui.html`
+## 01.01. Purpose
 
-*Обязательно для репозиториев с пользовательским выводом - точками входа, которые пользователь запускает сам (run/, main.py, меню, rich, batch CLI). Для репозиториев без пользовательского вывода (документационные, справочные) артефакт не создается; при появлении первого пользовательского вывода - создается.*
+*Required.*
 
-- Один файл на репозиторий. Собственная SemVer макета (`Версия макета: X.Y.Z`) - независима от версии приложения и от версии пакета стандартов; **обязательна**. При изменении кадров, карты, методики или лог-макетов - bump версии макета в том же изменении.
-- **Структурный шаблон:** `doc/specs/spec_ui.html` в хабе `project_standards` (раздел 01 «Как сформировать макет»). Агент копирует/адаптирует эту структуру; не изобретает иную схему разделов.
-- Мин. состав:
-  1. версия макета и инструкция/приоритет (примеры иллюстративны);
-  2. оглавление (TOC);
-  3. **карта навигации** (menu) или карта точек вывода (plain/rich/GUI) - обязательный артефакт; без карты эталон неполон;
-  4. палитра ролей (hex проекта);
-  5. примеры кадров консоли / экранов;
-  6. обязательные фрагменты лог-файла;
-  7. секция методики проекта (контракт после действий, условные пункты, статусы, исключения цифр, batch CLI при наличии);
-  8. явно указать приоритет: пакет `console_ui_standards.md` + методика проекта + код над примерами кадров.
-- Карта и кадры обновляются синхронно при изменении меню или вывода. При расхождении README-дерева меню и карты в `spec_ui.html` побеждает `spec_ui.html`.
-- При изменении структуры меню карту, методику проекта и (при необходимости) примеры обновляют в одном изменении.
-- **Футер файла (обязателен):** в конце `spec_ui.html` писать полный абсолютный путь и команды открытия, в формате:
+- The reference and this standard fix the **visual and navigation contract**: the TTY frame, keys, post-action transitions (project contract), tables, summaries, and the difference between the console and the log file.
+- The console is a color framed representation (menu on top, body in the middle, `[>]` at the bottom; status semantics through color).
+- The log is a complete chronological plain stream without ANSI and without screen clearing.
+- Style rules describe **roles** (title, navigation, section, numeric key, service key, command, hint, status and summary roles), not the application brand or domain.
+- Domain strings come from project translations / code; do not invent them in reference examples.
+
+---
+
+## 01.02. Mandatory `doc/specs/spec_ui.html` Artifact
+
+*Required for repositories with user-facing output - entry points the user runs directly (run/, main.py, menu, rich, batch CLI). Repositories without user-facing output (documentation, reference) do not create the artifact; it is created when the first user-facing output appears.*
+
+- One file per repository. The mockup has its own SemVer (`Версия макета: X.Y.Z`), independent of the application version and the standards package version; it is **mandatory**. When frames, the map, the method, or log mockups change, bump the mockup version in the same change.
+- **Structural template:** `doc/specs/spec_ui.html` in the `project_standards` hub (section 01 "How to build the mockup"). The agent copies or adapts this structure; it does not invent a different section scheme.
+- Minimum composition:
+  1. mockup version and instruction/priority (examples are illustrative);
+  2. table of contents (TOC);
+  3. **navigation map** (menu) or output point map (plain/rich/GUI) - a mandatory artifact; without the map the reference is incomplete;
+  4. role palette (project hex values);
+  5. console frame / screen examples;
+  6. mandatory log file fragments;
+  7. project method section (post-action contract, conditional items, statuses, digit exceptions, batch CLI when present);
+  8. explicitly state priority: the `console_ui_standards.md` package + project method + code over frame examples.
+- Update the map and frames together when the menu or output changes. When the README menu tree and the `spec_ui.html` map conflict, `spec_ui.html` wins.
+- When the menu structure changes, update the map, the project method, and (if needed) examples in one change.
+- **File footer (mandatory):** at the end of `spec_ui.html`, write the full absolute path and open commands in this format:
 
 ```html
 <p class="note spec-footer">Файл: <code>/home/&lt;user&gt;/&lt;repo&gt;/doc/specs/spec_ui.html</code>. Открыть: <code>xdg-open /home/&lt;user&gt;/&lt;repo&gt;/doc/specs/spec_ui.html</code> или <code>file:///home/&lt;user&gt;/&lt;repo&gt;/doc/specs/spec_ui.html</code></p>
 ```
 
-Отступ и прочее оформление футера - классом `spec-footer` в стилях макета; инлайн-стили запрещены (`code_standards.md`, раздел 04.03).
+Style the footer indentation and other presentation through the `spec-footer` class in the mockup styles; inline styles are forbidden (`code_standards.md`, Section 04.03).
 
-Относительный путь вида `doc/specs/spec_ui.html` без абсолютного - недостаточный футер. В хабе-шаблоне (`doc/specs/spec_ui.html` репозитория `project_standards`) футер содержит плейсхолдер `/home/<user>/<repo>/` - шаблон не привязан к конкретной машине; при копировании в целевое репо агент подставляет фактический абсолютный путь этого репозитория.
+A relative path such as `doc/specs/spec_ui.html` without an absolute path is an insufficient footer. In the hub template (`doc/specs/spec_ui.html` of the `project_standards` repository), the footer contains the placeholder `/home/<user>/<repo>/` - the template is not tied to a specific machine; when copying to a target repository, the agent substitutes the actual absolute path of that repository.
 
 ---
 
-## 02.01. Кадр экрана
+## 02.01. Screen Frame
 
-*Обязательно при наличии interactive menu frame.*
+*Required when an interactive menu frame exists.*
 
-- При каждом полном перерисовывании интерактивного экрана в TTY: полная очистка (`clear_screen`: home + ED2 + erase-below + ED3 scrollback, где поддержан). Недопустимо оставлять хвост строк прошлого body под более коротким новым кадром. Лог-файл не очищается. При отсутствии TTY очистку не выполнять.
-- Порядок блоков сверху вниз (API: `begin_screen` -> пункты -> `finish_screen_prompt`):
+- On every full redraw of an interactive screen in a TTY: full clear (`clear_screen`: home + ED2 + erase-below + ED3 scrollback where supported). Never leave a tail of previous body lines under a shorter new frame. The log file is not cleared. Do not clear when there is no TTY.
+- Block order top to bottom (API: `begin_screen` -> items -> `finish_screen_prompt`):
   1. breadcrumb;
-  2. пункты меню (цифровые, затем служебные буквы);
-  3. тело: pending-результат действия (если есть), затем **актуальные** таблицы / сообщения экрана (состояние перечитывается перед кадром); при пустом теле блок пропускается;
-  4. пустая строка (перед `[>]` всегда ровно одна);
-  5. prompt `[>]` - **внизу, после тела**.
-- Меню всегда в верхней зоне; тело (pending + обзор) посередине; ввод `[>]` всегда ниже тела. Не печатать меню после длинного контента.
-- **Один путь TTY и non-TTY:** печать тела, пустая строка, `[>]`, `input()`. Без ANSI cursor tricks (CUP / CSI s/u / DECSTBM) и без буферизации тела. После `input()` - снова `clear_screen`.
-- Перед `[>]` всегда одна пустая строка (после тела или после пунктов, если тела нет).
-- Пайп и CI не целевой сценарий для цветного UI; контракт рассчитан на интерактивный TTY. Признаки non-interactive (нет TTY, `CI`, `TERM=dumb`) - см. `project_standards.md` (раздел 04.07): rich/menu кадр деградирует до plain. Цвет UI в интерактивном TTY всегда (без отключения ради `NO_COLOR`).
+  2. menu items (numeric first, then service letters);
+  3. body: pending action result (if any), then the **current** screen tables / messages (state is re-read before the frame); skip the block when the body is empty;
+  4. blank line (exactly one before `[>]`, always);
+  5. `[>]` prompt - **at the bottom, after the body**.
+- The menu is always in the top zone; the body (pending + overview) is in the middle; the `[>]` input is always below the body. Never print the menu after long content.
+- **One path for TTY and non-TTY:** print the body, a blank line, `[>]`, `input()`. No ANSI cursor tricks (CUP / CSI s/u / DECSTBM) and no body buffering. After `input()` - `clear_screen` again.
+- Always exactly one blank line before `[>]` (after the body, or after the items when there is no body).
+- Pipes and CI are not the target scenario for a color UI; the contract targets an interactive TTY. Non-interactive signs (no TTY, `CI`, `TERM=dumb`) - see `project_standards.md` (Section 04.07): the rich/menu frame degrades to plain. UI color is always on in an interactive TTY (never disabled for `NO_COLOR`).
 
-**Секции тела.**
+**Body sections.**
 
-- Любой блок содержимого в теле (обзор, пустое состояние, pending-announce, список) начинается с заголовка секции (cyan без bold, как title таблицы), затем текст или таблица. Недопустима «голая» строка сообщения без заголовка секции над ней.
-- **Пустая строка перед каждым заголовком:** перед каждым заголовком секции (`print_section_title`) и перед title таблицы (`print_table` с непустым title) - ровно одна пустая строка. Относится и к первому заголовку после пунктов меню, и к заголовку после баннера CLI, и к соседним секциям. Реализация - внутри `print_section_title` / `print_table`; вызывающий код не дублирует `print()` перед ними.
-- Пустое состояние обзора: тот же заголовок, что у таблицы при непустом списке, затем строка empty-сообщения.
-- Между соседними секциями тела - ровно одна пустая строка (обеспечивается правилом «пустая строка перед каждым заголовком»).
+- Every content block in the body (overview, empty state, pending announce, list) starts with a section title (cyan without bold, like a table title), followed by text or a table. A bare message line without a section title above it is not allowed.
+- **Blank line before every title:** exactly one blank line before every section title (`print_section_title`) and before a table title (`print_table` with a non-empty title). This applies to the first title after menu items, to a title after a CLI banner, and to adjacent sections. Implement it inside `print_section_title` / `print_table`; the caller does not duplicate `print()` before them.
+- Empty overview state: the same title as the table for a non-empty list, then the empty message line.
+- Exactly one blank line between adjacent body sections (ensured by the "blank line before every title" rule).
 
-**Абстрактный пример кадра с телом:**
+**Abstract frame example with a body:**
 
 ```
 {t("title.main_menu")} > {t("title.section")}
@@ -103,59 +103,59 @@
 [>]
 ```
 
-(Меню сверху, тело посередине, `[>]` внизу; ввод без cursor tricks.)
+(Menu on top, body in the middle, `[>]` at the bottom; input without cursor tricks.)
 
-**API кадра (`src/menu.py` - контракт, не полная реализация):**
+**Frame API (`src/menu.py` - contract, not a full implementation):**
 
-| Функция / метод | Когда вызывать | Ответственность |
-|-----------------|----------------|-----------------|
-| `clear_screen()` | Перед полным кадром; сразу после `input()` | Очистка TTY (home + ED2 + erase-below + ED3); вне TTY - no-op |
-| `begin_screen()` | Начало кадра после clear | Breadcrumb, пункты меню, тело (pending + таблицы из перечитанного состояния) |
-| `finish_screen_prompt()` | Конец кадра | Пустая строка, `[>]`, `input()`; после return - вызывающий код делает clear |
-| `emit_session_notice(...)` | Старт, немедленные сообщения сессии | Однострочный вывод на экран + `log_file_only` |
-| `_queue_notice_body` / `_queue_invalid_choice` / `_queue_nothing_selected` | Перед следующим `begin_screen` | Pending-тело некорректного/пустого выбора |
-| `_emit_interrupted()` | Ctrl+C / EOF после clear | `msg.interrupted` на экран + `log_file_only`; см. раздел 04.03 |
+| Function / method | When to call | Responsibility |
+|-------------------|--------------|----------------|
+| `clear_screen()` | Before a full frame; immediately after `input()` | Clear the TTY (home + ED2 + erase-below + ED3); no-op outside a TTY |
+| `begin_screen()` | Start of a frame after clear | Breadcrumb, menu items, body (pending + tables from re-read state) |
+| `finish_screen_prompt()` | End of a frame | Blank line, `[>]`, `input()`; after return the caller clears |
+| `emit_session_notice(...)` | Start, immediate session messages | Single-line output to the screen + `log_file_only` |
+| `_queue_notice_body` / `_queue_invalid_choice` / `_queue_nothing_selected` | Before the next `begin_screen` | Pending body for an invalid/empty selection |
+| `_emit_interrupted()` | Ctrl+C / EOF after clear | `msg.interrupted` on screen + `log_file_only`; see Section 04.03 |
 
-Порядок цикла: `begin_screen()` -> `finish_screen_prompt()` -> (действие) -> снова `begin_screen()`.
-
----
-
-## 02.02. Навигационный заголовок
-
-*Обязательно при наличии menu frame.*
-
-- Формат breadcrumb: `A > B > C` (уровни через `>` с пробелами).
-- Breadcrumb отражает путь навигации (пункты, по которым выполнен переход). Заголовки содержимого таблиц и универсальные подписи в breadcrumb не входят. Правило «один переход - один сегмент».
-- Breadcrumb - стиль роли «заголовок» (bold), тон проекта.
-- **Title таблицы и заголовки секций тела** - cyan без bold (rich `cyan`, ANSI 36). Не путать с breadcrumb.
-- **Nav** (Назад / Главное меню / Выход) - тот же тон, что breadcrumb, без bold.
-- `title_justify=left` (не по центру рамки).
-- Без линий `---` и без центрирования.
+Loop order: `begin_screen()` -> `finish_screen_prompt()` -> (action) -> `begin_screen()` again.
 
 ---
 
-## 02.03. Клавиши меню
+## 02.02. Navigation Header
 
-*Обязательно при наличии interactive menu frame.* Scope - только menu frame; не распространяется на plain-промпты вида 1/0.
+*Required when a menu frame exists.*
 
-- **Цифры** - только строки таблицы (колонка `#`). Не для режимов, навигации, пакетных действий и прочих пунктов вне таблицы.
-- **Временные исключения:** допустимы, только если явно зафиксированы в `spec_ui.html` проекта (пометка «временно» / «исключение» в методике или карте). Без записи в `spec_ui` исключение запрещено.
-- **Буквы** ряда `Z X C V B N M` - все остальные пункты. Назначение сверху вниз по порядку ряда (`bind_svc_keys_top_down` или эквивалент). Правило «популярные внизу» не применяется.
-- Ввод букв без учета регистра.
-- **Ввод при неанглийской раскладке.** Критерий совпадения - физическая клавиша, а не глиф: нажатие клавиши ряда при любой раскладке принимается как ввод соответствующей буквы ряда (например физическая клавиша Z при русской раскладке дает глиф «Я» - это валидный ввод пункта Z). Реализация: таблица соответствия глифов физическим клавишам EN/RU в `src/menu.py` (или эквивалент); введенный символ сначала отображается через таблицу, затем сравнивается с рядом. Коллизии глифов (символ легитимен для пунктов обеих раскладок) разрешаются в пользу буквы ряда Z X C V B N M.
-- Групповые ключи `[1, 2, 3]` - только номера строк одной операции (запятая и пробел). Одиночный ключ: `[1]` или `[Z]`.
-- **Навигационные пункты** («Назад», «Главное меню», «Выход»): подпись - роль «навигация» (тот же тон, что breadcrumb, без bold); ключ буквы - роль «ключ-служба». Остальные служебные пункты - роль «текст пункта».
-- Роли навигации используют фиксированные ключи переводов; **буква на экране не фиксирована** (берется из ряда):
+- Breadcrumb format: `A > B > C` (levels separated by `>` with spaces).
+- The breadcrumb reflects the navigation path (the items traversed). Table content titles and universal labels are not part of the breadcrumb. Rule: one transition - one segment.
+- The breadcrumb uses the title role (bold) in the project tone.
+- **Table title and body section titles** - cyan without bold (rich `cyan`, ANSI 36). Do not confuse them with the breadcrumb.
+- **Nav** (Back / Main menu / Exit) - the same tone as the breadcrumb, without bold.
+- `title_justify=left` (not centered in the frame).
+- No `---` lines and no centering.
 
-| Роль | Ключ | Русский | English |
-|------|------|---------|---------|
-| Выход | `menu.exit` | Выход | Exit |
-| Главное меню | `menu.main_menu` | Главное меню | Main menu |
-| Назад | `menu.back` | Назад | Back |
+---
 
-**Стабильность сквозных команд.** Команды, повторяющиеся на нескольких экранах (навигация, пакетные действия и т.п.), по возможности получают одну и ту же букву во всех экранах. Для них резервируются буквы с конца ряда (`M`, `N`, `B`), а уникальным пунктам экрана назначение идет сверху вниз с начала (`Z`, `X`, `C`). Список сквозных команд и их ключей фиксируется в `spec_ui.html`. Опционально, по согласованию с пользователем, сквозные команды можно биндить и на цифры - как исключение из правила «цифры - только строки таблицы», с обязательной записью в `spec_ui.html`.
+## 02.03. Menu Keys
 
-**Абстрактный пример кадра главного меню (без контента):**
+*Required when an interactive menu frame exists.* Scope - menu frame only; it does not extend to plain prompts such as 1/0.
+
+- **Digits** - table rows only (`#` column). Not for modes, navigation, batch actions, or other items outside the table.
+- **Temporary exceptions:** allowed only when explicitly recorded in the project `spec_ui.html` (a "temporary" / "exception" note in the method or map). Without a `spec_ui` entry, an exception is forbidden.
+- **Letters** of the `Z X C V B N M` row - all other items. Assign top-down in row order (`bind_svc_keys_top_down` or equivalent). The "popular at the bottom" rule does not apply.
+- Letter input is case-insensitive.
+- **Input on a non-English layout.** Match by physical key, not glyph: pressing a row key on any layout is accepted as input of the corresponding row letter (for example, the physical Z key on the Russian layout produces the glyph «Я» - this is valid input for item Z). Implementation: a table mapping glyphs to physical EN/RU keys in `src/menu.py` (or equivalent); the entered character is first resolved through the table, then compared with the row. Glyph collisions (a character legitimate for items in both layouts) resolve in favor of the `Z X C V B N M` row letter.
+- Group keys `[1, 2, 3]` - only row numbers of one operation (comma and space). Single key: `[1]` or `[Z]`.
+- **Navigation items** («Назад», «Главное меню», «Выход»): the label uses the navigation role (same tone as the breadcrumb, no bold); the letter key uses the service key role. Other service items use the item text role.
+- Navigation roles use fixed translation keys; **the letter on screen is not fixed** (it comes from the row):
+
+| Role | Key | Russian | English |
+|------|-----|---------|---------|
+| Exit | `menu.exit` | Выход | Exit |
+| Main menu | `menu.main_menu` | Главное меню | Main menu |
+| Back | `menu.back` | Назад | Back |
+
+**Stable cross-screen commands.** Commands repeated across several screens (navigation, batch actions, and similar) should get the same letter on every screen where possible. Reserve letters from the end of the row (`M`, `N`, `B`) for them, while unique screen items are assigned top-down from the start (`Z`, `X`, `C`). Record the list of cross-screen commands and their keys in `spec_ui.html`. Optionally, with user agreement, cross-screen commands may be bound to digits as an exception to the "digits - table rows only" rule, with a mandatory entry in `spec_ui.html`.
+
+**Abstract main menu frame example (no content):**
 
 ```
 {t("title.main_menu")}
@@ -169,149 +169,149 @@
 
 ---
 
-## 02.04. Навигация после действий
+## 02.04. Post-Action Navigation
 
-*Обязательно при наличии menu frame (контракт проекта).*
+*Required when a menu frame exists (project contract).*
 
-Универсальный стандарт не задает доменные переходы конкретного приложения. Проект **обязан** зафиксировать в `spec_ui.html` (методика и/или карта) контракт:
+The universal standard does not define domain transitions of a specific application. The project **must** record the contract in `spec_ui.html` (method and/or map):
 
-- после каких действий - выход в главное меню;
-- после каких - остаться на экране с перерисовкой и pending-body;
-- поведение «Назад» / «Главное меню» (включая `force_menu` и аналоги);
-- поведение при ошибке входа на экран.
+- after which actions the UI returns to the main menu;
+- after which actions it stays on the screen with a redraw and pending body;
+- the behavior of «Назад» / «Главное меню» (including `force_menu` and equivalents);
+- the behavior when entering a screen fails.
 
-Примеры формулировок контракта (шаблоны, не домен): «одиночное действие по строке -> main»; «пакет -> stay + pending»; «ошибка подготовки экрана -> main».
-
----
-
-## 02.05. Условные пункты меню
-
-*Обязательно при наличии условных пунктов.*
-
-- Пункты появляются только при выполнении условия; буквы ряда переназначаются заново сверху вниз на каждый кадр.
-- Конкретные условия (когда показывать refresh, cleanup, publish и т.п.) - в `spec_ui.html` проекта, не в универсальном стандарте.
-- **Хвосты-подсказки** вида ` ← если <condition>` - только в макете `spec_ui` (роль «нейтраль», для читателя эталона, почему пункт есть на кадре). В рантайме не печатаются: пункт либо виден (условие истинно), либо скрыт. Навигация и яккорные пункты - всегда без хвоста.
+Example contract statements (templates, not domain): "single row action -> main"; "batch -> stay + pending"; "screen preparation error -> main".
 
 ---
 
-## 03.01. Цвета (роли) и шрифт
+## 02.05. Conditional Menu Items
 
-*Обязательно для режимов `menu` и `rich` в интерактивном TTY.*
+*Required when conditional items exist.*
 
-Палитра - набор ролей. **Имена ролей стабильны**; hex и оформление макета - только в `spec_ui.html` проекта. Базовая рекомендация (`project_standards.md`, раздел 04.04.02): успех - зеленый, предупреждение - желтый, ошибка - красный; конкретика - в эталоне проекта.
-
-Роли:
-
-- **заголовок** (breadcrumb) - bold; тон проекта;
-- **секция / title таблицы** - заголовки тела и caption таблицы (cyan, rich `cyan`, без bold); не путать с breadcrumb;
-- **ключ-цифра** - цифровые селекторы и `#` в таблице; желтый bold;
-- **ключ-служба** - буквенные селекторы; терракотовый, без bold;
-- **текст пункта** - подпись действия;
-- **навигация** / nav - подписи «Назад», «Главное меню», «Выход»; тот же тон, что breadcrumb, без bold; ключ буквы - роль «ключ-служба»;
-- **команда** - встроенные CLI в тексте (имена команд, системные вызовы); в консоли - роль «команда» (зеленый bold); остальной текст сообщения - роль «текст пункта»; в логе - plain;
-- **подсказка** / hint - справочные ремарки (не результат действия), формат `* <text>`; курсив + серый; встроенная команда внутри - роль «команда»;
-- **prompt** - `[>]`; желтый bold (тот же тон, что ключ-цифра; не цвет команд, чтобы строка ввода читалась отдельно);
-- **прибавление** / add / ok - стало больше / появилось / активное наличие; зеленый;
-- **убавление** / rm - стало меньше / снято / удалено; розовый (не путать с ошибкой);
-- **нейтраль** / dim - без изменения количества, пропуск, уже так, ноль; серый; в макете также хвост условия пункта меню;
-- **заголовок колонки** / th - подписи столбцов таблицы; серый bold (не цвет ячеек данных);
-- **ошибка** / err - отказ / недоступность / сбой; красный.
-
-Цвет UI в интерактивном сценарии всегда. Лог-файл - без ANSI. Эмодзи запрещены. Строки-разделители (`=====`, `-----`, `---`) запрещены.
-
-**Смена по запросу пользователя:** hex-цвета ролей и шрифт оформления эталона (`spec_ui.html`: CSS `:root`, семейство/размер моноширинного шрифта кадров) допускается менять по явной просьбе пользователя. Имена ролей, контракт кадра и правила применения ролей не меняются. После смены - обновить палитру в `spec_ui.html`, CSS макета и bump SemVer макета в том же изменении.
+- Items appear only when the condition holds; row letters are reassigned top-down on every frame.
+- Specific conditions (when to show refresh, cleanup, publish, and similar) live in the project `spec_ui.html`, not in the universal standard.
+- **Hint tails** of the form ` ← если <condition>` - only in the `spec_ui` mockup (neutral role, for the reference reader, explaining why the item is on the frame). Never print them at runtime: an item is either visible (condition true) or hidden. Navigation and anchor items never have a tail.
 
 ---
 
-## 03.02. Таблицы
+## 03.01. Colors (Roles) and Font
 
-*Обязательно при выводе таблиц в `menu` / `rich`.*
+*Required for `menu` and `rich` modes in an interactive TTY.*
 
-- **Консоль:** только через `src/console_table.py` (rich, рамка `rounded`); доменный код и `src/menu.py` не импортируют rich для таблиц напрямую. Прочий rich-вывод режима `rich` (Live, progress) - в `src/rich_console.py` (`project_standards.md`, раздел 04.07.03).
-- **Лог:** иерархия представления табличных данных - `project_standards.md` (раздел 04.04.04): предпочтительны строки, списки (раздел 03.03) и сводки (раздел 03.04); `tabulate` - только при необходимости табличной структуры.
-- Dual-render: один модуль `src/console_table.py` формирует консольный и (при необходимости табличной структуры) файловый вид из единого источника данных.
-- **Title консоли:** `Table.title` через `t()`, justify left, стиль роли «секция / title» (cyan без bold); не дублировать отдельной caption-строкой над рамкой.
-- **Заголовок перед log-`tabulate`:** по разделу 04.04.04 основного стандарта - строка через `t()` непосредственно перед таблицей; ровно одна пустая строка перед заголовком - правило раздела 02.01 настоящего документа.
-- **Заголовки колонок:** роль «заголовок колонки» (th) - серый bold; визуально отделены от ячеек данных. В rich: `header_style="bold bright_black"` или эквивалент dim bold.
-- Колонка статуса - семантическая окраска: активное наличие - «прибавление»; неактивное - «нейтраль»; отказ - «ошибка».
-- **Паттерн `status_col` + map:** в `print_table` принимать индекс колонки статуса (0-based, например `status_col=4`) и словарь `статус -> роль/стиль` (ключи - нормализованные строки из `t()`, включая ru/en варианты вроде `ок`/`ok`, `пропуск`/`skip`, `ошибка`/`fail`). Раскрашивать только ячейки этой колонки; в лог-`tabulate` - те же тексты без ANSI. Доменный код передает индекс и данные, не дублирует map стилей.
-- Выравнивание: числа и размеры - вправо; текст и пути - влево; статусы - единообразно по колонке. `colalign` для `tabulate` в логе - по разделу 04.04.04 основного стандарта.
-- Номера строк таблицы = цифровые ключи меню.
-- Пустой список: тот же title, без рамки таблицы - строка empty-сообщения под заголовком секции (через `print_section_title` + empty-message).
-- Опционально флаги `to_console` / `to_log` у `print_table`, если таблица нужна только в один канал.
-- Batch CLI (если есть): одна таблица колонок статусов + сводки под ней (не вторая таблица). См. раздел 04.04.
+The palette is a set of roles. **Role names are stable**; hex values and mockup styling live only in the project `spec_ui.html`. Baseline recommendation: success - green, warning - yellow, error - red; specifics are in the project reference.
 
----
+Roles:
 
-## 03.03. Списки результатов
+- **title** (breadcrumb) - bold; project tone;
+- **section / table title** - body headings and table caption (cyan, rich `cyan`, no bold); do not confuse with the breadcrumb;
+- **numeric key** - numeric selectors and `#` in a table; yellow bold;
+- **service key** - letter selectors; terracotta, no bold;
+- **item text** - action label;
+- **navigation** / nav - «Назад», «Главное меню», «Выход» labels; same tone as the breadcrumb, no bold; the letter key uses the service key role;
+- **command** - inline CLIs in text (command names, system calls); in the console use the command role (green bold); the rest of the message uses the item text role; in the log - plain;
+- **hint** - reference remarks (not an action result), format `* <text>`; italic + gray; an inline command inside uses the command role;
+- **prompt** - `[>]`; yellow bold (same tone as the numeric key; not the command color, so the input line reads separately);
+- **add** / ok - more / appeared / active presence; green;
+- **remove** / rm - fewer / removed / deleted; pink (do not confuse with error);
+- **neutral** / dim - no quantity change, skipped, already done, zero; gray; in the mockup also the condition tail of a menu item;
+- **column header** / th - table column labels; gray bold (not the data cell color);
+- **error** / err - refusal / unavailability / failure; red.
 
-*Обязательно при выводе списков.*
+UI color is always on in an interactive scenario. The log file has no ANSI. Emoji are forbidden. Separator lines (`=====`, `-----`, `---`) are forbidden.
 
-- Блок: заголовок секции (роль «секция / title») -> строки элементов -> при необходимости сводка.
-- Элемент: `- элемент` (дефис, пробел, текст); шаблон перевода (например `msg.list_item`). Заголовок и тексты элементов - через `t()`.
-- Структура блока и пустые строки в логе (без лидирующих пробелов, между заголовком и элементами пустой строки нет, между соседними блоками - ровно одна) - `project_standards.md` (раздел 04.04.05).
-- На кадре меню список/сводка из действия попадают в pending-body (над основной таблицей экрана, если таблица есть).
-- Запись списка в лог по режимам (`logger.info()` в `plain`, `log_file_only` в `menu` / `rich`) - `project_standards.md` (раздел 04.04.05); на кадре - pending-body.
+**Change on user request:** hex role colors and the reference font styling (`spec_ui.html`: CSS `:root`, frame monospace family/size) may change on an explicit user request. Role names, the frame contract, and role application rules do not change. After a change, update the palette in `spec_ui.html`, the mockup CSS, and bump the mockup SemVer in the same change.
 
 ---
 
-## 03.04. Сводки
+## 03.02. Tables
 
-*Обязательно при выводе сводок.*
+*Required when tables are printed in `menu` / `rich`.*
 
-- Выделенный модуль сводок (например `src/console_summary.py`: `emit_summary` / `emit_summary_from_template` или эквивалент).
-- Формат одной строки - `project_standards.md` (раздел 04.04.06): `префикс: ключ: N, ключ: M`, ключи через `t()` / шаблон. Префикс - роль «текст пункта», разделитель «, » - роль «нейтраль».
-- Цвет метрики - по **направлению изменения** (дельта), не по «успешности операции» и не по порядку полей:
-  - **прибавление** (зеленый): стало больше / появилось;
-  - **убавление** (розовый): стало меньше / снято / удалено;
-  - **нейтраль** (серый): без дельты количества (примеры слов - «уже выполнено», «пропущено», «не выполнено», «перенесено», «обновлено»); нестроковые хвосты метрик (например путь бэкапа);
-  - **ошибка** (красный): метрика ошибок при значении > 0.
-- Значение `0` всегда нейтраль (dim), независимо от направления метрики (в т.ч. «ошибок: 0»).
-- **Канон:** пометричная дельта-раскраска (строки выше). **Опционально:** позиционная палитра значений (один порядковый номер значения - один цвет во всех строках) - только если явно зафиксировано в `spec_ui.html` проекта.
-- Заголовок блока списка/действия - роль «секция / title».
-- Сводка - одна строка счетчиков, не вторая таблица и не panel.
-- В лог - тот же смысл plain без ANSI.
-
----
-
-## 03.05. Тексты и локализация
-
-*Обязательно.*
-
-- Пользовательские строки меню и сообщений - через `t()` (`project_standards.md`, раздел 04.01), кроме явно перечисленных в `spec_ui.html` проекта допустимых хардкодов статусов/единиц.
-- Единицы измерения, значения статусов в ячейках, формулировки состояний - зафиксировать в методике `spec_ui.html` проекта.
-- Встроенные команды в тексте - роль «команда» (раздел 03.01): хелперы `emit_message_with_command` / `menu_item_with_command` или эквивалент.
-- Справочные подсказки (не результат действия) - роль «подсказка»: хелпер `emit_hint_with_command` или эквивалент; текст `* <hint>`, курсив + dim; команда внутри - роль «команда».
+- **Console:** only through `src/console_table.py` (rich, `rounded` border); domain code and `src/menu.py` never import rich for tables directly. Other rich output in `rich` mode (Live, progress) goes through `src/rich_console.py` (`project_standards.md`, Section 04.07.03).
+- **Log:** the hierarchy for tabular data - `project_standards.md` (Section 04.04.04): prefer lines, lists (Section 03.03), and summaries (Section 03.04); `tabulate` only when a tabular structure is required.
+- Dual render: one module `src/console_table.py` produces the console view and (when a tabular structure is required) the file view from a single data source.
+- **Console title:** `Table.title` via `t()`, justify left, section/title role style (cyan without bold); do not duplicate it with a separate caption line above the border.
+- **Title before log `tabulate`:** per core standard Section 04.04.04 - a line via `t()` immediately before the table; exactly one blank line before the title is the rule of Section 02.01 here.
+- **Column headers:** column header role (th) - gray bold; visually separated from data cells. In rich: `header_style="bold bright_black"` or an equivalent dim bold.
+- The status column uses semantic coloring: active presence - add; inactive - neutral; refusal - error.
+- **`status_col` + map pattern:** `print_table` accepts the status column index (0-based, e.g. `status_col=4`) and a `status -> role/style` dictionary (keys are normalized strings from `t()`, including ru/en variants such as `ок`/`ok`, `пропуск`/`skip`, `ошибка`/`fail`). Color only cells in that column; in log `tabulate` use the same texts without ANSI. Domain code passes the index and data, never duplicates the style map.
+- Alignment: numbers and sizes right; text and paths left; statuses consistent within a column. `colalign` for log `tabulate` follows core standard Section 04.04.04.
+- Table row numbers = numeric menu keys.
+- Empty list: the same title, no table border - an empty message line under the section title (via `print_section_title` + empty message).
+- Optional `to_console` / `to_log` flags on `print_table` when a table is needed in one channel only.
+- Batch CLI (if any): one table of status columns + summaries below it (not a second table). See Section 04.04.
 
 ---
 
-## 04.01. После выбора пункта
+## 03.03. Result Lists
 
-*Обязательно при наличии menu frame.*
+*Required when lists are printed.*
 
-- Сразу после `input()` в `finish_screen_prompt` - `clear_screen` (не оставлять на экране body прошлого кадра).
-- Затем действие (если нужно) и полный кадр следующего состояния через `begin_screen` (снова clear) -> меню -> тело -> пустая -> `[>]`.
-- Выбор пользователя в консоль меню не дублируется отдельным announce над пунктами; в лог выбор пишется через `log_file_only` (или эквивалент смыслового лога).
-- Результат действия - в теле (pending) над **свежим** обзором экрана (таблицы/сообщения после перечитывания состояния), или смена экрана по контракту раздела 02.04 / `spec_ui` проекта. Pending + актуальные таблицы - норма, не «отсутствие перерисовки»; таблицы обязаны отражать состояние после действия.
-- **Некорректный ввод** и «ничего не выбрано» - не через `logger.warning` в консоль; pending следующего кадра - секция «Выбор» + строка (роль «ошибка» / «нейтраль»); в лог - `log_file_only`. См. раздел 04.03.
-- Не дублировать второй заголовок выбора над меню на кадре возврата.
-- Канон `[>] N` / «Выбран пункт [N]» не используется.
-- Контракт общий для всех циклов меню проекта (главное, подразделы, экраны со строками таблицы).
+- Block: section title (section/title role) -> item lines -> summary when needed.
+- Item: `- item` (hyphen, space, text); a translation template (for example `msg.list_item`). The title and item texts go through `t()`.
+- Block structure and blank lines in the log (no leading spaces, no blank line between the title and items, exactly one between adjacent blocks) - `project_standards.md` (Section 04.04.05).
+- On a menu frame, a list/summary from an action goes into the pending body (above the main screen table, if any).
+- Logging a list by mode (`console_message()` in `plain`, `log_file_only` in `menu` / `rich`) - `project_standards.md` (Section 04.04.05); on the frame - pending body.
 
 ---
 
-## 04.02. Два канала (консоль и лог)
+## 03.04. Summaries
 
-*Обязательно.*
+*Required when summaries are printed.*
 
-- **Консоль:** clear, цвет, rich-таблицы, кадр меню через канал представления (`src/menu.py`, `print` / ANSI-clear), не через info-логгер в консоль. Сообщения сессии (раздел 04.03) - тоже через `print` / `emit_session_notice`.
-- **Лог-файл:** plain; формат `YYYY-MM-DD HH:MM:SS [marker] сообщение` (`project_standards.md` 04.04.01); таблицы - по иерархии раздела 03.02; сводки и команды - без ANSI; без clear.
-- Действия пользователя и итоги пишутся в лог даже если консоль показывает только текущий кадр.
-- Служебные подсказки, не входящие в тело кадра, могут идти только в лог (`log_file_only`).
-- Логгер entry-point: `mode="menu"` или `mode="rich"` (`project_standards.md`, разделы 04.06, 04.07). Параметр `mode` задает формат сообщений логгера в консоль, не канал отрисовки кадра. Признаки non-interactive (нет TTY, `CI`, `TERM=dumb`) - `project_standards.md` (раздел 04.07).
-- Меню, заголовки секций, prompt, clear и оформительские элементы в лог не пишутся.
+- A dedicated summary module (for example `src/console_summary.py`: `emit_summary` / `emit_summary_from_template` or equivalent).
+- One-line format - `project_standards.md` (Section 04.04.06): `prefix: key: N, key: M`, keys via `t()` / template. The prefix uses the item text role, the separator ", " uses the neutral role.
+- Metric color follows the **direction of change** (delta), not "operation success" and not field order:
+  - **add** (green): more / appeared;
+  - **remove** (pink): fewer / removed / deleted;
+  - **neutral** (gray): no quantity delta (example words - «уже выполнено», «пропущено», «не выполнено», «перенесено», «обновлено»); non-numeric metric tails (for example a backup path);
+  - **error** (red): the error metric when the value is > 0.
+- The value `0` is always neutral (dim), regardless of the metric direction (including «ошибок: 0»).
+- **Canon:** per-metric delta coloring (rows above). **Optional:** positional value palette (one ordinal value number - one color across all lines) only when explicitly recorded in the project `spec_ui.html`.
+- The block title for a list/action - section/title role.
+- A summary is one counter line, not a second table and not a panel.
+- The log gets the same meaning in plain without ANSI.
 
-**Абстрактный пример лог-ленты** (тот же сценарий, что кадр с телом в разделе 02.01; запись `{t("...")}` обозначает место доменной строки из переводов - в лог пишется готовый текст сообщения, не ключ):
+---
+
+## 03.05. Texts and Localization
+
+*Required.*
+
+- User-facing menu and message strings go through `t()` (`project_standards.md`, Section 04.01), except status/unit hardcodes explicitly listed in the project `spec_ui.html`.
+- Record units of measure, status values in cells, and state wording in the project `spec_ui.html` method.
+- Inline commands in text use the command role (Section 03.01): helpers `emit_message_with_command` / `menu_item_with_command` or equivalent.
+- Reference hints (not an action result) use the hint role: helper `emit_hint_with_command` or equivalent; text `* <hint>`, italic + dim; an inline command uses the command role.
+
+---
+
+## 04.01. After an Item Is Selected
+
+*Required when a menu frame exists.*
+
+- Immediately after `input()` in `finish_screen_prompt` - `clear_screen` (do not leave the previous frame body on screen).
+- Then the action (if needed) and a full frame of the next state via `begin_screen` (clear again) -> menu -> body -> blank -> `[>]`.
+- Do not duplicate the user's choice in the menu console with a separate announce above the items; write the choice to the log via `log_file_only` (or an equivalent semantic log).
+- The action result goes into the body (pending) above the **fresh** screen overview (tables/messages after re-reading state), or the screen changes per the contract in Section 02.04 / project `spec_ui`. Pending + current tables is the norm, not "no redraw"; tables must reflect state after the action.
+- **Invalid input** and "nothing selected" - not via `logger.warning` to the console; the next frame pending is a «Выбор» section + a line (error / neutral role); the log gets `log_file_only`. See Section 04.03.
+- Do not duplicate a second selection title above the menu on the return frame.
+- Do not use the `[>] N` / «Выбран пункт [N]» canon.
+- The contract is common to all project menu loops (main, subsections, screens with table rows).
+
+---
+
+## 04.02. Two Channels (Console and Log)
+
+*Required.*
+
+- **Console:** clear, color, rich tables, menu frame through the presentation channel (`src/menu.py`, `print` / ANSI clear), not through the info logger to the console. Session messages (Section 04.03) also go through `print` / `emit_session_notice`.
+- **Log file:** plain; format `YYYY-MM-DD HH:MM:SS [marker] message` (`project_standards.md` 04.04.01); tables per the hierarchy in Section 03.02; summaries and commands without ANSI; no clear.
+- User actions and results are written to the log even when the console shows only the current frame.
+- Service hints outside the frame body may go to the log only (`log_file_only`).
+- Entry-point logger: `mode="menu"` or `mode="rich"` (`project_standards.md`, Sections 04.06, 04.07). The `mode` parameter disables `console_message()`; the frame is rendered only by the presentation channel. Non-interactive signs (no TTY, `CI`, `TERM=dumb`) - `project_standards.md` (Section 04.07).
+- Menus, section titles, prompts, clear, and decorative elements are not written to the log.
+
+**Abstract log stream example** (the same scenario as the frame with a body in Section 02.01; the `{t("...")}` entry marks the place of a domain string from translations - the log receives the finished message text, not the key):
 
 ```
 2026-07-21 21:00:20 [i] {t("msg.action_title")}
@@ -322,114 +322,114 @@
 
 ---
 
-## 04.03. Сообщения сессии
+## 04.03. Session Messages
 
-*Обязательно при наличии menu frame.*
+*Required when a menu frame exists.*
 
-Сообщения вне обычного pending-действия: старт приложения, прерывание (Ctrl+C / EOF), некорректный или пустой ввод. Не через info-логгер в консоль меню; через `print` / `emit_session_notice` (или эквивалент).
+Messages outside the usual pending action: application start, interruption (Ctrl+C / EOF), invalid or empty input. Not through the info logger to the menu console; through `print` / `emit_session_notice` (or equivalent).
 
-- **Форма:** заголовок секции (cyan) + одна строка тела. Баннер старта и сообщение прерывания - **исключение**: только строка роли «текст пункта», без секции (однострочный баннер). Сообщение прерывания опционально: завершение без него допустимо (`project_standards.md`, раздел 05.03).
-- **Лог:** только текст сообщения через `log_file_only` (без ANSI).
-- **Старт:** только `msg.app_started` (name version), роль «текст пункта», без секции.
-- **Ctrl+C / EOF:** после `clear_screen` при выводе сообщения - только `msg.interrupted`, роль «текст пункта», без секции; сообщение опционально, завершение без него тоже допустимо. Точки перехвата: циклы меню (`finish_screen_prompt` / `input()`) и внешняя обертка точки входа (зависимости, подготовка, `run()` до меню). Затем корректное завершение с кодом 130 (`project_standards.md`, раздел 05.03).
-- **Некорректный выбор:** pending следующего кадра - секция «Выбор» + `msg.invalid_choice`; роль «ошибка».
-- **Ничего не выбрано:** pending - секция «Выбор» + `msg.nothing_selected`; роль «нейтраль».
-- API: `emit_session_notice` (сразу на экран); `_queue_notice_body` / `_queue_invalid_choice` / `_queue_nothing_selected` (pending); `_emit_interrupted`.
-
----
-
-## 04.04. Batch / non-menu CLI
-
-*Опционально - если проект предусматривает пакетный CLI вне меню.*
-
-- CLI вне меню, но **тот же визуальный стиль**, что у сессии (не info-логгер в консоль как единственный канал кадра).
-- Вывод (сверху вниз): баннер `msg.app_started` (роль «текст пункта», без секции) -> при необходимости стартовые секции (параметры прогона, пути) -> при длительном прогоне - прогресс (ниже) -> **одна** таблица колонок статусов -> **цветные сводки** под ней (не вторая таблица и не panel). Перед заголовком таблицы / секции - пустая строка (раздел 02.01).
-- Сводок может быть несколько строк одного стиля (итог, доп. итог, путь архива, время) - каждая по правилам раздела 03.04 (пометричная раскраска; значение `0` - нейтраль). Не склеивать несвязанные итоги во вторую таблицу.
-- Консоль - rich + цветные сводки; лог - plain (строки/список/сводка; `tabulate` только при необходимости табличной структуры).
-- Контракт колонок, статусов ячеек и шаблонов сводки - в `spec_ui.html` проекта (карта точек вывода - раздел 02; методика batch - раздел 06.06).
-- **Интерактивный контекст:** каноническое определение и признаки - `project_standards.md` 04.07. Вне интерактивного контекста - `mode="plain"`, без Live/прогресса. Решение - один раз при инициализации точки входа.
-- Мутирующие batch-команды - явный `--dry-run` (`project_standards.md` 03.01); в макете отметить, если dry-run меняет набор секций/сводок (план вместо применения).
-
-**Модули представления (роли, не доменная реализация):**
-
-| Модуль | Ответственность |
-|--------|-----------------|
-| `src/rich_console.py` | Общий `Console`, баннер, секции, прогресс, dual-channel в лог |
-| `src/console_table.py` | Dual-render таблиц; `status_col` + map статусов (раздел 03.02) |
-| `src/console_summary.py` | Сводки раздела 03.04 (пометричная дельта; позиционная палитра - опционально по `spec_ui`) |
-| `src/logger.py` | `mode="rich"`, `log_file_only`, консольный handler через тот же `Console` |
-
-**`src/rich_console.py` (контракт batch):**
-
-- `Console(highlight=False, soft_wrap=False)` - иначе rich сам подсвечивает пути/числа и ломает роли.
-- Dual-channel хелперы: баннер / заголовок секции / сводка - в интерактивном контексте пишут styled в консоль и тот же текст в лог через `log_file_only`; вне его - через `logger.info` (формат лога).
-- Пустая строка перед заголовком секции - внутри хелпера секции (вызывающий код не дублирует `print()`).
-- Позиционная палитра значений (опционально, если зафиксирована в `spec_ui`): один порядковый номер значения - один цвет во всех строках сводки; ключ - роль секции/cyan. Канон сводок - пометричная дельта (раздел 03.04).
-
-**Двухстрочный прогресс (`rich.progress` + `Live`, только интерактивная консоль):**
-
-- Раскладка (две строки под заголовком секции):
-  1. активный элемент - роль «ключ-цифра» (bold yellow); **рекомендуется** типографический маркер перед именем (например `▸ имя` или ASCII `> имя`) - визуальный «первый этаж» над баром; не emoji-pack;
-  2. бар + процент + счетчик.
-- Ширина бара фиксирована (`bar_width=40` или эквивалент), чтобы проценты/счетчик не прыгали при смене ширины терминала.
-- Счетчик с лидирующими нулями по ширине total (`04/23`, `09/23`) - выравнивание по разделу 04.04 основного стандарта; отдельная `ProgressColumn` при необходимости.
-- API контекста: `step(name)` - обновить имя активного элемента **до** работы; `advance()` - сдвинуть счетчик **после** обработки элемента (иначе бар врет во время долгой операции).
-- Прогресс в лог не пишется; поэлементные итоги и retry-шум - `log_file_only` (или `logger.info` вне Live).
-- Вне интерактивного контекста - прогресс в консоль не выводить; итоги и список - через логгер.
-- Не смешивать с `\r`-прогрессом из `src/progress.py` (`project_standards.md`, раздел 04.07.01). Обработчик сигнала (раздел 05.03) обязан завершить Live/progress перед выходом.
-
-Иллюстративный порядок batch-кадра и двухстрочный прогресс - в шаблоне `doc/specs/spec_ui.html` (разделы 01 и 01.01 - образец batch).
+- **Form:** section title (cyan) + one body line. The startup banner and the interruption message are an **exception**: only an item text role line, no section (single-line banner). The interruption message is optional: exiting without it is allowed (`project_standards.md`, Section 05.03).
+- **Log:** message text only via `log_file_only` (no ANSI).
+- **Start:** only `msg.app_started` (name version), item text role, no section.
+- **Ctrl+C / EOF:** after `clear_screen` when printing the message - only `msg.interrupted`, item text role, no section; the message is optional and exiting without it is allowed. Interception points: menu loops (`finish_screen_prompt` / `input()`) and the outer entry-point wrapper (dependencies, preparation, `run()` before the menu). Then exit cleanly with code 130 (`project_standards.md`, Section 05.03).
+- **Invalid choice:** next frame pending - «Выбор» section + `msg.invalid_choice`; error role.
+- **Nothing selected:** pending - «Выбор» section + `msg.nothing_selected`; neutral role.
+- API: `emit_session_notice` (immediately to screen); `_queue_notice_body` / `_queue_invalid_choice` / `_queue_nothing_selected` (pending); `_emit_interrupted`.
 
 ---
 
-## 04.05. Примеры vs методика
+## 04.04. Batch / Non-Menu CLI
 
-*Обязательно.*
+*Optional - when the project provides a batch CLI outside the menu.*
 
-- Примеры кадров в `spec_ui.html` могут упрощать числа, обрезать длинные пути, показывать «полный» набор пунктов как сценарий «когда условие выполнено».
-- Если карточка кадра расходится с методикой или кодом - побеждают методика и код; карточку при следующей правке эталона выравнивают.
-- Временные исключения по цифрам (раздел 02.03) - только при явной пометке в `spec_ui`.
-- Фрагмент лога - образец формата ленты, не полный дамп сеанса.
-- Хвосты ` ← если <condition>` условных пунктов - только в макете, не в рантайме.
+- A CLI outside the menu, but **the same visual style** as the session (not the info logger to the console as the only frame channel).
+- Output (top to bottom): `msg.app_started` banner (item text role, no section) -> startup sections if needed (run parameters, paths) -> progress during a long run (below) -> **one** table of status columns -> **color summaries** below it (not a second table and not a panel). A blank line before a table/section title (Section 02.01).
+- Summaries may be several lines of one style (total, subtotal, archive path, time) - each per Section 03.04 (per-metric coloring; value `0` neutral). Do not merge unrelated totals into a second table.
+- Console - rich + colored summaries; log - plain (lines/list/summary; `tabulate` only when a tabular structure is required).
+- The column, cell status, and summary template contract lives in the project `spec_ui.html` (output point map and batch method).
+- **Interactive context:** canonical definition and signs - `project_standards.md` 04.07. Outside the interactive context - `mode="plain"`, no Live/progress. Decide once at entry-point initialization.
+- Mutating batch commands require an explicit `--dry-run` (`project_standards.md` 03.01); note in the mockup if dry-run changes the set of sections/summaries (plan instead of apply).
+
+**Presentation modules (roles, not domain implementation):**
+
+| Module | Responsibility |
+|--------|----------------|
+| `src/rich_console.py` | Shared `Console`, banner, sections, progress, dual-channel to log |
+| `src/console_table.py` | Dual render of tables; `status_col` + status map (Section 03.02) |
+| `src/console_summary.py` | Summaries from Section 03.04 (per-metric delta; positional palette optional per `spec_ui`) |
+| `src/logger.py` | `mode="rich"`, `log_file_only`; console output through `console_message()` and the presentation layer |
+
+**`src/rich_console.py` (batch contract):**
+
+- `Console(highlight=False, soft_wrap=False)` - otherwise rich highlights paths/numbers itself and breaks roles.
+- Dual-channel helpers: banner / section title / summary write styled text to the console in an interactive context and the same text to the log via `log_file_only`; outside it - via `console_message()` (plain format).
+- A blank line before a section title - inside the section helper (the caller does not duplicate `print()`).
+- Positional value palette (optional, when recorded in `spec_ui`): one ordinal value number - one color across all summary lines; the key uses the section role/cyan. The summary canon is per-metric delta (Section 03.04).
+
+**Two-line progress (`rich.progress` + `Live`, interactive console only):**
+
+- Layout (two lines under the section title):
+  1. active item - numeric key role (bold yellow); a typographic marker before the name is **recommended** (for example `▸ name` or ASCII `> name`) - a visual "first floor" above the bar; not an emoji pack;
+  2. bar + percentage + counter.
+- Bar width is fixed (`bar_width=40` or equivalent) so percentages/counters do not jump when terminal width changes.
+- Counter with leading zeros to the width of total (`04/23`, `09/23`) - alignment per core standard Section 04.04; a dedicated `ProgressColumn` if needed.
+- Context API: `step(name)` - update the active item name **before** work; `advance()` - move the counter **after** processing an item (otherwise the bar lies during a long operation).
+- Progress is not written to the log; per-item results and retry noise - `log_file_only` (or `console_message()` outside Live).
+- Outside an interactive context, do not print progress to the console; results and the list go through `console_message()` in plain mode.
+- Do not mix with the `\r` progress from `src/progress.py` (`project_standards.md`, Section 04.07.01). The signal handler (Section 05.03) must terminate Live/progress before exit.
+
+The illustrative batch frame order and two-line progress are in the `doc/specs/spec_ui.html` template (sections 01 and 01.01 - batch sample).
 
 ---
 
-## 05.01. Чеклист переноса в другой репозиторий
+## 04.05. Examples vs Method
 
-*Обязательно при переносе в другой репозиторий.*
+*Required.*
 
-1. Зафиксировать палитру ролей (включая «команда», «подсказку», «прибавление», «убавление», «заголовок колонки») в `spec_ui.html`.
-2. Один модуль меню: полный `clear_screen`, breadcrumb, пункты, тело, затем `[>]` внизу (без cursor tricks); буквы `Z X C V B N M` сверху вниз; цифры - строки таблицы (плюс явные временные исключения в `spec_ui`, если нужны); навигационные пункты - роль «навигация». Перед каждым заголовком секции / title таблицы - пустая строка.
-3. Один модуль таблиц dual-render; title justify left; заголовки колонок - роль «заголовок колонки»; тело кадра из перечитанного состояния.
-4. Один модуль сводок с правилами раздела 03.04 (дельта-раскраска).
-5. HTML-эталон: версия макета, карта навигации, примеры, методика; приоритет методики+кода над примерами; футер с полным абсолютным путем.
-6. Зафиксировать контракт «после каких действий какой экран» (раздел 02.04) и условные пункты (раздел 02.05).
-7. Сообщения сессии (старт, прерывание, некорректный ввод) - раздел 04.03; не через info-логгер в консоль.
-8. Тексты UI - из локализации; единицы и статусы - в методике `spec_ui`.
-9. Проверить TTY: `[>]` ниже тела; пустые строки перед каждым заголовком секции; нет хвоста прошлого body; breadcrumb слева без `---`; лог - plain-лента.
-10. Batch CLI (если есть): dual-channel хелперы; интерактивный контекст - `project_standards.md` (раздел 04.07); при прогрессе - две строки (маркер+имя / бар+zero-pad счетчик); `status_col` + map для колонки статуса; сводки по разделу 03.04; мутации - `--dry-run` (`project_standards.md`, раздел 03.01).
+- Frame examples in `spec_ui.html` may simplify numbers, truncate long paths, and show a "full" item set as a "when the condition holds" scenario.
+- If a frame card conflicts with the method or code, the method and code win; align the card on the next reference edit.
+- Temporary digit exceptions (Section 02.03) - only with an explicit note in `spec_ui`.
+- The log fragment is a sample of the stream format, not a full session dump.
+- ` ← если <condition>` tails of conditional items - only in the mockup, never at runtime.
 
 ---
 
-## 05.02. Связь с другими документами
+## 05.01. Porting Checklist for Another Repository
 
-| Тема | Где норма |
-|------|-----------|
+*Required when porting to another repository.*
+
+1. Record the role palette (including command, hint, add, remove, column header) in `spec_ui.html`.
+2. One menu module: full `clear_screen`, breadcrumb, items, body, then `[>]` at the bottom (no cursor tricks); letters `Z X C V B N M` top-down; digits for table rows (plus explicit temporary exceptions in `spec_ui` if needed); navigation items use the navigation role. A blank line before every section title / table title.
+3. One dual-render table module; title justify left; column headers use the column header role; frame body from re-read state.
+4. One summary module with Section 03.04 rules (delta coloring).
+5. HTML reference: mockup version, navigation map, examples, method; method+code priority over examples; footer with the full absolute path.
+6. Record the "which action leads to which screen" contract (Section 02.04) and conditional items (Section 02.05).
+7. Session messages (start, interruption, invalid input) - Section 04.03; not via the info logger to the console.
+8. UI texts from localization; units and statuses in the `spec_ui` method.
+9. Check the TTY: `[>]` below the body; blank lines before every section title; no tail from the previous body; breadcrumb on the left without `---`; log is a plain stream.
+10. Batch CLI (if any): dual-channel helpers; interactive context - `project_standards.md` (Section 04.07); with progress - two lines (marker+name / bar+zero-padded counter); `status_col` + map for the status column; summaries per Section 03.04; mutations - `--dry-run` (`project_standards.md`, Section 03.01).
+
+---
+
+## 05.02. Related Documents
+
+| Topic | Normative location |
+|-------|--------------------|
 | i18n `t()`, translations | `project_standards.md` 04.01 |
-| Маркеры, стиль текста | 04.02, 04.03 |
-| Формат строки лога, plain | 04.04.01, 04.06 |
-| Выбор mode логгера, progress, rich Live, интерактивный контекст | 04.07, 04.07.01, 04.07.03 |
-| `log_file_only`, rich-handler | 04.06 |
-| `--dry-run` для мутаций CLI | 03.01 |
-| GUI | 04.08; экраны - в `spec_ui.html` |
-| Кадр меню, роли, клавиши, таблицы UI, сводки, сообщения сессии, spec_ui | **настоящий документ** |
-| Меню в README | `repo_info_doc_standards.md` 02.03: карта не дублируется, README ссылается на `spec_ui.html` |
-| Порядок внедрения / проверка | 07.03, 07.04 |
+| Markers, text style | 04.02, 04.03 |
+| Log line format, plain | 04.04.01, 04.06 |
+| Logger mode selection, progress, rich Live, interactive context | 04.07, 04.07.01, 04.07.03 |
+| `log_file_only`, `console_message` | 04.06 |
+| `--dry-run` for CLI mutations | 03.01 |
+| GUI | 04.08; screens in `spec_ui.html` |
+| Menu frame, roles, keys, UI tables, summaries, session messages, spec_ui | **this document** |
+| Menu in README | `repo_info_doc_standards.md` 02.03: the map is not duplicated, README links to `spec_ui.html` |
+| Rollout order / verification | 07.03, 07.04 |
 
-`print()` / очистка экрана в `src/menu.py` - допустимое исключение из запрета прямого вывода вне логгера (`project_standards.md` 04.06). ANSI cursor tricks (CUP, CSI s/u, DECSTBM) не применяются: кадр строится обычным выводом + `input()`.
+`print()` / screen clearing in `src/menu.py` is a permitted exception to the ban on direct output outside the logger (`project_standards.md` 04.06). ANSI cursor tricks (CUP, CSI s/u, DECSTBM) are not used: the frame is built with ordinary output + `input()`.
 
 ---
 
-## 05.03. Версионирование
+## 05.03. Versioning
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя (см. _index_standards.md).
+Versioning of the standards package is unified for all package documents. The versioning policy, registry, and routing map are in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see `_index_standards.md`).

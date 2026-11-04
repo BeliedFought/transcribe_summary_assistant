@@ -1,194 +1,203 @@
-# Стандарт оформления навыков по спецификации Anthropic Agent Skills. Версия 4.16.0
+# Anthropic Agent Skills Standards. Version 5.0.0
 
-Документ описывает правила создания и оформления навыков в формате Anthropic Agent Skills: каталог навыка с обязательным `SKILL.md`, YAML frontmatter, принцип progressive disclosure, вложенные файлы и скрипты. Является дополнением к `doc/standards/project_standards.md` и применяется поверх него.
+This document is the single skill canon for the package. It defines the Anthropic Agent Skills format: a skill directory with a mandatory `SKILL.md`, YAML frontmatter, progressive disclosure, nested files, and scripts. It also defines the four-type taxonomy, the closed ten-category dictionary, naming, distribution, and verification. It supplements `doc/standards/project_standards.md` and applies on top of it.
 
-Этот документ и `doc/standards/skill_plain_standards.md` описывают два разных формата навыков и не заменяют друг друга:
+The package has one skill format: a directory `<name>/SKILL.md`. New skills are created in this format only. Legacy flat skill files (`doc/skills/<name>.md` or `doc/skills/<repo-name>/pg_<name>.md`) may remain in sibling repositories until migrated; they are not created in the hub and do not form a second format.
 
-- `skill_plain_standards.md` - plain-формат (плоский навык): плоский файл `doc/skills/<name>.md` с frontmatter `id` / `type` / `description` / `auto_apply`
-- `skill_anthropic_standards.md` (этот документ) - внешний формат: каталог `<name>/SKILL.md` по спецификации Anthropic Agent Skills
-
-Выбор формата - раздел 01.02. Все требования основного стандарта остаются в силе, кроме случаев, явно описанных в данном документе.
+All core requirements remain in force unless this document explicitly overrides them.
 
 ---
 
-## Оглавление
+## Table of Contents
 
-**01. Основы:** 01.01 Назначение и применимость - 01.02 Модель навыка и выбор формата - 01.03 Расположение навыка - 01.04 Каталог навыка и именование
+**01. Fundamentals:** 01.01 Purpose and applicability - 01.02 Skill model - 01.03 Skill location - 01.04 Skill directory, naming, types, and categories
 
-**02. Метаданные:** 02.01 YAML frontmatter - 02.02 Progressive disclosure - 02.03 Поле description
+**02. Metadata:** 02.01 YAML frontmatter - 02.02 Progressive disclosure - 02.03 `description` field
 
-**03. Содержание:** 03.01 Тело SKILL.md - 03.02 Вложенные файлы - 03.03 Скрипты в навыке - 03.04 Root-команды и подтверждение выполнения - 03.05 Конфигурирующие навыки: каркас apply-скрипта - 03.06 Каталоги-артефакты в сканируемых деревьях
+**03. Content:** 03.01 SKILL.md body - 03.02 Nested files - 03.03 Scripts - 03.04 Root commands and execution confirmation - 03.05 Configuring skills: apply-script skeleton - 03.06 Artifact directories in scanned trees
 
-**04. Применение:** 04.01 Применение навыка агентом - 04.02 Отличия от plain-формата
+**04. Application:** 04.01 Skill activation by the agent - 04.02 Legacy flat skills and migration
 
-**05. Прочее:** 05.01 Антипаттерны - 05.02 Пример - 05.03 Чеклист автора - 05.04 Разработка и проверка навыка
+**05. Other:** 05.01 Anti-patterns - 05.02 Example - 05.03 Author checklist - 05.04 Skill development and verification
 
-**06. Связь и версионирование:** 06.01 Связь с другими документами - 06.02 Версионирование
-
----
-
-## 01.01. Назначение и применимость
-
-*Обязательно.*
-
-Agent Skills - открытая спецификация Anthropic для упаковки инструкций, знаний и скриптов в навык, который AI-агент обнаруживает по метаданным и применяет по запросу. Формат поддержан экосистемой: Claude Code, Claude.ai / Anthropic API, opencode, Kilo Code и другие инструменты читают `SKILL.md`.
-
-Основной целевой инструмент настоящего стандарта - **opencode**: навыки формата SKILL.md создаются прежде всего под него. Исходники хранятся в общем каталоге `doc/skills/` (подпапки с `SKILL.md`); деплой в боевые каталоги opencode - отдельный процесс (раздел 01.03). Claude Code, Kilo Code и остальные инструменты экосистемы - совместимые потребители того же формата; первоисточником остается спецификация Anthropic.
-
-Настоящий стандарт применять, когда:
-
-- навык создается для инструмента, ожидающего формат `SKILL.md` (каталог навыка);
-- навык планируется к распространению вне репозитория: публикация, плагин, общий реестр;
-- нужно привести существующий сторонний SKILL.md-навык к канону перед использованием;
-- навык нужен только в одном репозитории и не должен попадать в синхронизацию каталога - размещение в `data/skills/` (раздел 01.03).
-
-Для plain-навыков репозитория в `doc/skills/` применяется `skill_plain_standards.md`; этот документ там не используется. Оба формата сосуществуют в одном репозитории и общем каталоге `doc/skills/`, но в разных единицах хранения: плоский файл - plain-формат, каталог с `SKILL.md` - формат Anthropic (раздел 01.03). Навыки, не подлежащие синхронизации (локальные, `pr_loc`), хранятся вне каталога синхронизации - в `data/skills/`; там допустимы оба формата (раздел 01.03).
+**06. Relations and versioning:** 06.01 Related documents - 06.02 Versioning
 
 ---
 
-## 01.02. Модель навыка и выбор формата
+## 01.01. Purpose and applicability
 
-*Обязательно.*
+*Mandatory.*
 
-Навык по спецификации Anthropic - это **каталог** с обязательным файлом `SKILL.md` и опциональными ресурсами. Три слоя:
+Agent Skills is Anthropic's open specification for packaging instructions, knowledge, and scripts into a skill that an AI agent discovers from metadata and applies on request. The ecosystem supports the format: Claude Code, Claude.ai / Anthropic API, opencode, Kilo Code, and other tools read `SKILL.md`.
 
-| Слой | Что содержит | Как используется |
-| ---- | ------------ | ---------------- |
-| Метаданные | frontmatter: `name`, `description` | Всегда в контексте агента; по ним навык выбирается |
-| Тело | Markdown-инструкция `SKILL.md` | Загружается целиком при активации навыка |
-| Ресурсы | `reference.md`, `examples.md`, шаблоны, `scripts/` | Читаются или выполняются по требованию |
+The primary target tool of this standard is **opencode**: SKILL.md skills are created first of all for it. Sources live in the shared `doc/skills/` directory (subdirectories with `SKILL.md`); deployment to live opencode directories is a separate process (01.03). Claude Code, Kilo Code, and other ecosystem tools are compatible consumers of the same format; the Anthropic specification remains the primary source.
 
-Механика применения: совпал запрос с `description` - агент загружает тело, следует инструкции, при необходимости читает ресурсы и запускает скрипты инструментами (Bash и др.).
+Apply this standard when:
 
-**Выбор формата:**
+- a skill is created for a tool that expects the `SKILL.md` format (a skill directory);
+- a skill will be distributed outside the repository: publication, plugin, shared registry;
+- an existing third-party SKILL.md skill must be brought to canon before use;
+- a skill is needed in one repository only and must stay outside directory synchronization - place it in `data/skills/` (01.03).
 
-| Условие | Формат |
-| ------- | ------ |
-| Целевой инструмент не поддерживает формат SKILL.md, либо навык распространяется одиночным файлом | Plain (`skill_plain_standards.md`) |
-| Целевой инструмент читает только `SKILL.md` | Anthropic (этот документ) |
-| Навык предназначен для публикации или переиспользования в нескольких инструментах | Anthropic (этот документ) |
+This document is the single skill canon: it covers all four types (`hub_loc`, `hub_glob`, `pr_glob`, `pr_loc`). Before creating or editing a skill in `doc/skills/` or `data/skills/`, the agent checks this document.
 
 ---
 
-## 01.03. Расположение навыка
+## 01.02. Skill model
 
-*Обязательно.*
+An Anthropic skill is a **directory** with a mandatory `SKILL.md` file and optional resources. Three layers:
 
-**Источник навыка хранится в репозитории**, а не в боевых каталогах инструментов - в общем каталоге навыков `doc/skills/`:
+| Layer | Content | Use |
+| ----- | ------- | --- |
+| Metadata | frontmatter: `name`, `description` | Always in the agent context; used to select the skill |
+| Body | Markdown instruction in `SKILL.md` | Loaded in full when the skill activates |
+| Resources | `reference.md`, `examples.md`, templates, `scripts/` | Read or executed on demand |
+
+Activation mechanics: the request matches `description`; the agent loads the body, follows the instruction, reads resources when needed, and runs scripts with tools (Bash and others).
+
+**Format decision:**
+
+| Case | Format |
+| ---- | ------ |
+| Any new skill | SKILL.md directory (this document) |
+| Target tool reads only `SKILL.md` | SKILL.md directory (this document) |
+| Skill is published or reused across tools | SKILL.md directory (this document) |
+| Legacy flat skill file in a sibling repository | Migrate to SKILL.md (04.02); do not create new flat files |
+
+---
+
+## 01.03. Skill location
+
+**The skill source lives in the repository**, not in live tool directories - in the shared skill directory `doc/skills/`:
 
 ```text
 doc/skills/
-├── glob-skill-deploy/          # общий Anthropic-навык: префикс glob-, слаг hub_glob
+├── glob-skill-deploy/          # global skill: prefix glob-, type hub_glob
 │   ├── SKILL.md
 │   └── templates/
-│       └── glob_skill_deploy.md   # канон пары - исходник внутреннего формата
-├── hub-sync-standards/        # хаб-навык: префикс hub-, слаг hub_loc
-│   ├── SKILL.md
-│   └── templates/
-│       └── hub_sync_standards.md  # канон пары (внутренний формат)
-├── pg-parse-report/            # проектный Anthropic-навык: pg-, слаг pr_glob (в производном репо)
+│       └── data_template.md    # data template only
+├── hub-sync-standards/         # hub skill: prefix hub-, type hub_loc
 │   └── SKILL.md
-└── ext/                       # агрегат внешних проектных навыков (только в хабе)
+├── pg-parse-report/            # project skill: prefix pg-, type pr_glob (in a derivative repo)
+│   └── SKILL.md
+└── ext/                        # aggregate of external project skills (hub only)
     └── my_repo/
-        ├── pg_db_migrate.md    # плоский файл - внутренний формат (префикс pg_)
-        └── pg-fill-forms/      # проектный Anthropic-навык (pg-)
+        └── pg-fill-forms/      # project skill (pg-)
             └── SKILL.md
 ```
 
-**Правила:**
+**Skill types and distribution.** The slug and the prefix are independent: the slug is the canonical term and the `metadata.type` value; the prefix is the type marker in the directory name.
 
-- Каталог `doc/skills/` общий для двух форматов: плоские файлы `<name>.md` - plain-формат (`skill_plain_standards.md`); подпапки с `SKILL.md` - формат Anthropic (этот документ). В подпапках с `SKILL.md` - только навыки стандарта Anthropic и парные им исходники plain-формата в `templates/` (пары форматов ниже).
-- Один навык - один каталог; каталог содержит ровно один `SKILL.md` и ресурсы навыка (раздел 01.04).
-- Нормы распространения - зеркалируют внутренний формат, тип навыка виден по префиксу имени каталога: `glob-` - общий навык (слаг `hub_glob`), поддерживается в хабе и распространяется во все репо навыком `hub-sync-skills`; `hub-` - хаб-навык (слаг `hub_loc`), только хаб; `pg-` - проектный навык (слаг `pr_glob`), агрегируется в хаб под `doc/skills/ext/<repo-name>/<name>/`; `pl-` - локальный навык (слаг `pr_loc`), только в `data/skills/`.
-- Различение подпапок: папка навыка Anthropic содержит `SKILL.md` в корне; папка репозитория `<repo-name>/` (в хабе - под `ext/`) - плоские `pg_*.md` внутреннего формата и подпапки `pg-<name>/` с `SKILL.md`, без собственного `SKILL.md`. Коллизия имени подпапки навыка с именем папки репозитория - стоп, имя согласовать с пользователем.
-- Каталоги навыков версионируются в git вместе с проектом и переносятся в производные репозитории как проектные артефакты.
-- Навык регистрируется в индексе навыков: в хабе - `_index_skills_hub.md`, в производном репозитории - `_index_skills_repo.md` (порядок ведения индексов - `index_nav_standards.md`; актуализация - навыки `glob-update-indexes` / `hub-sync-indexes`).
+| Type | Slug (`metadata.type`) | Prefix | Location | Synchronization |
+| ---- | ---------------------- | ------ | -------- | --------------- |
+| Hub skill | `hub_loc` | `hub-` | `doc/skills/` root, hub only | Hub only |
+| Global skill | `hub_glob` | `glob-` | `doc/skills/` root | Hub to all repositories |
+| Project skill | `pr_glob` | `pg-` | `doc/skills/pg-<name>/` | Repository to hub (`ext/<repo-name>/`) |
+| Local skill | `pr_loc` | `pl-` (optional) | `data/skills/` | None |
 
-**Локальные навыки (`pr_loc`) - `data/skills/`.** Навык, нужный только в одном репозитории и не подлежащий синхронизации, размещается вне каталога `doc/skills/` - в `data/skills/`; допускаются оба формата - каталог Anthropic и plain-файл (оформление plain - `skill_plain_standards.md`):
+Rules:
+
+- The `doc/skills/` directory holds SKILL.md directories only. Legacy flat files from sibling repositories may exist there until migration; do not create new ones.
+- One skill - one directory; the directory contains exactly one `SKILL.md` and the skill resources (01.04).
+- Distribution mirrors the type: `glob-` is a global skill (`hub_glob`), maintained in the hub and distributed to all repositories by the `hub-sync-skills` skill; `hub-` is a hub skill (`hub_loc`), hub only; `pg-` is a project skill (`pr_glob`), aggregated in the hub under `doc/skills/ext/<repo-name>/`; `pl-` is a local skill (`pr_loc`), `data/skills/` only.
+- Subdirectory distinction: a skill directory contains `SKILL.md` at its root; a repository folder `<repo-name>/` (in the hub - under `ext/`) contains legacy flat files and `pg-<name>/` subdirectories, without its own `SKILL.md`. A collision between a skill directory name and a repository folder name is a stop: agree the name with the user.
+- Skill directories are versioned in git with the project and carried into derivative repositories as project artifacts.
+- A skill is registered in the skill index: in the hub - `_index_skills_hub.md`, in a derivative repository - `_index_skills_repo.md` (index maintenance - `index_nav_standards.md`; updates - the `glob-update-indexes` / `hub-sync-indexes` skills).
+
+**Single editable source.** `SKILL.md` is the only editable source of a skill. `templates/` holds data templates (for example `pip_mirrors.md`), artifact blanks, and static reference material only; it never holds a parallel skill file or a plain-format source. There is no format pair and no migration copy: edit `SKILL.md` directly.
+
+**Local skills (`pr_loc`) - `data/skills/`.** A skill needed in one repository only and not subject to synchronization lives outside `doc/skills/` - in `data/skills/`. New local skills are created as SKILL.md directories only; legacy flat files may remain in sibling repositories until migrated:
 
 ```text
 data/skills/
-├── pl-extract-emails/         # локальный навык Anthropic: префикс pl-
+├── pl-extract-emails/         # local Anthropic skill: prefix pl-
 │   ├── SKILL.md
 │   └── scripts/
 │       └── extract.py
-└── extract_emails.md          # локальный plain-навык: имя без префикса (или pl_)
+└── extract_emails.md          # legacy local flat skill: migrate to SKILL.md
 ```
 
-Навык `hub-sync-skills` обходит только `doc/skills/`, поэтому `data/skills/` не затрагивается при синхронизации: не агрегируется в хаб (`ext/<repo-name>/`), не распространяется, не попадает в зеркала. Правила:
+The `hub-sync-skills` skill traverses only `doc/skills/`, so `data/skills/` is unaffected by synchronization: it is not aggregated in the hub (`ext/<repo-name>/`), not distributed, and not mirrored. Rules:
 
-- Оба формата: каталог `SKILL.md` - формат Anthropic (этот документ); плоский `*.md` - plain-формат (`skill_plain_standards.md`).
-- Имя - с префиксом `pl-` (каталог `pl-<name>/SKILL.md`) или `pl_` (плоский `pl_<name>.md`) либо без префикса; правила именования - раздел 01.04; принадлежность к `data/skills/` означает «вне синхронизации».
-- Каталог коммитится в git: в `.gitignore` к игнорируемой папке `data/` добавляется исключение `!data/skills/` (`project_standards.md`, раздел 06.01).
-- В сводные индексы навыков (`_index_skills_hub.md`, `_index_skills_repo.md`) не входит - они строятся только по `doc/skills/`; локальные навыки отражаются в собственном индексе `data/skills/_index_skills_pl.md` (генерирует `glob-update-indexes`; `index_nav_standards.md`, раздел 06.02).
+- New local skills: directory `SKILL.md` only. The name uses the `pl-` prefix (`pl-<name>/SKILL.md`) or no prefix; naming rules - 01.04; membership in `data/skills/` means "outside synchronization".
+- Legacy flat local files are allowed only in sibling repositories and only until migration (04.02).
+- The directory is committed to git: add the exception `!data/skills/` to the ignored `data/` folder in `.gitignore` (`project_standards.md`, 06.01).
+- It is not included in the summary skill indexes (`_index_skills_hub.md`, `_index_skills_repo.md`) - they are built only from `doc/skills/`; local skills are reflected in their own index `data/skills/_index_skills_pl.md` (generated by `glob-update-indexes`; `index_nav_standards.md`, 06.02).
 
-**Пары форматов.** Один навык может существовать в двух форматах как единый каталог `doc/skills/<kebab-name>/`: `SKILL.md` (формат Anthropic) и исходник внутреннего формата `templates/<name>.md`, перемещенный в каталог миграцией (навык `glob-skill-migrate-anthropic`). Правила пары:
+**Deploy is a separate process.** Tool directories are deployment targets, not source storage. Copying a skill from `doc/skills/<name>/` to a live directory is a standalone operation governed by the target tool documentation; this standard does not regulate it. The principle is the same as in `deploy_standards.md`: the repository is the source, installation is a separate process (templates live in the repository, install scripts copy them during deployment).
 
-- единица хранения пары - один каталог; плоский файл-исходник в корне `doc/skills/` после миграции не хранится;
-- канон - исходник в `templates/`: правки вносятся только в него, затем повторной миграцией переносятся в `SKILL.md`;
-- `templates/` пары хранит также исходники внешних скриптов проекта, на которые опирался навык (перенесены `git mv` при миграции; канон скрипта); рабочие адаптированные копии лежат в `scripts/` (раздел 03.03);
-- `SKILL.md` - миграционная копия для инструментов экосистемы; самостоятельно не редактируется;
-- `metadata.version` копии следует за `version` исходника;
-- `metadata.type` копии следует за полем `type` исходника;
-- `metadata.category` и `metadata.category_name` копии следуют за `category` и `category_name` исходника;
-- в индексе навыков пара отражается одной строкой в разделе формата SKILL.md; отдельная строка основного реестра для исходника не ведется (файл не в корне);
-- карта маршрутизации ведет на имя каталога;
-- распространение - парой целиком как одним каталогом (навык `hub-sync-skills` раздает каталоги `glob-*/` с полным содержимым).
+Deployment target reference (where to copy during deployment):
 
-**Деплой - отдельный процесс.** Каталоги инструментов - цели развертывания, а не место хранения исходников. Копирование навыка из `doc/skills/<name>/` в боевой каталог - самостоятельная операция по документации целевого инструмента; настоящий стандарт ее не регламентирует. Принцип как в `deploy_standards.md`: репозиторий - источник, установка - отдельный процесс (шаблоны лежат в репо, установочные скрипты копируют их при развертывании).
-
-Справочник целей деплоя (куда копировать при развертывании):
-
-| Инструмент | Проектные | Личные |
-| ---------- | --------- | ------ |
+| Tool | Project | Personal |
+| ---- | ------- | -------- |
 | opencode | `.opencode/skills/<name>/SKILL.md` | `~/.config/opencode/skills/<name>/SKILL.md` |
 | Claude Code | `.claude/skills/<name>/SKILL.md` | `~/.claude/skills/<name>/SKILL.md` |
-| Кросс-инструментальный реестр | - | `~/.agents/skills/<name>/SKILL.md` |
-| Kilo Code | каталог навыков Kilo по документации инструмента | - |
+| Cross-tool registry | - | `~/.agents/skills/<name>/SKILL.md` |
+| Kilo Code | Kilo skill directory per tool documentation | - |
 
-Плагинные навыки Claude Code публикуются в структуре плагина и следуют его документации; это тоже деплой, не хранение исходников.
+Claude Code plugin skills are published in the plugin structure and follow its documentation; this is also deployment, not source storage.
 
 ---
 
-## 01.04. Каталог навыка и именование
+## 01.04. Skill directory, naming, types, and categories
 
-*Обязательно.*
-
-Рекомендуемая структура каталога:
+Recommended directory structure:
 
 ```text
 my-skill/
-├── SKILL.md          # обязательно: обзор и навигация
-├── reference.md      # детальная документация - по требованию
-├── examples.md       # примеры использования - по требованию
-├── templates/        # заготовки артефактов; для пары форматов - канон-исходник и исходники внешних скриптов (раздел 01.03)
+├── SKILL.md          # mandatory: overview and navigation
+├── reference.md      # detailed documentation - on demand
+├── examples.md       # usage examples - on demand
+├── templates/        # data templates and artifact blanks only (01.03)
 └── scripts/
-    └── helper.py     # весь исполняемый код навыка - выполняется, не читается
+    └── helper.py     # all executable skill code - executed, not read
 ```
 
-**Имя навыка (`name`, имя каталога):**
+**Skill name (`name`, directory name):**
 
-| Правило | Пример |
-| ------- | ------ |
-| Строчные латинские буквы, цифры, дефисы | `glob-render-chart` |
-| Не начинаться и не заканчиваться дефисом, без двойных дефисов | `glob-render-chart`, не `-glob-render` / `glob-render-` / `glob-render--chart` |
-| До 64 символов | - |
-| Совпадает с именем каталога | `glob-render-chart/SKILL.md` |
-| Английские слова, без транслита | `parse-report`, не `razbor-otcheta` |
-| Отражает задачу, не общие слова | `pdf-fill-form`, не `helper` |
-| Уникально в пределах установки инструмента | - |
-| Префикс `glob-` / `hub-` / `pg-` / `pl-` - маркер типа (раздел 01.03); для локальных (`pr_loc`) префикс опционален | `glob-skill-migrate-anthropic` (общий, `hub_glob`); `pg-<name>` - проектный (`pr_glob`); `pl-<name>` или `<name>` - локальный (`pr_loc`, в `data/skills/`); `hub-<name>` - хаб (`hub_loc`) |
-| Категория - второй уровень префикса: `<prefix>-<category>-<name>`; слаг из закрытого справочника (`skill_plain_standards.md`, раздел 01.03), соответствует `metadata.category`; допустимо `<prefix>-<category>`, когда имя совпадает со слагом; у локального навыка без префикса категория - первый сегмент: `<category>-<name>` | `glob-cfg-pip` (общий, `cfg`); `glob-update-indexes` (`update`); `hub-update` (`update`); `cfg-kde` (локальный, `cfg`) |
+| Rule | Example |
+| ---- | ------- |
+| Lowercase Latin letters, digits, hyphens | `glob-render-chart` |
+| Must not start or end with a hyphen, no double hyphens | `glob-render-chart`, not `-glob-render` / `glob-render-` / `glob-render--chart` |
+| Up to 64 characters | - |
+| Matches the directory name | `glob-render-chart/SKILL.md` |
+| English words, no transliteration | `parse-report`, not `razbor-otcheta` |
+| Reflects the task, not generic words | `pdf-fill-form`, not `helper` |
+| Unique within the tool installation | - |
+| Prefix `glob-` / `hub-` / `pg-` / `pl-` marks the type (01.03); for local skills (`pr_loc`) the prefix is optional | `glob-skill-migrate-anthropic` (global, `hub_glob`); `pg-<name>` - project (`pr_glob`); `pl-<name>` or `<name>` - local (`pr_loc`, in `data/skills/`); `hub-<name>` - hub (`hub_loc`) |
+| Category is the second level of the prefix: `<prefix>-<category>-<name>`; the slug comes from the closed dictionary below and matches `metadata.category`; `<prefix>-<category>` is allowed when the name equals the slug; for a local skill without a prefix the category is the first segment: `<category>-<name>` | `glob-cfg-pip` (global, `cfg`); `glob-update-indexes` (`update`); `hub-update` (`update`); `cfg-kde` (local, `cfg`) |
 
-**Вложенные файлы:** латиница, `snake_case` или `kebab-case`, без кириллицы и пробелов в именах. Вложенность `scripts/` внутри каталога навыка допускается; навыки внутри навыков - нет. Для пары форматов исходник хранится в `templates/` под своим исходным именем (внутренний frontmatter сохраняется).
+**Closed category dictionary.** A category is optional. The slug is taken only from this table; `category_name` is only the corresponding name. A new slug is added by editing this standard in the hub; local categories, synonyms, and renamed names are forbidden. Legacy Russian category names from sibling repositories are accepted only during transition; new skills use the English names.
+
+| Slug (`metadata.category`) | Name (`metadata.category_name`) |
+| -------------------------- | ------------------------------- |
+| `sync` | Sync |
+| `update` | Update |
+| `audit` | Audit |
+| `skill` | Skills |
+| `cfg` | Configuration |
+| `rules` | Agent Rules |
+| `shell` | Terminal Settings |
+| `git` | Git Settings |
+| `ssh` | SSH Settings |
+| `mine` | Knowledge Mining |
+
+Rules:
+
+- The slug is the second level of the directory name: `glob-cfg-pip` -> `metadata.category: cfg`; the abbreviation `<prefix>-<category>` is allowed when the name equals the slug (`hub-update`). For a local skill (`pr_loc`) without a type prefix, the category occupies the first name segment: `cfg-kde` -> `metadata.category: cfg`.
+- The category fields are optional and are filled only as a pair; `category_name` is strictly the name from the dictionary.
+- Without a category, the name consists of the type prefix and the skill name (`glob-<name>`, `pg-<name>`), the category fields are empty, and the corresponding name segment must not match any dictionary slug.
+- Type and category are independent: the first sets distribution and location, the second sets the application domain.
+
+**Nested files:** Latin characters, `snake_case` or `kebab-case`, no Cyrillic and no spaces in names. Nesting `scripts/` inside the skill directory is allowed; skills inside skills are not. `templates/` stores data templates only and keeps their original names.
 
 ---
 
 ## 02.01. YAML frontmatter
 
-*Обязательно.*
+*Mandatory.*
 
-Блок метаданных в начале `SKILL.md`. Спецификация Agent Skills определяет **строгий список из шести ключей**; на путях упаковки и загрузки по спецификации (claude.ai, API, реестры навыков) неизвестный ключ - ошибка. Инструменты могут расширять список своими полями (второй таблицей ниже).
+Metadata block at the start of `SKILL.md`. The Agent Skills specification defines a **strict six-key allowlist**; on the packaging and loading paths defined by the specification (claude.ai, API, skill registries) an unknown key is an error. Tools may extend the list with their own fields (second table below).
 
 ```yaml
 ---
@@ -200,309 +209,312 @@ metadata:
   version: 1.2.0
   status: stable
   type: hub_glob
+  category: cfg
+  category_name: Configuration
 ---
 ```
 
-**Ключи спецификации Agent Skills:**
+**Agent Skills specification keys:**
 
-| Поле | Обязательность | Правило |
-| ---- | -------------- | ------- |
-| `name` | обязательно по спецификации | Имя навыка; правила раздела 01.04. Поле указывается явно во всех навыках пакета |
-| `description` | обязательно | До 1024 символов; канон - раздел 02.03. Определяет обнаружение навыка агентом |
-| `allowed-tools` | опционально | Разрешения инструментов для навыка с префиксом путей скриптов; снимает лишние запросы подтверждения |
-| `license` | опционально | Лицензия при распространении |
-| `metadata` | опционально | Произвольный словарь для своих полей (`version`, `status`, `type` и др.) |
-| `compatibility` | опционально | Ограничения совместимости (инструмент, версия) |
+| Field | Requirement | Rule |
+| ----- | ----------- | ---- |
+| `name` | required by the specification | Skill name; rules in 01.04. The field is set explicitly in every package skill |
+| `description` | required | Up to 1024 characters; canon - 02.03. Determines skill discovery by the agent |
+| `allowed-tools` | optional | Tool permissions for the skill with script path prefixes; removes redundant confirmation prompts |
+| `license` | optional | License for distribution |
+| `metadata` | optional | Arbitrary dictionary for custom fields (`version`, `status`, `type`, and others) |
+| `compatibility` | optional | Compatibility limits (tool, version) |
 
-**Тип навыка.** Тип из таксономии (`hub_loc`, `hub_glob`, `pr_glob`, `pr_loc` - `skill_plain_standards.md`, раздел 01.03) фиксируется в заголовке навыка - в `metadata.type`. Верхнеуровневое поле `type` во frontmatter недопустимо (строгий allowlist). Слагу соответствует префикс имени каталога: `hub_loc` - `hub-`, `hub_glob` - `glob-`, `pr_glob` - `pg-`; для `pr_loc` префикс опционален - `pl-` или имя без префикса (в `data/skills/`). Поле проставляется при создании, поддерживается актуальным при обновлении; при миграции из plain-формата переносится из поля `type` исходника и далее следует за ним (пары форматов - раздел 01.03).
+**Skill type.** The type from the taxonomy (`hub_loc`, `hub_glob`, `pr_glob`, `pr_loc` - 01.03) is recorded in the skill header - in `metadata.type`. A top-level `type` field in frontmatter is forbidden (strict allowlist). The slug corresponds to the directory name prefix: `hub_loc` - `hub-`, `hub_glob` - `glob-`, `pr_glob` - `pg-`; for `pr_loc` the prefix is optional - `pl-` or a name without a prefix (in `data/skills/`). Set the field at creation and keep it current on update.
 
-**Категория навыка.** Область применения фиксируется в `metadata.category` (слаг из закрытого справочника) и `metadata.category_name` (название оттуда же) - `skill_plain_standards.md`, раздел 01.03. Слаг - второй уровень префикса имени каталога: `glob-cfg-pip` -> `metadata.category: cfg`; сокращение `<prefix>-<category>` допустимо, когда имя совпадает со слагом (`hub-update`). У локального навыка (`pr_loc`) без типового префикса категория занимает первый сегмент имени: `cfg-kde` -> `metadata.category: cfg`. Поля опциональны и заполняются только парой; `category_name` - строго название из справочника, локальные синонимы не допускаются. При миграции из plain-формата переносятся из полей `category` / `category_name` исходника и далее следуют за ними (пары форматов - раздел 01.03).
+**Skill category.** The application domain is recorded in `metadata.category` (a slug from the closed dictionary) and `metadata.category_name` (the name from the same dictionary) - 01.04. The fields are optional and filled only as a pair; `category_name` is strictly the dictionary name, local synonyms are forbidden.
 
-**Расширения инструментов** (за пределами спецификации; работают в поддерживающем их инструменте, но не проходят строгую упаковку - не использовать в распространяемых навыках):
+**Tool extensions** (outside the specification; work in a tool that supports them but do not pass strict packaging - do not use in distributed skills):
 
-| Поле | Инструмент | Правило |
-| ---- | ---------- | ------- |
-| `disable-model-invocation` | Claude Code | `true` - навык вызывается только пользователем явно, агент не применяет его сам. Деструктивные навыки - всегда `true` |
+| Field | Tool | Rule |
+| ----- | ---- | ---- |
+| `disable-model-invocation` | Claude Code | `true` - the skill is invoked by the user explicitly only, the agent does not apply it on its own. Destructive skills - always `true` |
 
-Поля внутреннего формата пакета (`id`, `auto_apply` и др.) в SKILL.md недопустимы. Поле `argument-hint` валидно для команд Claude Code, но не для навыков.
+Package-internal fields (`id`, `auto_apply`, and others) are forbidden in SKILL.md. The `argument-hint` field is valid for Claude Code commands but not for skills.
 
 ---
 
 ## 02.02. Progressive disclosure
 
-*Обязательно.*
+*Mandatory.*
 
-Принцип трех уровней загрузки - экономия контекста агента:
+The three-level loading principle saves agent context:
 
-| Уровень | Содержимое | Когда в контексте |
-| ------- | ---------- | ----------------- |
-| 1 | `name` + `description` | Всегда (метаданные всех установленных навыков) |
-| 2 | тело `SKILL.md` | При активации навыка (совпадение с запросом или явный вызов) |
-| 3 | вложенные файлы: `reference.md`, `examples.md`, шаблоны | При чтении по ссылке из тела |
+| Level | Content | When in context |
+| ----- | ------- | --------------- |
+| 1 | `name` + `description` | Always (metadata of all installed skills) |
+| 2 | `SKILL.md` body | When the skill activates (request match or explicit invocation) |
+| 3 | nested files: `reference.md`, `examples.md`, templates | When read through a body reference |
 
-**Правила:**
+**Rules:**
 
-- Уровень 1 держать минимальным: короткое точное `description`, весь объем - ниже.
-- Тело (уровень 2) не дублирует содержимое ресурсов: только ссылки и условия их чтения («прочитай `reference.md` перед первой генерацией запроса к API X»).
-- Ресурсы (уровень 3) грузятся только когда нужны: примеры - при нестандартном случае, справочник - при генерации кода по API.
-- Скрипты на уровне 3 текстом не читаются - выполняются (раздел 03.03).
-- Рекомендуемый объем тела - до 500 строк; больше - выносить в `reference.md` / `examples.md`.
+- Keep level 1 minimal: a short, precise `description`; the full volume goes below.
+- The body (level 2) does not duplicate resource content: only references and reading conditions ("read `reference.md` before the first API X request generation").
+- Resources (level 3) load only when needed: examples for a non-standard case, reference for API code generation.
+- Scripts at level 3 are not read as text - they are executed (03.03).
+- Recommended body size - up to 500 lines; move excess to `reference.md` / `examples.md`.
 
 ---
 
-## 02.03. Поле description
+## 02.03. `description` field
 
-*Обязательно.*
+*Mandatory.*
 
-Единственное поле, по которому агент находит навык. Канон:
+The only field by which the agent finds a skill. Canon:
 
-- третье лицо, повествование «what and when»;
-- сначала что делает навык (WHAT), затем когда применять (WHAT -> WHEN);
-- условия применения - конкретные формулировки из реальных запросов: «Use when the user asks to visualize tabular data»; это не триггеры запуска действий (`ДЕЛАЙ` / `GO`, `project_standards.md` 07.02);
-- ключевые слова запросов явно в тексте;
-- до 1024 символов; без маркетинга, без «powerful / easy to use»;
-- пересказ процесса и пошаговой методики запрещен: агент следует описанию вместо чтения тела навыка (канон и обоснование - `skill_review_standards.md`, раздел 02); цель по объему - менее 500 символов;
-- для дисциплинирующего навыка - симптом-предвестник нарушения (например «когда код уже написан до теста», «когда правка кажется слишком простой для проверки»).
+- third person, "what and when" narration;
+- first what the skill does (WHAT), then when to apply it (WHAT -> WHEN);
+- application conditions - concrete wording from real requests: "Use when the user asks to visualize tabular data"; these are not action launch triggers (`ДЕЛАЙ` / `GO`, `project_standards.md` 07.02);
+- request keywords explicitly in the text;
+- up to 1024 characters; no marketing, no "powerful / easy to use";
+- retelling the process and step-by-step method is forbidden: the agent follows the description instead of reading the skill body. Description canon (skill description object, SDO) and rationale - `superpowers:writing-skills`; target size - under 500 characters;
+- for a disciplining skill - a precursor symptom of violation (for example "when the code is already written before the test", "when the edit seems too simple to check").
 
-| Плохо | Хорошо |
-| ----- | ------ |
+| Bad | Good |
+| --- | ---- |
 | `Helps with PDFs` | `Fills PDF forms from structured data. Use when the user mentions filling a form, completing a PDF application` |
 | `Code review assistant` | `Reviews code for best practices and potential issues. Use when reviewing code, checking PRs, or analyzing code quality` |
-| `Полезный помощник для отчетов` | `Builds monthly sales reports in XLSX. Use when the user asks for a sales report, monthly summary, or revenue breakdown` |
+| `Useful report helper` | `Builds monthly sales reports in XLSX. Use when the user asks for a sales report, monthly summary, or revenue breakdown` |
 
 ---
 
-## 03.01. Тело SKILL.md
+## 03.01. SKILL.md body
 
-*Обязательно.*
+*Mandatory.*
 
-Тело - инструкция для агента, загружаемая при активации навыка. Рекомендуемая структура разделов (порядок значим, пустые не создавать):
+The body is the instruction for the agent, loaded when the skill activates. Recommended section structure (order matters, do not create empty sections):
 
 ```markdown
 # <title>
 
-Краткий обзор: что делает навык и какой результат ожидается.
+Brief overview: what the skill does and what result is expected.
 
-## Когда использовать
+## When to use
 - <condition_1>
 - <condition_2>
 - <condition_3>
 
-## Инструкция
+## Instructions
 1. <step_1>
 2. <step_2>
 
-## Примеры
-1-2 пары «запрос -> ожидаемое действие»
+## Examples
+1-2 pairs "request -> expected action"
 
-## Ссылки
-- reference.md - читать перед <condition>
-- scripts/render.sh - вызывать для <action>
+## References
+- reference.md - read before <condition>
+- scripts/render.sh - call for <action>
 ```
 
-**Содержание и стиль:**
+**Content and style:**
 
-- Императив: инструкции как прямые указания, без «возможно, стоит рассмотреть».
-- Кратко: без пересказа базовых знаний модели и учебных пояснений.
-- Один навык - один сценарий; несвязанные сценарии - отдельные навыки.
-- Без данных с ограниченным сроком жизни (версии библиотек, даты) - их в `reference.md` с обязанностью актуализации.
-- Термины консистентны по всему навыку; одна сущность - одно имя.
-- «Когда использовать» - условия применения навыка. Отдельный раздел «Триггер-слова» и словесные синонимы триггеров запуска в навыке не задаются: триггеры запуска - только `ДЕЛАЙ` и `GO` (`project_standards.md`, раздел 07.02).
-- Уровень детализации - по хрупкости задачи: миграции и деплой - точные команды; ревью и анализ - принципы и чеклист.
-- Язык заголовков, тела и `description` - единый: язык ожидаемых запросов пользователя (для командных навыков - русский). Смешение языков заголовков и тела не допускается.
-- Целиком английский - для навыков, распространяемых в экосистему (публикация, marketplace, переиспользование за пределами команды).
-- Тело - только текст. Допустимые fenced-блоки двух видов: команды вызова скриптов и ресурсов самого навыка (пути от `${CLAUDE_SKILL_DIR}`) и нерасполнимые схемы (структура frontmatter, дерево каталогов, шаблоны разметки). Исполняемый код операций - последовательности shell-команд, программы, SQL - в теле запрещен: весь код выносится в `scripts/` (раздел 03.03).
-- Не упоминать конкретные навыки из конкретных репозиториев: имена чужих репо, пути `doc/skills/ext/<repo>/`, реальные проектные навыки соседей - запрещены. Только плейсхолдеры (`<repo-name>`, `pg-<name>`, `pl-<name>`, `glob-<name>`) и обобщенные примеры; ссылки на соседние навыки того же репозитория разрешены
-- Плейсхолдеры - только латиницей (`<name>`, `<dir-name>`, `<repo-name>`); кириллица внутри угловых скобок запрещена (раздел 04.03 основного стандарта)
-
----
-
-## 03.02. Вложенные файлы
-
-*Обязательно.*
-
-Файлы ресурсов каталога навыка. Загружаются агентом по требованию - только при ссылке из тела.
-
-| Тип файла | Назначение | Когда читается |
-| --------- | ---------- | -------------- |
-| `reference.md` | Детальная документация: API, схема данных, форматы, правила | Перед генерацией кода или нестандартным случаем |
-| `examples.md` | Расширенные примеры входов и выходов | Когда базовых примеров тела недостаточно |
-| `templates/` | Заготовки артефактов: конфиги, каркасы документов; для пары форматов - канон-исходник внутреннего формата и исходники внешних скриптов (раздел 01.03) | При создании артефакта навыком; для канона пары - при правках навыка, скрипта и повторной миграции |
-| `scripts/` | Весь исполняемый код навыка | Выполняется, не читается (раздел 03.03) |
-
-**Правила:**
-
-- В теле `SKILL.md` - явное условие чтения каждого ресурса: какой файл, когда открывать. Ресурс без условия чтения не используется.
-- Пути к файлам каталога навыка - через переменную `${CLAUDE_SKILL_DIR}` (или аналог инструмента), не абсолютные пути машины.
-- Ресурсы самодостаточны: без обязательного чтения `reference.md` базовый сценарий обязан работать; справочник - углубление, не предусловие.
-- Дублирование между телом и ресурсами не допускается: тело - краткая версия и ссылка, ресурс - полная.
+- Imperative: instructions as direct orders, without "perhaps one should consider".
+- Concise: no retelling of basic model knowledge and no tutorial explanations.
+- One skill - one scenario; unrelated scenarios get separate skills.
+- No time-sensitive data (library versions, dates) - put it in `reference.md` with an update obligation.
+- Terms are consistent across the skill; one entity - one name.
+- "When to use" states the application conditions. A separate "Trigger words" section and verbal synonyms of launch triggers are not allowed: launch triggers are only `ДЕЛАЙ` and `GO` (`project_standards.md`, 07.02).
+- Detail level follows task fragility: migrations and deploy - exact commands; review and analysis - principles and a checklist.
+- Language of headings, body, and `description` is uniform and **English** by default for every `doc/skills/**` skill (`project_standards.md`, 04.03). Russian is allowed only in user-facing templates, examples, and report blocks that the skill outputs to the user. Legacy team skills may keep a Russian body until migration; mixing languages in headings and body is forbidden.
+- The body is text only. Allowed fenced blocks are of two kinds: invocation commands for the skill's own scripts and resources (paths from `${CLAUDE_SKILL_DIR}`) and non-executable schemes (frontmatter structure, directory tree, markup templates). Executable operation code - shell command sequences, programs, SQL - is forbidden in the body: all code goes to `scripts/` (03.03).
+- Do not mention concrete skills from concrete repositories: names of other repositories, `doc/skills/ext/<repo>/` paths, and real project skills of neighbors are forbidden. Only placeholders (`<repo-name>`, `pg-<name>`, `pl-<name>`, `glob-<name>`) and generalized examples; references to neighboring skills of the same repository are allowed.
+- Placeholders are Latin only (`<name>`, `<dir-name>`, `<repo-name>`); Cyrillic inside angle brackets is forbidden (`project_standards.md`, 04.03).
 
 ---
 
-## 03.03. Скрипты в навыке
+## 03.02. Nested files
 
-*Обязательно.*
+*Mandatory.*
 
-Навык говорит «когда», скрипт - «как»: весь исполняемый код навыка живет в `scripts/` и вызывается из тела командой; тело не содержит логики. В теле допустимы только команды вызова (пути от `${CLAUDE_SKILL_DIR}`) и нерасполнимые схемы (раздел 03.01).
+Resource files of the skill directory. The agent loads them on demand - only through a body reference.
 
-**Самодостаточность пакета.** Каталог навыка переносим целиком: скопированная папка работает на любой машине без репозитория-источника. Поэтому:
+| File type | Purpose | When read |
+| --------- | ------- | --------- |
+| `reference.md` | Detailed documentation: API, data schema, formats, rules | Before code generation or a non-standard case |
+| `examples.md` | Extended input and output examples | When the body's basic examples are insufficient |
+| `templates/` | Data templates and artifact blanks: configs, document skeletons | When the skill creates an artifact |
+| `scripts/` | All executable skill code | Executed, not read (03.03) |
 
-- скрипты не зависят от кода и путей проекта-источника - только `${CLAUDE_SKILL_DIR}` и переданные аргументы;
-- внешние скрипты и модули проекта, на которые опирался навык, при миграции переносятся в пакет: исходник - `git mv` в `templates/` (канон скрипта), адаптированная рабочая копия - в `scripts/`; при обнаружении других потребителей скрипта вне навыка - стоп и уточнение у пользователя;
-- встроенный код исходника (fenced-блоки) переносится в `scripts/` целиком, без порога длины.
+**Rules:**
 
-Правило строже канона Anthropic (спецификация допускает inline-код в теле); это осознанное локальное требование переносимости, зафиксированное настоящим стандартом (раздел 06.01).
+- The `SKILL.md` body states an explicit reading condition for every resource: which file, when to open it. A resource without a reading condition is not used.
+- Paths to skill directory files use `${CLAUDE_SKILL_DIR}` (or the tool equivalent), not absolute machine paths.
+- Resources are self-sufficient: the basic scenario must work without mandatory reading of `reference.md`; the reference is a deepening, not a precondition.
+- Duplication between the body and resources is forbidden: the body is a short version and a reference, the resource is the full version.
 
-**Требования к скриптам:**
+---
 
-- Исполняемость: права на выполнение, shebang, зависимости описаны в теле или ресурсе.
-- Безопасность: аргументы через параметры, без side effects сверх задачи, деструктивное - только по явному флагу.
-- Один скрипт - одна операция; вывод - компактный, в stdout или файл-артефакт.
-- Вывод и текст скриптов - по основному стандарту (`project_standards.md`) в формате строгого режима логгера (раздел 04.04.01), но без логгера: каждая строка вывода - `YYYY-MM-DD HH:MM:SS [marker] сообщение`, где время - момент вывода, вставляется самим скриптом (plain-выводом, без `src/logger.py`, без лог-файлов и папки `log`); монохромный stdout без ANSI-цветов, рамок и строк-разделителей (разделы 04.04, 04.07.01); маркеры `[!]` / `[i]` / `[*]` вместо эмодзи (раздел 04.02); текст по разделу 04.03: русский, без точки в конце сообщений, без `ё`/`Ё` (только `е`/`Е`), без длинного и короткого тире - только дефис-минус U+002D, без многоточий; одна строка - одно сообщение (раздел 04.04.02); коды завершения 0 / 1 / 2 - успех / ошибка выполнения / ошибка использования (раздел 05.03).
-- Подтверждения инструментов снимать префиксом в `allowed-tools`:
+## 03.03. Scripts
+
+*Mandatory.*
+
+The skill says "when", the script says "how": all executable skill code lives in `scripts/` and is invoked from the body; the body contains no logic. Only invocation commands (paths from `${CLAUDE_SKILL_DIR}`) and non-executable schemes are allowed in the body (03.01).
+
+**Package self-sufficiency.** The skill directory is transferred as a whole: the copied folder works on any machine without the source repository. Therefore:
+
+- scripts do not depend on source project code or paths - only `${CLAUDE_SKILL_DIR}` and passed arguments;
+- external project scripts and modules the skill relies on are moved into the package: the working copy goes to `scripts/`; do not keep a second source copy in `templates/`; if other consumers of the script exist outside the skill, stop and ask the user;
+- inline source code (fenced blocks) is moved to `scripts/` in full, with no length threshold.
+
+This rule is stricter than the Anthropic canon (the specification allows inline code in the body); it is a deliberate local portability requirement recorded by this standard (06.01).
+
+**Script requirements:**
+
+- Executability: execute permission, shebang, dependencies described in the body or a resource.
+- Safety: arguments through parameters, no side effects beyond the task, destructive actions only behind an explicit flag.
+- One script - one operation; output is compact, to stdout or an artifact file.
+- Script output and text follow the core standard (`project_standards.md`) in the logger strict-mode format (04.04.01), but without a logger: every output line is `YYYY-MM-DD HH:MM:SS [marker] message`, where the time is the output moment inserted by the script itself (plain output, no `src/logger.py`, no log files, no `log` folder); monochrome stdout without ANSI colors, frames, and separator lines (04.04, 04.07.01); markers `[!]` / `[i]` / `[*]` instead of emoji (04.02); text per 04.03: Russian, no trailing period in messages, no diaeresis letter (only `е`/`Е`), no em or en dash - hyphen-minus U+002D only, no ellipsis; one line - one message (04.04.02); exit codes 0 / 1 / 2 - success / execution error / usage error (05.03).
+- Remove tool confirmations with a prefix in `allowed-tools`:
 
 ```yaml
 allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/render.sh *)
 ```
 
-- Вызов из тела:
+- Invocation from the body:
 
 ```markdown
 Run `${CLAUDE_SKILL_DIR}/scripts/render.sh <csv-file>` to render the chart.
 ```
 
-- Скрипты не полагаются на текущий рабочий каталог - только на `${CLAUDE_SKILL_DIR}` и переданные аргументы.
+- Scripts do not rely on the current working directory - only on `${CLAUDE_SKILL_DIR}` and passed arguments.
 
 ---
 
-## 03.04. Root-команды и подтверждение выполнения
+## 03.04. Root commands and execution confirmation
 
-*Обязательно для навыков с привилегированными операциями.*
+*Mandatory for skills with privileged operations.*
 
-Навык, при применении которого выполняются привилегированные операции (изменение системных конфигов, установка пакетов, управление системными службами), обязан содержать в теле раздел `## Root-команды и подтверждение выполнения`. Раздел описывает уровни применения и обязательные правила ожидания для агента; общий порядок привилегированных операций - `project_standards.md`, раздел 05.04, точечный оверрайд - раздел 01.01.02. Навык без привилегированных операций раздел не содержит.
+A skill whose application performs privileged operations (changing system configs, installing packages, managing system services) must contain a dedicated root-commands section in the body. The canonical heading is `## Root Commands and Execution Confirmation`; a legacy Russian-language skill uses `## Root-команды и подтверждение выполнения` until migration. The section describes the application levels and mandatory waiting rules for the agent; the general privileged-operation procedure is in `project_standards.md`, 05.04, and the point override is 01.01.02. A skill without privileged operations does not contain this section.
 
-Уровни применения привилегированных действий:
+Privileged action application levels:
 
-- уровень 0 - человек за терминалом: по явной просьбе пользователя в текущей сессии агент запускает скрипт под псевдотерминалом (tmux или screen), пользователь вводит пароль в приглашении `sudo`; агент не перекладывает запуск на пользователя, но и не повышает права сам;
-- уровни 1-3 при действующем проектном оверрайде `project_standards.md` 05.04: скрипт применяет изменения сам - GUI-askpass, узкое правило `NOPASSWD` или файловый askpass; агент не перекладывает эту работу на пользователя;
-- ручной путь: если ни один уровень не применим, команды передаются пользователю; агент sudo сам не запускает.
+- level 0 - a human at the terminal: on an explicit user request in the current session the agent starts the script under a pseudo-terminal (tmux or screen), the user enters the password at the `sudo` prompt; the agent neither shifts the launch to the user nor elevates privileges itself;
+- levels 1-3 under an active project override of `project_standards.md` 05.04: the script applies changes itself - GUI askpass, a narrow `NOPASSWD` rule, or a file askpass; the agent does not shift this work to the user;
+- manual path: if no level applies, the commands are passed to the user; the agent does not run sudo itself.
 
-Обязательные правила для агента (формулируются в теле навыка):
+Mandatory rules for the agent (stated in the skill body):
 
-- выдав пользователю команды, агент не считает их выполненными: он дожидается явного подтверждения пользователя либо объективной проверки состояния (повторный `recon` или `status`, чтение целевого файла или значения);
-- до подтверждения или проверки агент не переходит к следующему элементу, следующему навыку и не завершает цикл;
-- если состояние нельзя проверить без root, агент запрашивает подтверждение и точную команду проверки;
-- итог по элементу (применен или не применен) агент сообщает только по подтвержденному или проверенному состоянию.
+- after giving the user commands, the agent does not consider them executed: it waits for explicit user confirmation or an objective state check (repeated `recon` or `status`, reading the target file or value);
+- before confirmation or verification the agent does not move to the next item or the next skill and does not finish the cycle;
+- if the state cannot be checked without root, the agent requests confirmation and the exact check command;
+- the agent reports the item outcome (applied or not applied) only from a confirmed or verified state.
 
-Эталон поведения самого скрипта на уровнях 1-3 при действующем оверрайде (самоподъем `sudo -A` или вызов `sudo -n` с проверкой условий и защитой от рекурсии, пре-авторизация серией, объективная перепроверка состояния после прогона, ловушки sudo-окружения) - `project_standards.md`, раздел 05.04.
-
----
-
-## 03.05. Конфигурирующие навыки: каркас apply-скрипта
-
-*Обязательно для навыков, управляющих конфигурацией среды выполнения.*
-
-Навык, применяющий набор настроек к среде (конфиги приложений, системные параметры), строится по единому каркасу:
-
-- Декларативный реестр элементов: идентификатор, заголовок, описание, признак root; логика - в реестре, а не в коде подкоманд
-- Контракт функций на элемент: причина недоступности, идемпотентная проверка примененности, текущее и целевое значения
-- Подкоманды CLI: разведка среды и предусловий, план «сейчас - будет», статус, применение (с `--dry-run`, явным выбором элемента и пакетным режимом), снимок состояния, подтверждение root-элемента, вывод root-команд пользователю
-- Снимок примененного состояния ведется артефактом в `diag/` проекта (основной стандарт, 01.01.04): таблица «элемент - значение - дата» и история изменений; запись мержится идемпотентно, без дубликатов
-- Подтверждение root-элементов, состояние которых нечитаемо без root, фиксируется в снимке отдельной подкомандой: следующие прогоны доверяются снимку, не переспрашивая пользователя
-- Серия однотипных навыков: участвуют только навыки со статусом stable (draft пропускается молча), порядок алфавитный, состав сверяется с индексом; отказ элемента не останавливает проход, неподтвержденные root-команды блокируют переход к следующему навыку
-- Снимок состояния в `diag/` фиксирует примененное состояние среды и не заменяет память агентов: постоянный контекст между сессиями - `data/memory/` по канону `doc/standards/memory_standards.md`
+The reference behavior of the script itself at levels 1-3 under an active override (self-elevation with `sudo -A` or a `sudo -n` call with condition checks and recursion protection, series pre-authorization, objective state re-check after the run, sudo environment traps) is in `project_standards.md`, 05.04.
 
 ---
 
-## 03.06. Каталоги-артефакты в сканируемых деревьях
+## 03.05. Configuring skills: apply-script skeleton
 
-*Обязательно для навыков, устанавливающих файлы и каталоги в сканируемые загрузчиками деревья.*
+*Mandatory for skills that manage runtime environment configuration.*
 
-Инструменты сканируют свои каталоги (плагины, навыки, автозапуск) и распознают любое содержимое, включая резервные копии:
+A skill that applies a set of settings to an environment (application configs, system parameters) follows a single skeleton:
 
-- Бэкап и карантин не размещаются внутри сканируемого дерева: копия распознается как дубль и ломает работу канонического экземпляра (конфликт идентификаторов, дублирование); копии размещаются рядом с деревом, вне сканирования
-- Обновление каталога-артефакта копированием поверх не заменяет, а вкладывает новую версию внутрь старой; обновление - заменой каталога целиком, вложенность после обновления - ошибка
-- Генерируемый файл поверх возможно пользовательского помечается маркером владения в первой строке; существующий файл без маркера считается пользовательским - перезапись только с явным флагом
-
----
-
-## 04.01. Применение навыка агентом
-
-*Обязательно.*
-
-Два способа активации:
-
-1. **Автоматический** - запрос пользователя совпал с `description`; агент загрузил тело и применяет. Невозможен при `disable-model-invocation: true` (расширение Claude Code, раздел 02.01).
-2. **Явный** - пользователь вызвал навык напрямую (команда инструмента, упоминание имени).
-
-**Правила:**
-
-- Навык без `description` не обнаруживается автоматикой; обязательно заполнять (раздел 02.03).
-- Деструктивные навыки (удаление, перезапись, деплой, миграции) - `disable-model-invocation: true` (расширение Claude Code), только явный вызов. В инструментах без поддержки этого поля - запрет авто-применения и требование явного вызова по имени - зафиксировать в теле навыка.
-- Конфликт нескольких совпадений - приоритет у явного вызова; при равной специфичности агент уточняет у пользователя, не объединяет инструкции разных навыков.
-- Действия навыка не противоречат основному стандарту проекта и подтвержденным ограничениям.
+- Declarative item registry: identifier, title, description, root flag; logic lives in the registry, not in subcommand code
+- Per-item function contract: reason for unavailability, idempotent applied check, current and target values
+- CLI subcommands: environment and precondition recon, "now - will be" plan, status, apply (with `--dry-run`, explicit item selection, and batch mode), state snapshot, root-item confirmation, output of root commands to the user
+- The applied-state snapshot is kept as an artifact in the project `diag/` (core standard, 01.01.04): an "item - value - date" table and a change history; the record is merged idempotently, without duplicates
+- Confirmation of root items whose state is unreadable without root is recorded in the snapshot by a separate subcommand: subsequent runs trust the snapshot without asking the user again
+- Series of similar skills: only skills with `stable` status participate (draft is skipped silently), the order is alphabetical, the composition is checked against the index; an item failure does not stop the pass, unconfirmed root commands block the transition to the next skill
+- The state snapshot in `diag/` records the applied environment state and does not replace agent memory: persistent cross-session context is `data/memory/` per `doc/standards/memory_standards.md`
 
 ---
 
-## 04.02. Отличия от plain-формата
+## 03.06. Artifact directories in scanned trees
 
-Соответствие полей и норм двух форматов:
+*Mandatory for skills that install files and directories into loader-scanned trees.*
 
-| Аспект | Plain (`skill_plain_standards.md`) | Anthropic (этот документ) |
-| ------ | --------------------------------- | ------------------------- |
-| Единица навыка | файл `doc/skills/<name>.md` | каталог `<name>/SKILL.md` |
-| Идентификатор | `id` = имя файла без `.md` | `name` = имя каталога |
-| Автоприменение | `auto_apply: true / false` | `disable-model-invocation: false / true` (инверсия; расширение Claude Code) |
-| Деструктивные | `auto_apply: false` | `disable-model-invocation: true` (расширение Claude Code) |
-| Свои метаданные | `version`, `status` | `metadata` (словарь) |
-| Тип навыка | frontmatter `type` | `metadata.type` |
-| Категория (область применения) | `category` + `category_name` | `metadata.category` + `metadata.category_name` |
-| Разрешения инструментов | нет | `allowed-tools` |
-| Ресурсы навыка | внешние (`run/`, `doc/specs/`) | внутри каталога (`reference.md`, `scripts/`) |
-| Код навыка | встроенный код в теле допускается (до ~100 строк) | весь исполняемый код - в `scripts/`, в теле - команды вызова (раздел 03.03) |
-| Лимит объема | 800 строк | 500 строк тела |
-| Язык | русский | язык ожидаемых запросов (единый для заголовков, тела и description); целиком английский - для публикации в экосистему |
-| Каталог хранения | `doc/skills/<repo-name>/pg_<name>.md` (агрегат в хабе - `ext/<repo-name>/`) | `doc/skills/pg-<name>/SKILL.md`; локальные - `data/skills/` (каталог `pl-<name>/SKILL.md` или plain-файл, префикс опционален; деплой - отдельный процесс) |
-| Frontmatter | обязательные поля по канону plain (включая `type`) плюс произвольные дополнительные | строгий allowlist (раздел 02.01) |
+Tools scan their directories (plugins, skills, autostart) and recognize any content, including backups:
 
-Преобразование plain-навыка в SKILL.md-формат - механическое по таблице; структуру разделов привести к разделу 03.01. Процесс автоматизирован навыком `glob-skill-migrate-anthropic`; после миграции исходник перемещается в `templates/` каталога навыка и остается каноном (пары форматов - раздел 01.03).
+- Backups and quarantine are not placed inside a scanned tree: a copy is recognized as a duplicate and breaks the canonical instance (identifier conflict, duplication); copies are placed next to the tree, outside scanning
+- Updating an artifact directory by copying over it does not replace it but nests the new version inside the old one; update by replacing the directory as a whole; nesting after update is an error
+- A generated file over a possibly user file is marked with an ownership marker in the first line; an existing file without a marker is considered user-owned - overwrite only with an explicit flag
 
 ---
 
-## 05.01. Антипаттерны
+## 04.01. Skill activation by the agent
 
-*Обязательно.*
+*Mandatory.*
 
-| Антипаттерн | Правильно |
-| ----------- | --------- |
-| Лишний ключ frontmatter (`id`, `auto_apply`) | Только allowlist раздела 02.01; `version` - в `metadata` |
-| Весь справочник API в теле навыка | Тело до 500 строк; справочник - в `reference.md` с условием чтения |
-| Дублирование reference-файла в теле | Тело - краткая версия и ссылка |
-| Размытое description («helps with docs») | WHAT + WHEN с конкретными условиями применения (раздел 02.03) |
-| Раздел «Триггер-слова» или словесные синонимы триггеров запуска в теле | Условия применения - в «Когда использовать»; триггеры запуска - только `ДЕЛАЙ` / `GO` (`project_standards.md` 07.02) |
-| Деструктивный навык с авто-вызовом | `disable-model-invocation: true` (расширение Claude Code); в инструментах без поля - запрет авто-применения в теле навыка |
-| Проза вместо скрипта для точной операции | Скрипт в `scripts/`, вызов и `allowed-tools` в навыке |
-| Исполняемый код в теле SKILL.md (последовательности команд, программы) | Весь код - в `scripts/`; в теле - команды вызова и нерасполнимые схемы (разделы 03.01, 03.03) |
-| Зависимость навыка от скриптов и модулей проекта вне каталога навыка | Скрипт перенесен: исходник в `templates/`, рабочая копия в `scripts/`; пакет переносим одной папкой (раздел 03.03) |
-| Абсолютные пути машины в теле и скриптах | `${CLAUDE_SKILL_DIR}` и переданные аргументы |
-| Цветной или декоративный вывод скриптов (ANSI-цвета, рамки, эмодзи), вывод без timestamp | Строки `YYYY-MM-DD HH:MM:SS [marker] сообщение` - стиль строгого логгера без логгера (разделы 04.02, 04.04.01) |
-| Кириллица или транслит в `name` и именах файлов | Латиница, `kebab-case` для `name` |
-| Произвольная категория или синоним вне справочника; `metadata.category` без `category_name` | Слаг и название - строго из закрытого справочника (`skill_plain_standards.md`, раздел 01.03), заполняются парой |
-| Один навык на несколько несвязанных сценариев | Отдельный каталог на каждый сценарий |
-| Time-sensitive данные в теле | Актуальные значения; справочное - в `reference.md` |
-| Хранение исходников в боевых каталогах инструментов; `SKILL.md` вне подпапки навыка | Источник - подпапка `doc/skills/<name>/` с `SKILL.md` (раздел 01.03); деплой - отдельный процесс |
-| Плоский файл-канон пары, оставшийся в корне `doc/skills/` после миграции | Исходник перемещен в `templates/` каталога навыка (пары форматов - раздел 01.03) |
-| Упоминания конкретных навыков чужих репозиториев в теле и скриптах (имена репо, пути `ext/<repo>/`) | Плейсхолдеры `<repo-name>` / `pg-<name>` / `pl-<name>`; конкретика - только в индексах навыков |
-| Плейсхолдеры кириллицей (`<имя-каталога>`) | Латиница: `<dir-name>`, `<repo-name>`, `<name>` (04.03 основного стандарта) |
-| Навык с привилегированными операциями без раздела «Root-команды и подтверждение выполнения»; агент переходит к следующему элементу, не дождавшись подтверждения переданных команд | Обязательный раздел с уровнями (pty с вводом пароля / `sudo -A`, `sudo -n` или файловый askpass при оверрайде 05.04 / ручной) и правилами ожидания; итог - только по подтвержденному или проверенному состоянию (раздел 03.04, `project_standards.md` 05.04) |
-| Рантайм-данные в каталоге навыка: реестры, журналы, состояние, кэш, обновляемые списки | Каталог навыка - статический пакет; рантайм-данные - в зонах `data/` репозитория (`doc/standards/skill_data_standards.md`) |
-| Мутабельные данные в теле SKILL.md или в `templates/` пары («обновляемый артефакт», список кандидатов, счетчик) | Реестр `data/registries/<domain>.md` с маркером владения; тело и `templates/` - только статические (`doc/standards/skill_data_standards.md`) |
+Two activation paths:
+
+1. **Automatic** - the user request matches `description`; the agent loads the body and applies it. Impossible with `disable-model-invocation: true` (Claude Code extension, 02.01).
+2. **Explicit** - the user invokes the skill directly (tool command, name mention).
+
+**Rules:**
+
+- A skill without `description` is not discovered automatically; fill it in (02.03).
+- Destructive skills (deletion, overwrite, deploy, migrations) - `disable-model-invocation: true` (Claude Code extension), explicit invocation only. In tools without this field - forbid auto-application and require explicit invocation by name in the skill body.
+- When several matches conflict, explicit invocation wins; at equal specificity the agent asks the user and does not merge instructions from different skills.
+- Skill actions do not contradict the core project standard and confirmed constraints.
 
 ---
 
-## 05.02. Пример
+## 04.02. Legacy flat skills and migration
 
-Минимальный полноценный навык публичной экосистемы - целиком английский (раздел 03.01). Для командного навыка заголовки и тело - на языке команды. Пример - проектный навык (префикс `pg-`, слаг `pr_glob`).
+*Mandatory when a legacy flat skill is found.*
+
+A legacy flat skill is a single `.md` file: `doc/skills/<name>.md`, `doc/skills/<repo-name>/pg_<name>.md`, or `data/skills/<name>.md`. Such files may exist in sibling repositories. In the hub and in new work they are not created: `SKILL.md` is the single editable source (01.03).
+
+Migration is one-way and mechanical: map the fields per the table, bring the section structure to 03.01, and write `SKILL.md`. The process is automated by the `glob-skill-migrate-anthropic` skill. After migration the legacy flat file is archived per repository rules; it is not moved into `templates/` and is not kept as a parallel source.
+
+| Aspect | Legacy flat skill | SKILL.md |
+| ------ | ----------------- | -------- |
+| Skill unit | one `.md` file | `<name>/SKILL.md` directory |
+| Identifier | `id` = file name without `.md` | `name` = directory name |
+| Auto-application | `auto_apply: true / false` | `disable-model-invocation: false / true` (inversion; Claude Code extension) |
+| Destructive | `auto_apply: false` | `disable-model-invocation: true` (Claude Code extension) |
+| Custom metadata | `version`, `status` | `metadata` dictionary |
+| Skill type | frontmatter `type` | `metadata.type` |
+| Category (application domain) | `category` + `category_name` | `metadata.category` + `metadata.category_name` |
+| Tool permissions | none | `allowed-tools` |
+| Skill resources | external (`run/`, `doc/specs/`) | inside the directory (`reference.md`, `scripts/`) |
+| Skill code | inline code in the body allowed (up to ~100 lines) | all executable code in `scripts/`, invocation commands in the body (03.03) |
+| Size limit | 800 lines | 500-line body |
+| Language | project language | language of expected requests (uniform for headings, body, and description); fully English for ecosystem publication |
+| Storage directory | `doc/skills/<repo-name>/pg_<name>.md` | `doc/skills/pg-<name>/SKILL.md`; local - `data/skills/pl-<name>/SKILL.md` |
+| Frontmatter | required plain fields (including `type`) plus arbitrary extras | strict allowlist (02.01) |
+
+---
+
+## 05.01. Anti-patterns
+
+*Mandatory.*
+
+| Anti-pattern | Correct |
+| ------------ | ------- |
+| Extra frontmatter key (`id`, `auto_apply`) | Only the allowlist of 02.01; `version` goes to `metadata` |
+| The whole API reference in the skill body | Body up to 500 lines; reference in `reference.md` with a reading condition |
+| Duplicating a reference file in the body | Body is a short version and a reference |
+| Vague description ("helps with docs") | WHAT + WHEN with concrete application conditions (02.03) |
+| A "Trigger words" section or verbal synonyms of launch triggers in the body | Application conditions in "When to use"; launch triggers are only `ДЕЛАЙ` / `GO` (`project_standards.md` 07.02) |
+| Destructive skill with auto-invocation | `disable-model-invocation: true` (Claude Code extension); in tools without the field - forbid auto-application in the skill body |
+| Prose instead of a script for a precise operation | Script in `scripts/`, invocation and `allowed-tools` in the skill |
+| Executable code in the SKILL.md body (command sequences, programs) | All code in `scripts/`; the body holds invocation commands and non-executable schemes (03.01, 03.03) |
+| Skill dependency on project scripts and modules outside the skill directory | The script is moved into the package: working copy in `scripts/`; the package transfers as one folder (03.03) |
+| Absolute machine paths in the body and scripts | `${CLAUDE_SKILL_DIR}` and passed arguments |
+| Colored or decorative script output (ANSI colors, frames, emoji), output without a timestamp | Lines `YYYY-MM-DD HH:MM:SS [marker] message` - logger strict style without a logger (04.02, 04.04.01) |
+| Cyrillic or transliteration in `name` and file names | Latin, `kebab-case` for `name` |
+| Arbitrary category or a synonym outside the dictionary; `metadata.category` without `category_name` | Slug and name strictly from the closed dictionary (01.04), filled as a pair |
+| One skill for several unrelated scenarios | A separate directory for each scenario |
+| Time-sensitive data in the body | Current values; reference material in `reference.md` |
+| Source storage in live tool directories; `SKILL.md` outside a skill subdirectory | Source in `doc/skills/<name>/` with `SKILL.md` (01.03); deploy is a separate process |
+| A legacy flat skill file kept as a parallel source or moved into `templates/` | `SKILL.md` is the single editable source; `templates/` holds data templates only (01.03, 04.02) |
+| Mentions of concrete skills from other repositories in the body and scripts (repository names, `ext/<repo>/` paths) | Placeholders `<repo-name>` / `pg-<name>` / `pl-<name>`; specifics only in skill indexes |
+| Cyrillic placeholders (`<имя-каталога>`) | Latin: `<dir-name>`, `<repo-name>`, `<name>` (`project_standards.md`, 04.03) |
+| A skill with privileged operations without a root-commands section; the agent moves to the next item before confirmation of passed commands | Mandatory section with levels (pty with password entry / `sudo -A`, `sudo -n`, or file askpass under the 05.04 override / manual) and waiting rules; outcome only from a confirmed or verified state (03.04, `project_standards.md` 05.04) |
+| Runtime data in the skill directory: registries, journals, state, cache, updatable lists | The skill directory is a static package; runtime data lives in repository `data/` zones (`doc/standards/skill_data_standards.md`) |
+| Mutable data in the SKILL.md body or in `templates/` ("updatable artifact", candidate list, counter) | Registry `data/registries/<domain>.md` with an ownership marker; body and `templates/` are static only (`doc/standards/skill_data_standards.md`) |
+
+---
+
+## 05.02. Example
+
+A minimal complete skill - fully English (03.01). The example is a project skill (prefix `pg-`, slug `pr_glob`).
 
 ```text
 pg-pdf-fill-form/
@@ -548,64 +560,64 @@ Maps keys from a JSON or CSV file to fields of a PDF form and writes the filled 
 
 ---
 
-## 05.03. Чеклист автора
+## 05.03. Author checklist
 
-*Обязательно.*
+*Mandatory.*
 
-Перед публикацией навыка проверить:
+Before publishing a skill, check:
 
-- [ ] Один сценарий - один каталог с единственным `SKILL.md`
-- [ ] Источник лежит в `doc/skills/<name>/SKILL.md`, а не в боевом каталоге инструмента
-- [ ] Локальный навык (`pr_loc`) вне синхронизации - в `data/skills/`: каталог `pl-<name>/SKILL.md` (или без префикса) либо plain-файл `pl_<name>.md` / `<name>.md`; коммитится (`!data/skills/` в `.gitignore`), отражен в `data/skills/_index_skills_pl.md` (раздел 01.03)
-- [ ] `name`: строчные латинские буквы и цифры, дефисы, до 64 символов, совпадает с именем каталога, отражает задачу
-- [ ] `description`: WHAT + WHEN, конкретные условия применения, до 1024 символов
-- [ ] Frontmatter - только allowlist-ключи; `version` / `status` / `type` - внутри `metadata`; `metadata.type` - слаг типа из таксономии (`skill_plain_standards.md`, раздел 01.03), проставлен при создании, актуален при обновлении, перенесен из исходника при миграции
-- [ ] Категория: при наличии - `metadata.category` и `metadata.category_name` строго из закрытого справочника (`skill_plain_standards.md`, раздел 01.03), слаг совпадает со вторым сегментом имени каталога (у локального навыка без типового префикса - первый сегмент), поля заполнены парой; при отсутствии - соответствующий сегмент имени не совпадает ни с одним слагом справочника
-- [ ] Деструктивный навык - `disable-model-invocation: true` (расширение Claude Code) или запрет авто-применения в теле для инструментов без поля
-- [ ] Тело до 500 строк; излишки - в `reference.md` / `examples.md` с условиями чтения
-- [ ] Весь исполняемый код - в `scripts/` с `allowed-tools` и `${CLAUDE_SKILL_DIR}`; в теле - только команды вызова и нерасполнимые схемы (разделы 03.01, 03.03)
-- [ ] Навык самодостаточен: каталог переносится на любую машину целиком, без зависимостей от кода и путей репозитория-источника (раздел 03.03)
-- [ ] Рантайм-данные навыка (реестры, журналы, состояние, кэш) - в зонах `data/` репозитория с маркером владения, не в каталоге навыка и не в теле; машинно-специфичные - в подпапке `<hostname>` (`doc/standards/skill_data_standards.md`)
-- [ ] Вывод скриптов - строки `YYYY-MM-DD HH:MM:SS [marker] сообщение` (время вставляет сам скрипт, без логгера и лог-файлов), монохромные (без ANSI, рамок), текст по 04.03: без точки в конце, без `ё`/`Ё`, тире - только дефис-минус; коды завершения 0 / 1 / 2 (`project_standards.md`, разделы 04.02, 04.04, 05.03)
-- [ ] Нет дублирования между телом и ресурсами
-- [ ] Нет time-sensitive данных и абсолютных путей машины
-- [ ] Нет упоминаний конкретных навыков чужих репозиториев и путей `doc/skills/ext/<repo>/` - только плейсхолдеры и обобщенные примеры
-- [ ] Плейсхолдеры только латиницей, без кириллицы внутри угловых скобок
-- [ ] `description` без пересказа процесса и пошаговой методики; для дисциплинирующего навыка - симптом-предвестник нарушения (`skill_review_standards.md`, раздел 02)
-- [ ] Проверка поведения пройдена по классу навыка: дисциплинирующий - сценарии давления и закрытие лазеек; изменение поведения - микротесты формулировок (`skill_review_standards.md`, раздел 04)
-- [ ] Навык с привилегированными операциями содержит раздел «Root-команды и подтверждение выполнения» (уровни применения, ожидание подтверждения или объективной проверки до перехода дальше, итог только по проверенному состоянию); навык без таких операций раздел не содержит (раздел 03.04)
-- [ ] Навык проверен на реальных запросах: находится по description, инструкция приводит к результату
-
----
-
-## 05.04. Разработка и проверка навыка
-
-*Обязательно.*
-
-Методика разработки навыка и проверки его поведения до публикации - `skill_review_standards.md` (описание для обнаружения, RED-GREEN-REFACTOR, сценарии давления, микротесты формулировок, форма правила под тип сбоя, закрытие лазеек).
-
-Обязательность проверки - по классу навыка (`skill_review_standards.md`, раздел 04.01): для дисциплинирующего навыка проверка поведения обязательна полностью, для остальных - микротесты формулировок и применение на новом сценарии. Правка формулировки существующего навыка проверяется тем же порядком, что новый навык.
-
-Красные флаги - основания остановиться до публикации: «навык очевиден, проверка не нужна», «правка мелкая, тестирование избыточно», «уверен, что работает», «проверю, если появятся проблемы».
+- [ ] One scenario - one directory with a single `SKILL.md`
+- [ ] The source is in `doc/skills/<name>/SKILL.md`, not in a live tool directory
+- [ ] A local skill (`pr_loc`) is outside synchronization - in `data/skills/`: directory `pl-<name>/SKILL.md` (or without a prefix); committed (`!data/skills/` in `.gitignore`), reflected in `data/skills/_index_skills_pl.md` (01.03)
+- [ ] `name`: lowercase Latin letters and digits, hyphens, up to 64 characters, matches the directory name, reflects the task
+- [ ] `description`: WHAT + WHEN, concrete application conditions, up to 1024 characters; SDO canon - `superpowers:writing-skills`
+- [ ] Frontmatter has allowlist keys only; `version` / `status` / `type` are inside `metadata`; `metadata.type` is a taxonomy type slug (01.03), set at creation and current on update
+- [ ] Category: when present - `metadata.category` and `metadata.category_name` strictly from the closed dictionary (01.04), the slug matches the second segment of the directory name (for a local skill without a type prefix - the first segment), the fields are filled as a pair; when absent - the corresponding name segment matches no dictionary slug
+- [ ] Destructive skill - `disable-model-invocation: true` (Claude Code extension) or a ban on auto-application in the body for tools without the field
+- [ ] Body up to 500 lines; excess in `reference.md` / `examples.md` with reading conditions
+- [ ] All executable code is in `scripts/` with `allowed-tools` and `${CLAUDE_SKILL_DIR}`; the body holds only invocation commands and non-executable schemes (03.01, 03.03)
+- [ ] The skill is self-sufficient: the directory transfers to any machine as a whole, without dependencies on source repository code and paths (03.03)
+- [ ] Skill runtime data (registries, journals, state, cache) is in repository `data/` zones with an ownership marker, not in the skill directory or body; machine-specific data is in the `<hostname>` subfolder (`doc/standards/skill_data_standards.md`)
+- [ ] Script output - lines `YYYY-MM-DD HH:MM:SS [marker] message` (the script inserts the time, no logger and no log files), monochrome (no ANSI, no frames), text per 04.03: no trailing period, no diaeresis letter, dashes - hyphen-minus only; exit codes 0 / 1 / 2 (`project_standards.md`, 04.02, 04.04, 05.03)
+- [ ] No duplication between the body and resources
+- [ ] No time-sensitive data and no absolute machine paths
+- [ ] No mentions of concrete skills from other repositories and no `doc/skills/ext/<repo>/` paths - only placeholders and generalized examples
+- [ ] Placeholders are Latin only, without Cyrillic inside angle brackets
+- [ ] `description` does not retell the process or step-by-step method; for a disciplining skill - a precursor symptom of violation (`superpowers:writing-skills`)
+- [ ] Behavioral verification passed by skill class: disciplining - pressure scenarios and loophole closure; behavior change - wording micro-tests (`superpowers:writing-skills`)
+- [ ] A skill with privileged operations contains a root-commands section (application levels, waiting for confirmation or objective verification before moving on, outcome only from a verified state); a skill without such operations does not contain the section (03.04)
+- [ ] The skill is tested on real requests: it is found by `description`, the instruction leads to a result
 
 ---
 
-## 06.01. Связь с другими документами
+## 05.04. Skill development and verification
 
-| Документ | Назначение |
-| -------- | ---------- |
-| `doc/standards/project_standards.md` | Общие правила проекта; настоящий стандарт применяется поверх него |
-| `doc/standards/skill_plain_standards.md` | Plain-формат (плоские навыки): `doc/skills/` и `data/skills/` |
-| `doc/standards/skill_data_standards.md` | Рантайм-данные навыков: зоны `data/`, классы, машинная специфичность |
-| `doc/standards/skill_anthropic_standards.md` | Формат Anthropic Agent Skills (этот документ) |
-| `doc/standards/_index_standards.md` | Реестр пакета стандартов; единая версия |
-| Спецификация Anthropic Agent Skills | Первоисточник формата SKILL.md (docs.anthropic.com, code.claude.com) |
-| Документация целевого инструмента | Каталоги навыков и особенности инструмента (раздел 01.03) |
+*Mandatory.*
 
-При расхождении этого документа со спецификацией Anthropic - первоисточник спецификация; расхождение фиксировать правкой настоящего стандарта.
+Skill development methodology and pre-publication behavioral verification - `superpowers:writing-skills`: discovery description (SDO), RED-GREEN-REFACTOR, pressure scenarios, wording micro-tests, rule form for the failure type, loophole closure.
+
+Verification is mandatory by skill class: for a disciplining skill, behavioral verification is mandatory in full; for others - wording micro-tests and application to a new scenario. An edit to an existing skill wording is verified in the same order as a new skill.
+
+Red flags - reasons to stop before publication: "the skill is obvious, verification is not needed", "the edit is small, testing is excessive", "I am sure it works", "I will check if problems appear".
 
 ---
 
-## 06.02. Версионирование
+## 06.01. Related documents
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя (см. _index_standards.md).
+| Document | Purpose |
+| -------- | ------- |
+| `doc/standards/project_standards.md` | Core project rules; this standard applies on top of it |
+| `doc/standards/skill_data_standards.md` | Skill runtime data: `data/` zones, classes, machine specificity |
+| `doc/standards/skill_anthropic_standards.md` | Anthropic Agent Skills format (this document) |
+| `doc/standards/_index_standards.md` | Standards package registry; unified version |
+| `superpowers:writing-skills` | Skill development methodology: SDO, behavioral testing, pressure scenarios |
+| Anthropic Agent Skills specification | Primary source of the SKILL.md format (docs.anthropic.com, code.claude.com) |
+| Target tool documentation | Skill directories and tool specifics (01.03) |
+
+If this document conflicts with the Anthropic specification, the specification wins; record the divergence by editing this standard.
+
+---
+
+## 06.02. Versioning
+
+Standards package versioning is unified for all package documents. Versioning policy, registry, and routing map - in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see `_index_standards.md`).

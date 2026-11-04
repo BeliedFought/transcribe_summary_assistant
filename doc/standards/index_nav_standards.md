@@ -1,497 +1,526 @@
-# Навигационные документы репозитория: индексы и AGENTS.md. Версия 4.16.0
+# Repository Navigation Documents: Indexes and AGENTS.md. Version 5.0.0
 
-Канон навигационных документов репозитория: индексов каталогов и файла инструкций агента `AGENTS.md`. Назначение - быстрая и точная маршрутизация агентов ИИ: агент за один проход по индексу определяет, какие файлы открыть для задачи, и не загружает каталоги целиком. Документ - дополнение к `project_standards.md` и применяется поверх него. Порядок принятия решений при отсутствии или неоднозначности нормы - `project_standards.md`, раздел 07.06.
+Canon for repository navigation documents: directory indexes and the agent instruction file `AGENTS.md`. Purpose - fast and accurate AI agent routing: in one pass over an index the agent determines which files to open for a task and does not load whole directories. The document supplements `project_standards.md` and applies on top of it. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 
-Канон человеческих документов репозитория (README.md, инструкции, описания) - `repo_info_doc_standards.md`.
-
----
-
-## Оглавление
-
-**01. Назначение и область действия:** 01.01 Назначение - 01.02 Область действия
-
-**02. Принципы маршрутизации агента:** 02.01 Progressive disclosure - 02.02 Точки входа сессии - 02.03 Тегирование индекса - 02.04 Связь с иерархией источников
-
-**03. Канон индекса:** 03.01 Обязательный скелет индекса - 03.02 Заголовок и версии - 03.03 Правила реестра - 03.04 Правила актуализации
-
-**04. Карта маршрутизации:** 04.01 Назначение и формат карты - 04.02 Правила качества строк карты - 04.03 Полнота покрытия - 04.04 Антипаттерны
-
-**05. Реестр индексов репозитория:** 05.01 Сводная таблица
-
-**06. Специфика отдельных индексов:** 06.01 Индекс пакета стандартов - 06.02 Индексы навыков - 06.03 Индекс спецификаций - 06.04 Индекс SQL-файлов (эталонный шаблон) - 06.05 Индексы diag и test - 06.06 Индекс заданий на изменение
-
-**07. AGENTS.md - маршрутизатор агента:** 07.01 Назначение и язык - 07.02 Точки входа сессии - 07.03 Политика AGENTS.md и CLAUDE.md - 07.04 Слои и принцип наполнения - 07.05 Таксономия разделов - 07.06 Каркас
-
-**08. Связь и версионирование:** 08.01 Связь с другими документами - 08.02 Версионирование
+The canon for human repository documents (README.md, instructions, descriptions) is `repo_info_doc_standards.md`.
 
 ---
 
-## 01.01. Назначение
+## Table of Contents
 
-*Обязательно.*
+**01. Purpose and scope:** 01.01 Purpose - 01.02 Scope
 
-Индексы - точки входа в каталоги репозитория. Их задача - маршрутизация: связать тип задачи с конкретными файлами (и их разделами), которые нужно открыть. Индекс ценен скоростью: агент читает один компактный файл вместо перечитывания всего каталога.
+**02. Agent routing principles:** 02.01 Progressive disclosure - 02.02 Session entry points - 02.03 Index tagging - 02.04 Relation to the source hierarchy
 
-`AGENTS.md` - маршрутизатор верхнего уровня: сводит глобальные каноны в выдержку и указывает агенту точки входа сессии - индексы, которые нужно прочитать первыми.
+**03. Index canon:** 03.01 Mandatory index skeleton - 03.02 Heading and versions - 03.03 Registry rules - 03.04 Update rules
 
-Требования этого документа обязательны при создании и правке любого индекса и `AGENTS.md` в любом репозитории (хаб и производные).
+**04. Routing map:** 04.01 Purpose and format - 04.02 Map row quality rules - 04.03 Coverage completeness - 04.04 Anti-patterns
+
+**05. Repository index registry:** 05.01 Summary table
+
+**06. Specific indexes:** 06.01 Standards package index - 06.02 Skill indexes - 06.03 Specifications index - 06.04 SQL file index (reference template) - 06.05 diag and test indexes - 06.06 Change request index
+
+**07. AGENTS.md - agent router:** 07.01 Purpose and language - 07.02 Session entry points - 07.03 AGENTS.md and CLAUDE.md policy - 07.04 Layers and content principle - 07.05 Section taxonomy - 07.06 Skeleton
+
+**08. Relations and versioning:** 08.01 Related documents - 08.02 Versioning
 
 ---
 
-## 01.02. Область действия
+## 01.01. Purpose
 
-*Обязательно.*
+*Mandatory.*
 
-Документ охватывает:
+Indexes are entry points to repository directories. Their task is routing: connect a task type to specific files (and their sections) that must be opened. An index is valuable for speed: the agent reads one compact file instead of rereading the whole directory.
 
-- индексы каталогов репозитория: `doc/standards/_index_standards.md`, `doc/skills/_index_skills_hub.md`, `doc/skills/_index_skills_repo.md`, `data/skills/_index_skills_pl.md`, `doc/specs/_index_specs.md`, `doc/change_requests/_index_change_requests.md`, `sql/_index_sql.md`, `diag/_index_diag.md`, `test/_index_test.md` (полный реестр - раздел 05.01)
-- `AGENTS.md` и его зеркало `CLAUDE.md` (политика зеркала - раздел 07.03)
+`AGENTS.md` is the top-level router: it condenses global canons into an excerpt and points the agent to session entry points - the indexes to read first.
 
-Документ не охватывает: README.md и другие человеческие документы (`repo_info_doc_standards.md`), внутренние индексы самих документов пакета стандартов (оглавления разделов), спецификации задач (`project_standards.md`, раздел 07.02).
+The requirements of this document are mandatory when creating and editing any index and `AGENTS.md` in any repository (hub and derivative).
+
+---
+
+## 01.02. Scope
+
+*Mandatory.*
+
+The document covers:
+
+- repository directory indexes: `doc/standards/_index_standards.md`, `doc/skills/_index_skills_hub.md`, `doc/skills/_index_skills_repo.md`, `data/skills/_index_skills_pl.md`, `doc/specs/_index_specs.md`, `doc/change_requests/_index_change_requests.md`, `sql/_index_sql.md`, `diag/_index_diag.md`, `test/_index_test.md` (full registry - 05.01)
+- `AGENTS.md` and its mirror `CLAUDE.md` (mirror policy - 07.03)
+
+The document does not cover: README.md and other human documents (`repo_info_doc_standards.md`), internal indexes of the standards package documents (section tables of contents), task specifications (`project_standards.md`, 07.02).
 
 ---
 
 ## 02.01. Progressive disclosure
 
-*Обязательно.*
+*Mandatory.*
 
-Агент загружает индекс каталога, а не сам каталог. По индексу он определяет релевантные файлы и открывает только их. Правила:
+The agent loads the directory index, not the directory itself. From the index it determines relevant files and opens only them. Rules:
 
-1. В контекст добавляется индекс, а не перечисление файлов каталога
-2. По реестру и карте маршрутизации агент определяет релевантные файлы и разделы
-3. Открываются только релевантные файлы; чтение каталога целиком - исключение и требует основания (индекс неактуален или задача требует полного обзора)
-4. Если индекс не помог найти нужный файл, индекс актуализируется по итогам задачи - выявленный пробел маршрутизации закрывается
-
----
-
-## 02.02. Точки входа сессии
-
-*Обязательно.*
-
-`AGENTS.md` обязан явно ссылаться на индексы репозитория в начале файла, чтобы агент при старте сессии читал их первыми:
-
-- индекс пакета стандартов `doc/standards/_index_standards.md` - реестр документов, карта маршрутизации, политика версионирования
-- индекс навыков - в хабе `doc/skills/_index_skills_hub.md`, в производных репозиториях `doc/skills/_index_skills_repo.md` (при наличии индекса в репозитории)
-- индекс спецификаций `doc/specs/_index_specs.md` (обязателен, раздел 05.01)
-
-Ссылка оформляется упоминанием пути к файлу в начале `AGENTS.md` - например строкой `@doc/standards/_index_standards.md` или явным указанием прочитать файл первым. Ссылки на прочие индексы (`sql/_index_sql.md`, `diag/_index_diag.md`, `test/_index_test.md`, `doc/change_requests/_index_change_requests.md`) размещаются в репо-специфичной части - по факту наличия каталогов в репозитории.
+1. The context receives the index, not a listing of directory files
+2. From the registry and routing map the agent determines relevant files and sections
+3. Only relevant files are opened; reading a whole directory is an exception and requires a reason (the index is stale or the task requires a full review)
+4. If the index did not help find the required file, the index is updated at the end of the task - the discovered routing gap is closed
 
 ---
 
-## 02.03. Тегирование индекса
+## 02.02. Session entry points
 
-*Обязательно.*
+*Mandatory.*
 
-Тегирование индекса (`@путь/к/_index_*.md`) означает обязательное применение релевантных объектов, а не просто ознакомление. Агент:
+`AGENTS.md` must explicitly reference repository indexes at the start of the file so the agent reads them first at session start:
 
-1. Определяет релевантные файлы по карте маршрутизации индекса
-2. Загружает указанные файлы и применяет их требования к текущей задаче
-3. Проверяет соответствие результата перед завершением работы
+- standards package index `doc/standards/_index_standards.md` - document registry, routing map, versioning policy
+- skill index - in the hub `doc/skills/_index_skills_hub.md`, in derivative repositories `doc/skills/_index_skills_repo.md` (when the index exists in the repository)
+- specifications index `doc/specs/_index_specs.md` (mandatory, 05.01)
 
-Если индекс тегнут без конкретной задачи - выполняется автоактуализация индекса по его разделу «Автоактуализация индекса» (раздел 03.04).
-
-Индекс применяется всегда при работе со своим каталогом, независимо от того, был ли он явно тегнут; тегирование лишь указывает агенту на необходимость явно загрузить и применить индекс. Требования индексов распространяются на субагентов наравне с основным агентом.
+The reference is a file path mention at the start of `AGENTS.md` - for example the line `@doc/standards/_index_standards.md` or an explicit instruction to read the file first. References to other indexes (`sql/_index_sql.md`, `diag/_index_diag.md`, `test/_index_test.md`, `doc/change_requests/_index_change_requests.md`) are placed in the repo-specific part - when the directories exist in the repository.
 
 ---
 
-## 02.04. Связь с иерархией источников
+## 02.03. Index tagging
 
-*Обязательно.*
+*Mandatory.*
 
-Индексы - четвертый уровень иерархии источников при принятии решений (`project_standards.md`, раздел 07.06): после явных указаний пользователя и оверрайдов (сессионного и проектного). Индекс не создает новых норм - он маршрутизирует к нормам и файлам. При расхождении индекса и документа-источника побеждает документ; расхождение фиксируется, индекс актуализируется.
+Tagging an index (`@path/to/_index_*.md`) means mandatory application of the relevant objects, not mere familiarization. The agent:
 
----
+1. Determines relevant files from the index routing map
+2. Loads the specified files and applies their requirements to the current task
+3. Verifies compliance before finishing the work
 
-## 03.01. Обязательный скелет индекса
+If the index is tagged without a specific task, the index auto-update procedure runs per its "Index Auto-Update" section (03.04).
 
-*Обязательно.*
-
-Каждый индекс следует единому скелету. Разделы в порядке следования:
-
-| Раздел | Назначение | Примечание |
-|--------|-----------|------------|
-| H1 заголовок | имя индекса (и версия - для пакетных, раздел 03.02) | единственный H1 в файле |
-| Интро | что за индекс, каталог какого назначения, как используется агентом; указатель на порядок принятия решений (`project_standards.md`, раздел 07.06) | 1-3 предложения |
-| Обязательность применения | смысл тегирования, шаги агента, правило применения без тегирования | формулировка - по разделу 02.03 этого документа |
-| Реестр | таблицы объектов каталога | состав колонок - по типу каталога (разделы 05.01, 06) |
-| Карта маршрутизации | тема задачи -> объект | правила - раздел 04 |
-| Автоактуализация индекса | пронумерованная процедура пересборки при тегировании без задачи | шаги: перечитать каталог, обновить реестр, обновить карту, проверить версии (если применимо), вывести отчет |
-
-Дополнительные разделы допускаются после обязательных (например «Политика версионирования» в `_index_standards.md`, «Проектные навыки по репозиториям» в `_index_skills_hub.md`) и не должны дублировать обязательные.
+The index always applies when working with its directory, regardless of whether it was explicitly tagged; tagging only tells the agent to load and apply the index explicitly. Index requirements extend to subagents on par with the main agent.
 
 ---
 
-## 03.02. Заголовок и версии
+## 02.04. Relation to the source hierarchy
 
-*Обязательно.*
+*Mandatory.*
 
-Два режима версионирования:
-
-- **Пакетные индексы** (`doc/standards/_index_standards.md`, `doc/skills/_index_skills_hub.md`): в заголовке H1 - версия пакета стандартов; она обязана совпадать со всеми локациями версии пакета (раздел 07.04 основного стандарта). Индекс следует составу пакета, а номер версии - совместимости с пакетом
-- **Локальные индексы репозитория** (`_index_skills_repo.md`, `data/skills/_index_skills_pl.md`, `_index_specs.md`, `_index_change_requests.md`, `sql/_index_sql.md`, `diag/_index_diag.md`, `test/_index_test.md`): без версии в заголовке. Актуальность определяется соответствием фактическому составу каталога; история изменений - в git. Дата в заголовках не используется
-
-Формат заголовка локального индекса: `# Индекс <dir> репозитория <repo-name>` (для хаба - без указания репозитория или с именем хаба по смыслу).
+Indexes are the fourth level of the source hierarchy in decision-making (`project_standards.md`, 07.06): after explicit user instructions and overrides (session and project). An index does not create new norms - it routes to norms and files. If an index and a source document diverge, the document wins; the divergence is recorded and the index is updated.
 
 ---
 
-## 03.03. Правила реестра
+## 03.01. Mandatory index skeleton
 
-*Обязательно.*
+*Mandatory.*
 
-1. Реестр - таблица (или таблицы по подпапкам каталога); первая колонка - путь к объекту относительно каталога
-2. Базовый состав колонок: объект, назначение, когда применять. Специфика каталогов добавляет колонки: для SQL - параметры и скрипты-потребители (раздел 06.04); для навыков - класс, область применения, автоприменение, версия (раздел 06.02)
-3. Назначение - по факту, одно предложение, без оценок, историй и обещаний (требования к тексту - `project_standards.md`, раздел 04.03). Для `spec_ui.html` в назначении дополнительно указывается SemVer макета
-4. Каждая строка реестра соответствует существующему файлу или каталогу; каждый объект каталога (кроме самих индексных файлов и `.gitkeep`) присутствует в реестре
-5. Индекс не дублирует содержимое объектов - только указатели: назначение, триггеры применения, ссылки на разделы. Содержимое читается в самом файле
-6. Архивные элементы (`<dir>/.arch/`) в реестр не вносятся; строка архивированного объекта из реестра убирается (раздел 01.01 основного стандарта)
+Every index follows a single skeleton. Sections in order:
 
----
+| Section | Purpose | Note |
+| ------- | ------- | ---- |
+| H1 title | index name (and version - for package indexes, 03.02) | the only H1 in the file |
+| Intro | what the index is, which directory purpose it serves, how the agent uses it; a pointer to the decision order (`project_standards.md`, 07.06) | 1-3 sentences |
+| Mandatory application | the meaning of tagging, agent steps, the rule of application without tagging | wording per 02.03 of this document |
+| Registry | tables of directory objects | column composition per directory type (05.01, 06) |
+| Routing map | task topic -> object | rules - 04 |
+| Index auto-update | a numbered rebuild procedure on tagging without a task | steps: reread the directory, update the registry, update the map, check versions (if applicable), output a report |
 
-## 03.04. Правила актуализации
-
-*Обязательно.*
-
-1. Индекс актуализируется в том же изменении (коммите), что и изменение состава каталога: добавление, удаление, переименование, изменение назначения объекта. Для пакета стандартов хаба контроль - pre-commit хуком (`project_standards.md`, раздел 07.05)
-2. Если индекс тегнут без конкретной задачи - выполняется процедура из раздела «Автоактуализация индекса» самого индекса: перечитать каталог, обновить реестр, обновить карту, проверить версии (если применимо), вывести отчет
-3. Актуализацию выполняет агент вручную либо профильный навык (см. колонку «Кто ведет» в разделе 05.01); пересборка скриптом не отменяет ручной проверки реестра и карты по разделам 03.03 и 04
-4. Отчет об актуализации: что добавлено, изменено, удалено; статус версий (для пакетных индексов); найденные расхождения
+Additional sections are allowed after the mandatory ones (for example "Versioning Policy" in `_index_standards.md`, "Project skills by repository" in `_index_skills_hub.md`) and must not duplicate the mandatory ones.
 
 ---
 
-## 04.01. Назначение и формат карты
+## 03.02. Heading and versions
 
-*Обязательно.*
+*Mandatory.*
 
-Карта маршрутизации - таблица, связывающая тип задачи с объектами каталога (для `_index_standards.md` - с документами пакета и их разделами). Формат: колонки «Тема задачи» и объект (для индексов пакетов - колонка «Документ(ы)» с указанием разделов). Карта - главный инструмент быстрой маршрутизации: агент решает по карте, что открыть, без чтения каталога.
+Two versioning modes:
 
----
+- **Package indexes** (`doc/standards/_index_standards.md`, `doc/skills/_index_skills_hub.md`, `doc/skills/_index_skills_repo.md`): the H1 title carries the standards package version; it must match all package version locations (`project_standards.md`, 07.04). The index follows the package composition, and the version number follows package compatibility
+- **Local repository indexes** (`data/skills/_index_skills_pl.md`, `_index_specs.md`, `_index_change_requests.md`, `sql/_index_sql.md`, `diag/_index_diag.md`, `test/_index_test.md`): no version in the title. Currency is determined by matching the actual directory composition; change history is in git. A date is not used in titles
 
-## 04.02. Правила качества строк карты
-
-*Обязательно.*
-
-1. Тема формулируется от лица задачи пользователя - так, как задачу сформулируют в запросе, в терминах предметной области каталога
-2. В строке перечисляются синонимы-триггеры запросов (через запятую): разные формулировки одной задачи ведут в одну строку
-3. Ссылка ведется на точечный раздел объекта (номер раздела, параграф), а не на документ целиком - когда релевантна часть; на документ целиком - когда применим весь документ
-4. Язык строк - русский; технические идентификаторы (пути, маски, ключи) - английский
-5. Одна строка - одна тема; дробить строку на синонимы-дубликаты не нужно, укрупнять до потери конкретики - нельзя
+Local index H1 format: `# <dir> Index` (for the hub - without a repository name or with the hub name as appropriate).
 
 ---
 
-## 04.03. Полнота покрытия
+## 03.03. Registry rules
 
-*Обязательно.*
+*Mandatory.*
 
-1. Каждый объект реестра достижим хотя бы по одной строке карты (no orphans)
-2. Каждая строка карты ведет на существующий объект и существующий раздел; ссылки на отсутствующие или архивные объекты - расхождение
-3. Карта актуализируется синхронно с реестром в том же изменении
-4. Пробел маршрутизации, выявленный в работе (задача не нашлась по карте), закрывается добавлением строки по итогам задачи
-
----
-
-## 04.04. Антипаттерны
-
-*Обязательно.*
-
-В карте маршрутизации запрещены:
-
-1. Расплывчатые темы: «прочее», «разное», «общие вопросы», «все остальное» - тема обязана называть задачу
-2. Дублирование содержимого документов в строках карты - строка маршрутизирует, а не пересказывает
-3. Ссылки на несуществующие, архивные или переименованные без обновления объекты
-4. Строки без привязки к объекту каталога (только текстовые пояснения)
-5. Смешение аудиторий: карта навигационного индекса адресована агенту и не должна решать задачи человеческой документации (`repo_info_doc_standards.md`)
+1. The registry is a table (or tables by directory subfolders); the first column is the object path relative to the directory
+2. Base column composition: object, purpose, when to apply. Directory specifics add columns: for SQL - parameters and consumer scripts (06.04); for skills - class, application domain, version (06.02)
+3. Purpose is factual, one sentence, without evaluations, stories, and promises (text requirements - `project_standards.md`, 04.03). For `spec_ui.html` the purpose additionally states the mockup SemVer
+4. Every registry row corresponds to an existing file or directory; every directory object (except the index files themselves and `.gitkeep`) is present in the registry
+5. The index does not duplicate object content - only pointers: purpose, application triggers, links to sections. Content is read in the file itself
+6. Archive elements (`<dir>/.arch/`) are not entered in the registry; a row of an archived object is removed from the registry (`project_standards.md`, 01.01)
 
 ---
 
-## 05.01. Сводная таблица
+## 03.04. Update rules
 
-*Обязательно.*
+*Mandatory.*
 
-| Индекс | Каталог | Обязательность | Кто ведет |
-|--------|---------|----------------|-----------|
-| `doc/standards/_index_standards.md` | Пакет стандартов | Обязателен в хабе; копируется в производные репо вместе с пакетом | Навык `hub-sync-indexes` (только хаб) |
-| `doc/skills/_index_skills_hub.md` | Навыки хаба (все репо) | Только хаб | Навык `hub-sync-indexes` |
-| `doc/skills/_index_skills_repo.md` | Навыки производного репо | Обязателен при наличии `doc/skills/` в производном репо | Навык `glob-update-indexes` |
-| `data/skills/_index_skills_pl.md` | Локальные навыки репо (`pr_loc`) | Обязателен при наличии `data/skills/` | Навык `glob-update-indexes` |
-| `doc/specs/_index_specs.md` | Спецификации | Обязателен в каждом репозитории | Навык `glob-update-indexes` |
-| `doc/change_requests/_index_change_requests.md` | Задания на изменение (CR) | Обязателен при наличии `doc/change_requests/` | Агент вручную (канон - `change_request_standards.md`, раздел 02.03) |
-| `sql/_index_sql.md` | SQL-файлы | Обязателен при наличии `sql/` | Агент |
-| `diag/_index_diag.md` | Диагностические скрипты | Обязателен при наличии `diag/` | Агент |
-| `test/_index_test.md` | Эталонные тесты агентов | Обязателен при наличии `test/` | Агент |
-
-Примечания:
-
-- В хабе `project_standards` папки `sql/`, `diag/`, `test/` не создаются (репо-специфика хаба); `_index_specs.md` в хабе - эталонный шаблон, не перезаписывается навыком `glob-update-indexes`; в хабе навык `glob-update-indexes` применяется только к `data/skills/_index_skills_pl.md` (при наличии каталога `data/skills/`)
-- Индексы пакетных и хаб-навыковых каталогов ведутся навыками синхронизации; локальные - агентом или скриптом пакета с ручной проверкой по разделам 03.03, 04
+1. The index is updated in the same change (commit) as the directory composition change: addition, deletion, rename, purpose change of an object. For the hub standards package the control is the pre-commit hook (`project_standards.md`, 07.05)
+2. If the index is tagged without a specific task, the procedure from the index's own "Index Auto-Update" section runs: reread the directory, update the registry, update the map, check versions (if applicable), output a report
+3. The update is performed by the agent manually or by a dedicated skill (see the "Maintainer" column in 05.01); a script rebuild does not cancel manual verification of the registry and map per 03.03 and 04
+4. The update report states: what was added, changed, deleted; version status (for package indexes); discovered discrepancies
 
 ---
 
-## 06.01. Индекс пакета стандартов
+## 04.01. Purpose and format of the map
 
-*Обязательно.*
+*Mandatory.*
 
-`doc/standards/_index_standards.md` - точка входа пакета стандартов. Состав: реестр документов пакета (документ, назначение, применимость, когда применять), карта маршрутизации по пакету (тема -> документ и разделы), политика версионирования пакета, автоактуализация. Единственный индекс, содержащий политику версионирования: правила SemVer пакета, перечень локаций версии, порядок bump - канон там, дублировать в других документах нельзя.
-
----
-
-## 06.02. Индексы навыков
-
-*Обязательно при наличии навыков в репозитории.*
-
-Три индекса под разные уровни:
-
-- `_index_skills_hub.md` (только хаб): сводный индекс - общие (`glob-*`, слаг `hub_glob`), хаб-навыки (`hub-*`, слаг `hub_loc`), агрегированные проектные навыки всех репо из `doc/skills/ext/<repo>/` (`pg-*`, `pg_*.md`, слаг `pr_glob`). Дополнительные разделы: сводка проектных навыков по репозиториям, примечание о версионировании навыков
-- `_index_skills_repo.md` (производные репо): локальный индекс - корневые каталоги формата Anthropic (`glob-*`, `pg-*`), проектные плоские `pg_*.md` из подпапки `doc/skills/<repo-name>/`. Генерируется скриптом пакета (навык `glob-update-indexes`)
-- `_index_skills_pl.md` (в `data/skills/`, любой репозиторий): индекс локальных навыков (`pr_loc`) - плоские файлы и каталоги формата SKILL.md каталога `data/skills/`. Генерируется тем же скриптом пакета (навык `glob-update-indexes`) при наличии каталога; в сводные индексы (`_index_skills_hub.md`, `_index_skills_repo.md`) локальные навыки не входят
-
-Колонки реестра навыков: для plain-формата - идентификатор, класс, область применения (frontmatter `category` / `category_name`), автоприменение (frontmatter `auto_apply`), версия (frontmatter `version`), назначение (frontmatter `description`); для каталогов SKILL.md - имя каталога, класс (по `metadata.type`), область применения (`metadata.category` / `metadata.category_name`), версия (`metadata.version`), назначение и когда применять (frontmatter `description`). Класс - по слагу типа (`skill_plain_standards.md`, раздел 01.03): `hub_glob` - общий, `pr_glob` - проектный, `hub_loc` - хаб, `pr_loc` - локальный. Область применения - слаг категории и ее название из закрытого справочника (`skill_plain_standards.md`, раздел 01.03); категория опциональна, при отсутствии колонка заполняется `-`. Ссылка на индекс локальных навыков размещается в репо-специфичной части `AGENTS.md` (при наличии каталога `data/skills/`).
+The routing map is a table connecting a task type to directory objects (for `_index_standards.md` - to package documents and their sections). Format: "Task topic" and object columns (for package indexes - a "Document(s)" column with section numbers). The map is the main fast-routing tool: the agent decides from the map what to open, without reading the directory.
 
 ---
 
-## 06.03. Индекс спецификаций
+## 04.02. Map row quality rules
 
-*Обязательно в каждом репозитории.*
+*Mandatory.*
 
-`doc/specs/_index_specs.md` - точка входа в каталог спецификаций. Состав: реестр корневых файлов (файл, тип, назначение), раздел стартовых спецификаций `doc/specs/init/` (файл, тип, назначение) и сводка подпапок `doc/specs/<project>/` (папка, состав файлов, назначение). Типы корневых файлов: `spec_<slug>.md` - боевая спецификация задачи или модуля; `spec_ui.html` - спецификация вывода (обязательна при пользовательском выводе; в назначении - SemVer макета); `overrides.md` - реестр проектных оверрайдов; `text_overrides.md` - текстовый оверрайд. Типы стартовых файлов (`init/`): `init_base.txt` - требования пользователя; `init_final.md` - итоговая спецификация инициализации. Эталонный шаблон - `doc/specs/_index_specs.md` хаба; в производном репозитории индекс формируется по фактическому составу. Сессии вне `doc/specs/` корневой индекс не охватывает (`project_standards.md`, раздел 01.01.01).
+1. The topic is phrased from the user task perspective - as the task would be stated in a request, in the domain terms of the directory
+2. The row lists request trigger synonyms (comma-separated): different formulations of one task lead to one row
+3. A reference points to a precise object section (section number, paragraph), not the whole document - when only a part is relevant; to the whole document - when the entire document applies
+4. Row language is Russian in Russian-language repositories; in the English agent contour rows are English. Technical identifiers (paths, masks, keys) stay English
+5. One row - one topic; do not split a row into duplicate synonyms, and do not merge until specificity is lost
 
 ---
 
-## 06.04. Индекс SQL-файлов (эталонный шаблон)
+## 04.03. Coverage completeness
 
-*Обязательно при наличии SQL-файлов.*
+*Mandatory.*
 
-Файл `sql/_index_sql.md` - реестр всех SQL-файлов проекта. Специфика колонок: параметры (переменные, подставляемые в запрос) и скрипты-потребители. Эталонный шаблон:
+1. Every registry object is reachable by at least one map row (no orphans)
+2. Every map row leads to an existing object and an existing section; references to missing or archived objects are a discrepancy
+3. The map is updated synchronously with the registry in the same change
+4. A routing gap discovered in work (a task was not found by the map) is closed by adding a row at the end of the task
+
+---
+
+## 04.04. Anti-patterns
+
+*Mandatory.*
+
+Forbidden in the routing map:
+
+1. Vague topics: "other", "miscellaneous", "general questions", "everything else" - the topic must name the task
+2. Duplicating document content in map rows - a row routes, it does not retell
+3. References to non-existent, archived, or renamed objects without an update
+4. Rows without a link to a directory object (text explanations only)
+5. Mixing audiences: a navigation index map is addressed to the agent and must not solve human documentation tasks (`repo_info_doc_standards.md`)
+
+---
+
+## 05.01. Summary table
+
+*Mandatory.*
+
+| Index | Directory | Requirement | Maintainer |
+| ----- | --------- | ----------- | ---------- |
+| `doc/standards/_index_standards.md` | Standards package | Mandatory in the hub; copied to derivative repos with the package | `hub-sync-indexes` skill (hub only) |
+| `doc/skills/_index_skills_hub.md` | Hub skills (all repositories) | Hub only | `hub-sync-indexes` skill |
+| `doc/skills/_index_skills_repo.md` | Derivative repository skills | Mandatory when `doc/skills/` exists in a derivative repository | `glob-update-indexes` skill |
+| `data/skills/_index_skills_pl.md` | Repository local skills (`pr_loc`) | Mandatory when `data/skills/` exists | `glob-update-indexes` skill |
+| `doc/specs/_index_specs.md` | Specifications | Mandatory in every repository | `glob-update-indexes` skill |
+| `doc/change_requests/_index_change_requests.md` | Change requests (CR) | Mandatory when `doc/change_requests/` exists | Agent manually (canon - `change_request_standards.md`, 02.03) |
+| `sql/_index_sql.md` | SQL files | Mandatory when `sql/` exists | Agent |
+| `diag/_index_diag.md` | Diagnostic scripts | Mandatory when `diag/` exists | Agent |
+| `test/_index_test.md` | Reference agent tests | Mandatory when `test/` exists | Agent |
+
+Notes:
+
+- In the `project_standards` hub the `sql/`, `diag/`, and `test/` folders are not created (hub specifics); `_index_specs.md` in the hub is a reference template and is not overwritten by the `glob-update-indexes` skill; in the hub the skill applies only to `data/skills/_index_skills_pl.md` (when the `data/skills/` directory exists)
+- Package and hub skill directory indexes are maintained by synchronization skills; local ones - by the agent or a package script with manual verification per 03.03, 04
+
+---
+
+## 06.01. Standards package index
+
+*Mandatory.*
+
+`doc/standards/_index_standards.md` is the entry point of the standards package. Composition: package document registry (document, purpose, applicability, when to apply), package routing map (topic -> document and sections), package versioning policy, auto-update. It is the only index containing the versioning policy: package SemVer rules, version location list, bump procedure - the canon is there and must not be duplicated in other documents.
+
+---
+
+## 06.02. Skill indexes
+
+*Mandatory when skills exist in the repository.*
+
+Three indexes for different levels:
+
+- `_index_skills_hub.md` (hub only): summary index - global skills (`glob-*`, type `hub_glob`), hub skills (`hub-*`, type `hub_loc`), aggregated project skills of all repositories from `doc/skills/ext/<repo>/` (`pg-*`, type `pr_glob`). Additional sections: project skill summary by repository, a note on skill versioning
+- `_index_skills_repo.md` (derivative repositories): local index - root Anthropic-format directories (`glob-*`, `pg-*`); legacy flat `*.md` skills are listed until migration. Generated by the package script (`glob-update-indexes` skill)
+- `_index_skills_pl.md` (in `data/skills/`, any repository): local skill index (`pr_loc`) - SKILL.md directories in `data/skills/`. Generated by the same package script (`glob-update-indexes`) when the directory exists; local skills are not included in the summary indexes (`_index_skills_hub.md`, `_index_skills_repo.md`)
+
+Skill registry columns: directory name, class (by `metadata.type`), application domain (`metadata.category` / `metadata.category_name`), version (`metadata.version`), purpose and when to apply (`description`). Class is determined by the type slug (`skill_anthropic_standards.md`, 01.03): `hub_glob` - global, `pr_glob` - project, `hub_loc` - hub, `pr_loc` - local. The application domain is the category slug and its name from the closed dictionary (`skill_anthropic_standards.md`, 01.04); the category is optional, and when absent the column is filled with `-`. The local skill index link is placed in the repo-specific part of `AGENTS.md` (when the `data/skills/` directory exists).
+
+---
+
+## 06.03. Specifications index
+
+*Mandatory in every repository.*
+
+`doc/specs/_index_specs.md` is the entry point to the specifications directory. Composition: a root file registry (file, type, purpose), a section for start specifications `doc/specs/init/` (file, type, purpose), and a summary of subfolders `doc/specs/<project>/` (folder, file composition, purpose). Root file types: `spec_<slug>.md` - a live task or module specification; `spec_ui.html` - output specification (mandatory for user-facing output; the purpose states the mockup SemVer); `overrides.md` - project override registry; `text_overrides.md` - text override. Start file types (`init/`): `init_base.txt` - user requirements; `init_final.md` - final initialization specification. The reference template is the hub `doc/specs/_index_specs.md`; in a derivative repository the index is formed from the actual composition. Sessions outside `doc/specs/` are not covered by the root index (`project_standards.md`, 01.01.01).
+
+---
+
+## 06.04. SQL file index (reference template)
+
+*Mandatory when SQL files exist.*
+
+The file `sql/_index_sql.md` is the registry of all project SQL files. Column specifics: parameters (variables substituted into the query) and consumer scripts. Reference template:
 
 ```markdown
-# Индекс SQL-файлов репозитория <repo-name>
+# SQL Files Index - <repo-name>
 
-Точка входа в каталог SQL-файлов. Этот файл тегают AI-агенту, чтобы он определил, какие SQL-файлы релевантны текущей задаче. Агент загружает индекс, а не все SQL-файлы целиком, и по индексу находит нужные файлы. Порядок принятия решений при отсутствии нормы - `project_standards.md` 07.06.
-
----
-
-## Обязательность применения
-
-Тегание этого файла (`@sql/_index_sql.md`) означает обязательное использование индекса при работе с SQL. Агент и субагенты:
-
-1. Добавляют в контекст `sql/_index_sql.md`, а не отдельные .sql-файлы
-2. По индексу определяют, какой SQL-файл нужен для задачи
-3. Читают только релевантный .sql-файл
-4. При любом изменении SQL-файлов обновляют этот индекс
-
-Индекс применяется всегда при работе со своим каталогом, независимо от того, был ли явно тегнут этот файл.
+Entry point to the SQL file directory. This file is tagged for an AI agent so it determines which SQL files are relevant to the current task. The agent loads the index, not all SQL files, and finds the required files from the index. Decision order when a rule is missing - `project_standards.md` 07.06.
 
 ---
 
-## Реестр SQL-файлов
+## Mandatory Application
+
+Tagging this file (`@sql/_index_sql.md`) means mandatory use of the index when working with SQL. The agent and subagents:
+
+1. Add `sql/_index_sql.md` to the context, not individual .sql files
+2. Determine from the index which SQL file the task needs
+3. Read only the relevant .sql file
+4. Update this index on any SQL file change
+
+The index always applies when working with its directory, regardless of whether this file was explicitly tagged.
+
+---
+
+## SQL File Registry
 
 ### ddl/
 
-| Файл | Назначение | Параметры | Скрипты-потребители |
-|------|-----------|-----------|---------------------|
-| create_users.sql | Таблица пользователей (id, login, hash) | - | db_init, db_check_schema |
+| File | Purpose | Parameters | Consumer scripts |
+| ---- | ------- | ---------- | ---------------- |
+| create_users.sql | Users table (id, login, hash) | - | db_init, db_check_schema |
 
 ### queries/
 
-| Файл | Назначение | Параметры | Скрипты-потребители |
-|------|-----------|-----------|---------------------|
-| get_active_users.sql | Выборка активных пользователей за период | :start_date, :end_date | report_users |
+| File | Purpose | Parameters | Consumer scripts |
+| ---- | ------- | ---------- | ---------------- |
+| get_active_users.sql | Active users for a period | :start_date, :end_date | report_users |
 
 ### dml/
 
-| Файл | Назначение | Параметры | Скрипты-потребители |
-|------|-----------|-----------|---------------------|
-| seed_categories.sql | Начальное наполнение справочника категорий | - | db_init |
+| File | Purpose | Parameters | Consumer scripts |
+| ---- | ------- | ---------- | ---------------- |
+| seed_categories.sql | Initial category directory seed | - | db_init |
 
 ### migrations/
 
-| Файл | Назначение | Параметры | Скрипты-потребители |
-|------|-----------|-----------|---------------------|
-| M001_add_orders_status.sql | Добавление колонки status в таблицу orders | - | db_migrate |
+| File | Purpose | Parameters | Consumer scripts |
+| ---- | ------- | ---------- | ---------------- |
+| M001_add_orders_status.sql | Add the status column to the orders table | - | db_migrate |
 
 ---
 
-## Карта маршрутизации
+## Routing Map
 
-Карта связывает тип задачи с SQL-файлом. Агент находит в индексе нужный файл и читает его содержимое.
+The map connects a task type to an SQL file. The agent finds the required file in the index and reads its content.
 
-| Тема задачи | SQL-файл |
-|-------------|----------|
-| Инициализация БД, проверка схемы | ddl/*.sql |
-| Отчет по активным пользователям | queries/get_active_users.sql |
+| Task topic | SQL file |
+| ---------- | -------- |
+| Database initialization, schema check | ddl/*.sql |
+| Active user report | queries/get_active_users.sql |
 
 ---
 
-## Автоактуализация индекса
+## Index Auto-Update
 
-При любом изменении SQL-файлов в `sql/` (добавление, удаление, изменение назначения или параметров) агент обязан:
+On any change of SQL files in `sql/` (addition, deletion, purpose or parameter change) the agent must:
 
-1. Обновить реестр SQL-файлов: актуальный список файлов, назначение, параметры, потребители
-2. Обновить карту маршрутизации: актуальные темы задач и ссылки на файлы
-3. Вывести отчет: какие файлы добавлены, изменены или удалены
+1. Update the SQL file registry: current file list, purpose, parameters, consumers
+2. Update the routing map: current task topics and file references
+3. Output a report: which files were added, changed, or deleted
 ```
 
 ---
 
-## 06.05. Индексы diag и test
+## 06.05. diag and test indexes
 
-*Обязательно при наличии соответствующих каталогов.*
+*Mandatory when the corresponding directories exist.*
 
-Индексы `diag/_index_diag.md` и `test/_index_test.md` - по скелету раздела 03.01. Специфика:
+The indexes `diag/_index_diag.md` and `test/_index_test.md` follow the skeleton of 03.01. Specifics:
 
-- Реестр: таблицы по доменным подпапкам (по одной на `<domain>`); колонки - путь, тип/назначение, когда применять; первая колонка - путь с доменом (`<domain>/<domain>_<type>_<action>.<ext>`); файлы лежат в подпапках по домену, имя - маска `<domain>_<type>_<action>` (`project_standards.md`, раздел 01.01.04)
-- Отдельные файлы-доки к скриптам не создаются - описание скрипта живет в индексе
-- Карта маршрутизации связывает тип задачи (что проверить, что продиагностировать) со скриптом
-
----
-
-## 06.06. Индекс заданий на изменение
-
-*Обязательно при наличии каталога `doc/change_requests/`.*
-
-`doc/change_requests/_index_change_requests.md` - точка входа в каталог заданий на изменение, по скелету раздела 03.01. Состав: реестр заданий (файл, тема, статус, исполнение) и карта маршрутизации. Ведется агентом вручную при любом изменении состава - создание, смена статуса, перенос в боевую спецификацию, архивация, отклонение; навык `glob-update-indexes` его не перегенерирует. Скелет документа, жизненный цикл и перенос в боевую спецификацию - `change_request_standards.md`; архивные задания (`.arch/`) в реестре не отражаются.
+- Registry: tables by domain subfolders (one per `<domain>`); columns - path, type/purpose, when to apply; the first column is the path with the domain (`<domain>/<domain>_<type>_<action>.<ext>`); files live in domain subfolders, the name follows the mask `<domain>_<type>_<action>` (`project_standards.md`, 01.01.04)
+- Separate doc files for scripts are not created - the script description lives in the index
+- The routing map connects a task type (what to check, what to diagnose) to the script
 
 ---
 
-## 07.01. Назначение и язык
+## 06.06. Change request index
 
-*Обязательно.*
+*Mandatory when the `doc/change_requests/` directory exists.*
 
-`AGENTS.md` - обязательный файл инструкций AI-агента в корне репозитория. Язык - русский по умолчанию; английский - только по явному запросу пользователя, без смешения языков в одном документе. При редактировании - писать на языке документа.
+`doc/change_requests/_index_change_requests.md` is the entry point to the change request directory, following the skeleton of 03.01. Composition: a request registry (file, topic, status, execution) and a routing map. It is maintained by the agent manually on any composition change - creation, status change, transfer to a live specification, archiving, rejection; the `glob-update-indexes` skill does not regenerate it. Document skeleton, lifecycle, and transfer to a live specification - `change_request_standards.md`; archived requests (`.arch/`) are not reflected in the registry.
 
-Принцип наполнения: `AGENTS.md` - маршрутизатор и выдержка глобальных канонов, а не копия источников. Общие каноны - в статическом теле; все, что уже зафиксировано в индексах, README или других документах (полные реестры, перечни, таблицы структуры, версии), в `AGENTS.md` не дублируется - вместо этого указатель на источник истины. Изменчивое содержимое (реестры навыков, генерируемые перечни, все, что обновляется скриптами или синхронизацией) - всегда ссылками, чтобы файл не устаревал между синхронизациями. В репо-специфичной части - только то, что влияет на поведение агента: команды, поведенческие правила, типовые проблемы.
+---
 
-Строка версии пакета `Соответствует стандарту: X.Y.Z` обязательна (`project_standards.md`, раздел 07.04).
+## 07.01. Purpose and language
 
-Пример заголовка:
+*Mandatory.*
+
+`AGENTS.md` is a mandatory AI agent instruction file at the repository root. Language - English by default; another language only on an explicit user request, without mixing languages in one document. When editing, write in the document language.
+
+Content principle: `AGENTS.md` is a router and an excerpt of global canons, not a copy of sources. Common canons are in the static body; everything already recorded in indexes, README, or other documents (full registries, lists, structure tables, versions) is not duplicated in `AGENTS.md` - a pointer to the source of truth is used instead. Volatile content (skill registries, generated lists, anything updated by scripts or synchronization) is always referenced, so the file does not go stale between syncs. The repo-specific part contains only what affects agent behavior: commands, behavioral rules, typical problems.
+
+The package version line `Standard version: X.Y.Z` is mandatory (`project_standards.md`, 07.04). The intro line is `This file contains instructions for AI agents working with this project.`
+
+Header example:
 
 ```markdown
 # AGENTS.md
 
-Этот файл содержит инструкции для AI-агентов при работе с данным проектом.
+Standard version: X.Y.Z
 
-Соответствует стандарту: X.Y.Z
+This file contains instructions for AI agents working with this project.
 ```
 
 ---
 
-## 07.02. Точки входа сессии
+## 07.02. Session entry points
 
-*Обязательно.*
+*Mandatory.*
 
-В начале `AGENTS.md` - явные ссылки на индексы репозитория (перечень и правила оформления - раздел 02.02). Это единственное место, где индексы и `AGENTS.md` пересекаются по обязательности: `AGENTS.md` маршрутизирует к индексам, индексы - к файлам. Ссылки размещаются в разделе «Обзор проекта» статического тела.
-
----
-
-## 07.03. Политика AGENTS.md и CLAUDE.md
-
-*Обязательно.*
-
-1. Инструкции для агентов ведет только `AGENTS.md`; основной целевой инструмент - opencode, совместимые потребители - остальные инструменты экосистемы (Kilo Code, Cursor; Claude Code читает `AGENTS.md` по умолчанию, если в каталоге проекта и выше нет `CLAUDE.md`; при наличии `CLAUDE.md` читается только он - загрузкой управляет настройка Project instructions; фактическое поведение сверяется с установленной версией инструмента)
-2. `CLAUDE.md` по умолчанию **не ведется** и не создается. Если в репозитории есть `CLAUDE.md` - удалить при синхронизации `AGENTS.md` (навык `hub-sync-agents`); ценное содержание перенести в `AGENTS.md` до удаления
-3. Исключение - репо оверрайд по явному запросу пользователя: тогда `CLAUDE.md` ведется как зеркало `AGENTS.md`. Эталон зеркала - `CLAUDE.md` хаба. Зеркальные копии совпадают, кроме главного заголовка H1 и строки назначения (соответствуют целевому инструменту). При любом изменении одного файла - синхронно вносить те же изменения во второй. Основным файлом считается `AGENTS.md`
-4. Язык - русский по умолчанию; английский - по явному запросу пользователя, без смешения языков в одном документе
-5. Хаб `project_standards` постоянно ведет `CLAUDE.md` как эталон зеркала - без записи в `doc/specs/overrides.md`; производные репозитории - по общей политике (не ведется, оверрайд по явному запросу)
+At the start of `AGENTS.md` - explicit references to repository indexes (the list and formatting rules - 02.02). This is the only place where indexes and `AGENTS.md` overlap in mandatory terms: `AGENTS.md` routes to indexes, indexes route to files. The references are placed in the `## Session Entry Points` section of the static body. The section also states the minimum memory read (`data/memory/memory.md`, `decisions.md`, `env.md` when the directory exists) and the directories the agent ignores: `.backup/`, `.trash/`, `.arch/`, `.opencode/`, `.kilo/`.
 
 ---
 
-## 07.04. Слои и принцип наполнения
+## 07.03. AGENTS.md and CLAUDE.md policy
 
-*Обязательно.*
+*Mandatory.*
 
-Структура `AGENTS.md` не изобретается с нуля - берется каркас раздела 07.06. Файл делится на слои маркерами (технические идентификаторы синхронизации, латиница):
-
-- От `<!-- START static -->` до `<!-- END static -->` - общее тело, одинаковое во всех репозиториях. Содержание - версия, точки входа, стиль, git, политика зеркал, безопасность, границы. Правится только в хабе; в производные проекты попадает при синхронизации пакета стандартов и там не редактируется
-- От `<!-- START repo-specific -->` до `<!-- END repo-specific -->` - специфика репозитория: назначение, команды, структура, навыки, особенности. Заполняется локально
-- От `<!-- START generated-commands -->` до `<!-- END generated-commands -->` - блок внутри репо-специфичной части для машинно-генерируемых команд. Перегенерируется скриптом или навыком; рукописные разделы вокруг не изменяются. Постоянный элемент блока - активация ворот целостности пакета: `git config core.hooksPath .githooks` (`project_standards.md`, 06.01)
-
----
-
-## 07.05. Таксономия разделов
-
-*Обязательно.*
-
-Порядок и названия разделов фиксированы; язык - русский.
-
-| Раздел | Слой | Назначение |
-|---|---|---|
-| Обзор проекта | static | точки входа сессии (индексы стандартов, навыков, спецификаций); память агентов `data/memory/memory.md` при наличии каталога |
-| Выполнение задач | static | субагенты для точечных задач; роль основного агента |
-| Принятие решений | static | триггеры и каскад проверки фактов, запрет на выдумывание, правило источника; канон - 07.06 `project_standards.md` |
-| Настройка окружения | static | указатель на блок команд специфики |
-| Стиль кода | static | язык и оформление |
-| Инструкции по тестированию | static | указатель на блок команд специфики |
-| Git и коммиты | static | ветка, Conventional Commits, авторство |
-| Политика AGENTS.md и CLAUDE.md | static | только AGENTS.md; CLAUDE.md - не ведется, оверрайд по явному запросу (эталон - хаб) |
-| Навыки: общие соглашения | static | типы `hub_loc`/`hub_glob`/`pr_glob`/`pr_loc`, префиксы, форматы, индексы |
-| Безопасность | static | секреты, привилегии |
-| Границы | static | «спросить сначала» / «никогда» |
-| Специфика репозитория | repo-specific | все репо-специфичные подразделы |
-| Ссылки | - | индексы, разделы стандарта, https://agents.md |
+1. Only `AGENTS.md` maintains agent instructions; the primary target tool is opencode, compatible consumers are other ecosystem tools (Kilo Code, Cursor; Claude Code reads `AGENTS.md` by default when there is no `CLAUDE.md` in the project directory and above; when `CLAUDE.md` exists, only it is read - loading is controlled by the Project instructions setting; actual behavior is checked against the installed tool version)
+2. `CLAUDE.md` is **not maintained** and not created by default. If a repository has `CLAUDE.md` - delete it during `AGENTS.md` synchronization (the `hub-sync-agents` skill); move valuable content to `AGENTS.md` before deletion
+3. The exception is a repo override on an explicit user request: then `CLAUDE.md` is maintained as a mirror of `AGENTS.md`. The mirror reference is the hub `CLAUDE.md`. Mirror copies match except for the H1 title and the purpose line: `AGENTS.md` uses `This file contains instructions for AI agents working with this project.`, `CLAUDE.md` uses `This file contains instructions for Claude Code working with this project.`. Any change to one file is made synchronously in the other. `AGENTS.md` is the primary file
+4. Language - English by default; another language only on an explicit user request, without mixing languages in one document
+5. The `project_standards` hub permanently maintains `CLAUDE.md` as the mirror reference - without an entry in `doc/specs/overrides.md`; derivative repositories follow the general policy (not maintained, override on explicit request)
 
 ---
 
-## 07.06. Каркас
+## 07.04. Layers and content principle
 
-*Обязательно.*
+*Mandatory.*
+
+The `AGENTS.md` structure is not invented from scratch - it uses the skeleton of 07.06. The file is divided into layers by markers (technical synchronization identifiers, Latin):
+
+- From `<!-- START static -->` to `<!-- END static -->` - the common body, identical in all repositories. Content: version, session entry points, language matrix, development process, safety, git, mirror policy, boundaries. Edited only in the hub; derivative projects receive it through package synchronization and do not edit it there
+- From `<!-- START repo-specific -->` to `<!-- END repo-specific -->` - repository specifics: purpose, commands, structure, skills, specifics. Filled in locally
+- From `<!-- START generated-commands -->` to `<!-- END generated-commands -->` - a block inside the repo-specific part for machine-generated commands. Regenerated by a script or skill; handwritten sections around it are not changed. A permanent element of the block is the package integrity gate activation: `git config core.hooksPath .githooks` (`project_standards.md`, 06.01)
+
+The static block has exactly four H2 sections (07.05). The repo-specific block starts with `## Repository Specifics: <name>`; `## References` follows after `<!-- END repo-specific -->`.
+
+---
+
+## 07.05. Section taxonomy
+
+*Mandatory.*
+
+The order and names of sections are fixed; language - English.
+
+| Section | Layer | Purpose |
+| ------- | ----- | ------- |
+| Session Entry Points | static | session entry points (standards, skills, specifications indexes); agent memory `data/memory/memory.md` when the directory exists; ignored directories; index auto-update on tagging without a task |
+| Language & Typography Matrix | static | Russian human contour (chat, README, specs, plans, CR, UI via `t()`) versus English agent and code contour (code, comments, docstrings, technical logs, commits, agent documents, standards, skills); typography rules; references to `~/.config/opencode/AGENTS.md` and `human_text_standards.md` |
+| Development Process | static | mandatory superpowers skills; task classification (Spike / Bounded / Architectural); Russian specs and plans; isolated task delegation; fact-checking cascade |
+| Safety, Git & Boundaries | static | approval gate; `.trash/` quarantine; sudo levels; git branch, commits, authorship; no AI mention; no package version bump without a request; `CLAUDE.md` mirror policy |
+| Repository Specifics | repo-specific | all repository-specific subsections: purpose, structure, skills, commit scopes, specifics |
+| References | - | indexes, standard sections, https://agents.md |
+
+---
+
+## 07.06. Skeleton
+
+*Mandatory.*
 
 ```markdown
 <!-- START static -->
 # AGENTS.md
 
-Соответствует стандарту: X.Y.Z
+Standard version: X.Y.Z
 
-<static body per section 07.05 - rules in this document>
+This file contains instructions for AI agents working with this project.
+
+## Session Entry Points
+
+- `@doc/standards/_index_standards.md` - standards package index (registry, routing map, package version)
+- `@doc/skills/_index_skills_hub.md` (hub) or `@doc/skills/_index_skills_repo.md` (derivative repositories) - skill index
+- `@doc/specs/_index_specs.md` - specifications index
+- `data/memory/memory.md`, `decisions.md`, `env.md` - agent memory minimum at session start when the directory exists
+- Ignore `.backup/`, `.trash/`, `.arch/`, `.opencode/`, `.kilo/`
+- Tagging an index without a task runs its index auto-update procedure
+
+## Language & Typography Matrix
+
+| Contour | Artifacts | Language |
+| ------- | --------- | -------- |
+| Human | Chat responses, `README.md`, specifications, plans, CR, UI and console through `t()` | Russian |
+| Agent and code | Agent documents, standards, skills, code, comments, docstrings, technical logs (`logger.*`), commits, subagent communication | English |
+
+Typography: hyphen-minus only, no em or en dash, no ellipsis, no emoji, no exclamation marks; Russian text uses `е` without diaeresis. Canon - `project_standards.md` (04.03), `human_text_standards.md`; machine override - `~/.config/opencode/AGENTS.md`.
+
+## Development Process
+
+- Use superpowers skills: `brainstorming`, `writing-plans`, `test-driven-development`, `systematic-debugging`, `subagent-driven-development`, `verification-before-completion`, `writing-skills`
+- Classify tasks as Spike / Bounded / Architectural before implementation
+- Specifications and plans are written in Russian and stored in `doc/specs/`
+- Delegate isolated search and verification tasks to subagents (briefs and answers in English, user summary in Russian)
+- Fact-checking cascade: local code and standards -> `context7` -> `github` MCP -> user question
+
+## Safety, Git & Boundaries
+
+- Mutate code or the system only after the execution trigger `ДЕЛАЙ` or `GO`; design-stage approvals inside `brainstorming` do not replace it
+- Agent file deletion - move to `.trash/<slug>_<YYYYMMDDHHMM>/`; exceptions: `tmp/` contents, git-native mirror/package synchronization, and purge only on explicit request
+- `sudo` elevation strictly per `project_standards.md` (05.04) levels
+- Git: one `master` branch, English Conventional Commits, authorship from `whoami`/`hostname`, no AI mention, no package version bump without an explicit request
+- `CLAUDE.md` mirror: maintained permanently in the hub, deleted by default in derivative repositories unless an override exists
 <!-- END static -->
 
 <!-- START repo-specific -->
-## Специфика репозитория: <repo-name>
+## Repository Specifics: <repo-name>
 
-## Назначение
+### Purpose
 
 <repo purpose - source of truth>
 
 <!-- START generated-commands -->
 <setup, run, tests, lint - regenerated block>
-Активация pre-commit после клонирования (до первого коммита, на каждой машине): `git config core.hooksPath .githooks`
+Activate pre-commit after cloning (before the first commit, on every machine): `git config core.hooksPath .githooks`
 <!-- END generated-commands -->
 
-## Структура репозитория
+### Structure
 
 <behavioral structure rules (what is edited, where noise); full folder and file table - in README.md>
 
-## Навыки репозитория
+### Skills
 
-<only skills used in commands and session start; full registry - in skills index>
+<only skills used in commands and session start; full registry - in the skills index>
 
-## Типичные scope коммитов
+### Commit Scopes
 
 <project scopes>
 
-## Особенности
+### Specifics
 
 <typical issues not covered by other documents: hook nuances, check specifics, cross-document dependencies>
 <!-- END repo-specific -->
 
-## Ссылки
+## References
 
-- doc/standards/_index_standards.md - реестр стандартов и политика версионирования
-- doc/standards/index_nav_standards.md - канон навигационных документов (индексы, каркас AGENTS.md)
-- doc/standards/repo_info_doc_standards.md - канон README и человеческих документов
-- https://agents.md - канонический формат
+- doc/standards/_index_standards.md - standards registry and versioning policy
+- doc/standards/index_nav_standards.md - navigation document canon (indexes, AGENTS.md skeleton)
+- doc/standards/repo_info_doc_standards.md - README and human document canon
+- https://agents.md - canonical format
 ```
 
 ---
 
-## 08.01. Связь с другими документами
+## 08.01. Related documents
 
-| Документ | Связь |
-|----------|-------|
-| `doc/standards/project_standards.md` | Основной стандарт; иерархия источников и правила текста (разделы 07.06, 04.03) |
-| `doc/standards/repo_info_doc_standards.md` | Канон человеческих документов; граница - README и описания человека против индексов агента |
-| `doc/standards/software_doc_standards.md` | Шаблон документов установки для документационных репозиториев |
+| Document | Relation |
+| -------- | -------- |
+| `doc/standards/project_standards.md` | Core standard; source hierarchy and text rules (07.06, 04.03) |
+| `doc/standards/repo_info_doc_standards.md` | Human document canon; boundary - README and descriptions for humans versus agent indexes |
+| `doc/standards/software_doc_standards.md` | Installation document template for documentation repositories |
 
 ---
 
-## 08.02. Версионирование
+## 08.02. Versioning
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя (см. _index_standards.md).
+Standards package versioning is unified for all package documents. Versioning policy, registry, and routing map - in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see `_index_standards.md`).

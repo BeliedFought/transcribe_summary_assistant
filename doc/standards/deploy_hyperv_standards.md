@@ -1,102 +1,102 @@
-# Развертывание Linux-ВМ на Hyper-V (overlay). Версия 4.16.0
+# Hyper-V Linux VM Deployment Standards. Version 5.0.0
 
-OS-overlay уровня хоста. Применяется вместе с `project_standards.md` и `web_standards.md` для развертывания Linux-ВМ на Windows-хосте средствами Hyper-V. Документ покрывает только хостовый уровень Windows/Hyper-V и первичную настройку гостевой ОС; веб-приложение разворачивается на этой ВМ по `web_standards.md`.
+Host-level OS overlay. Apply it together with `project_standards.md` and `web_standards.md` to deploy a Linux VM on a Windows host with Hyper-V. This document covers only the Windows/Hyper-V host level and initial guest OS setup; the web application is deployed on this VM per `web_standards.md`.
 
-Целевой сценарий - Windows-хост с Linux-ВМ в роли веб-сервера, с доступом по сети и штатным бэкапом. Область применимости - Windows 10/11 Pro или Enterprise, Windows Server 2016 и выше; в Windows Home роль Hyper-V недоступна. Описано развертывание с нуля (greenfield); перенос ранее развернутого проекта не входит. Порядок принятия решений при отсутствии или неоднозначности нормы - `project_standards.md`, раздел 07.06.
-
----
-
-## Оглавление
-
-**01. Общие положения:** 01.01 Назначение и область применения - 01.02 Требования к хосту - 01.03 Проверка готовности хоста - 01.04 Термины - 01.05 Границы автономии агента
-
-**02. Дистрибутив и источник образа:** 02.01 Выбор дистрибутива - 02.02 Облачный образ - 02.03 Загрузка и проверка - 02.04 Утилита qemu-img
-
-**03. Раскладка на диске и нейминг:** 03.01 Корень и общие папки - 03.02 Папка виртуальной машины - 03.03 Правила нейминга - 03.04 Переопределение путей Hyper-V - 03.05 Паспорт виртуальной машины
-
-**04. Сеть:** 04.01 Модели доступа - 04.02 Виртуальный коммутатор - 04.03 Проброс портов через хост - 04.04 Собственный адрес гостя - 04.05 Имена и DNS - 04.06 Windows Firewall - 04.07 Проверка связности
-
-**05. Подготовка образа и носителей:** 05.01 Конвертация образа в VHDX - 05.02 Расширение системного диска - 05.03 Диск данных - 05.04 Seed-диск CIDATA - 05.05 Шаблон user-data - 05.06 Шаблон meta-data и network-config
-
-**06. Создание и запуск виртуальной машины:** 06.01 Создание ВМ - 06.02 Подключение дисков - 06.03 Прошивка и Secure Boot - 06.04 Память и процессоры - 06.05 Политика питания и автозапуск - 06.06 Чекпоинты - 06.07 Первый запуск и вход - 06.08 Извлечение seed-диска
-
-**07. Первичная настройка гостя:** 07.01 Расширение корневой ФС - 07.02 Пользователь и SSH - 07.03 Время и локаль - 07.04 Обновления ОС - 07.05 Файрвол и защита - 07.06 Монтирование диска данных - 07.07 Структура данных - 07.08 Завершение cloud-init
-
-**08. Прикладной уровень:** связь с `web_standards.md`
-
-**09. Резервное копирование:** 09.01 Состав бэкапа - 09.02 Политика - 09.03 Расположение и именование - 09.04 Экспорт и импорт ВМ - 09.05 Выгрузка данных - 09.06 Целостность и ротация - 09.07 Проверка восстановления
-
-**10. Обслуживание:** 10.01 Обновления - 10.02 Регламентные работы - 10.03 Диски - 10.04 Мониторинг - 10.05 Инциденты - 10.06 Перенос ВМ
-
-**11. Связь и версионирование:** 11.01 Связь с другими документами - 11.02 Версионирование
+Target scenario - a Windows host with a Linux VM as a web server, with network access and standard backup. Scope - Windows 10/11 Pro or Enterprise, Windows Server 2016 and above; Hyper-V is unavailable on Windows Home. The document describes greenfield deployment; migration of an existing deployment is out of scope. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 
 ---
 
-## 01. Общие положения
+## Table of Contents
 
-### 01.01. Назначение и область применения
+**01. General:** 01.01 Purpose and scope - 01.02 Host requirements - 01.03 Host readiness check - 01.04 Terms - 01.05 Agent autonomy boundaries
 
-*Обязательно.*
+**02. Distribution and image source:** 02.01 Distribution choice - 02.02 Cloud image - 02.03 Download and verification - 02.04 qemu-img utility
 
-- Хостовый уровень: подготовка образа ОС, создание ВМ Hyper-V, сеть, автозапуск, бэкап, обслуживание; приложение на госте - `web_standards.md`. Обязателен при развертывании Linux-ВМ на Windows-хосте, к другим моделям развертывания не применяется.
+**03. Disk layout and naming:** 03.01 Root and shared folders - 03.02 Virtual machine folder - 03.03 Naming rules - 03.04 Hyper-V path overrides - 03.05 Virtual machine passport
 
-### 01.02. Требования к хосту
+**04. Network:** 04.01 Access models - 04.02 Virtual switch - 04.03 Port forwarding through the host - 04.04 Guest own address - 04.05 Names and DNS - 04.06 Windows Firewall - 04.07 Connectivity check
 
-*Обязательно.*
+**05. Image and media preparation:** 05.01 Image conversion to VHDX - 05.02 System disk extension - 05.03 Data disk - 05.04 CIDATA seed disk - 05.05 user-data template - 05.06 meta-data and network-config templates
 
-- Windows 10/11 Pro или Enterprise, либо Windows Server 2016 и выше (в Home роль Hyper-V недоступна).
-- Процессор: 64-битный, SLAT, VT-x; аппаратная виртуализация и DEP включены в BIOS/UEFI.
-- Память: не менее 4 ГБ для хоста плюс ресурсы всех одновременно работающих ВМ; свободное место под ВМ, диски данных и бэкапы; права администратора на хосте (роль, коммутатор, файрвол, проброс портов требуют elevation).
+**06. VM creation and start:** 06.01 VM creation - 06.02 Disk attachment - 06.03 Firmware and Secure Boot - 06.04 Memory and processors - 06.05 Power policy and autostart - 06.06 Checkpoints - 06.07 First start and login - 06.08 Seed disk removal
 
-### 01.03. Проверка готовности хоста
+**07. Initial guest setup:** 07.01 Root filesystem extension - 07.02 User and SSH - 07.03 Time and locale - 07.04 OS updates - 07.05 Firewall and protection - 07.06 Data disk mount - 07.07 Data structure - 07.08 cloud-init completion
 
-*Обязательно.*
+**08. Application level:** relation to `web_standards.md`
 
-Выполняется до любых изменений; результаты фиксируются в паспорте ВМ (03.05). В `systeminfo.exe` в разделе Hyper-V Requirements все пункты - Yes.
+**09. Backup:** 09.01 Backup scope - 09.02 Policy - 09.03 Location and naming - 09.04 VM export and import - 09.05 Data export - 09.06 Integrity and rotation - 09.07 Restore verification
+
+**10. Maintenance:** 10.01 Updates - 10.02 Scheduled maintenance - 10.03 Disks - 10.04 Monitoring - 10.05 Incidents - 10.06 VM migration
+
+**11. Relations and versioning:** 11.01 Related documents - 11.02 Versioning
+
+---
+
+## 01. General
+
+### 01.01. Purpose and scope
+
+*Mandatory.*
+
+- Host level: OS image preparation, Hyper-V VM creation, network, autostart, backup, maintenance; the application on the guest - `web_standards.md`. Mandatory for Linux VM deployment on a Windows host; does not apply to other deployment models.
+
+### 01.02. Host requirements
+
+*Mandatory.*
+
+- Windows 10/11 Pro or Enterprise, or Windows Server 2016 and above (Hyper-V is unavailable on Home).
+- CPU: 64-bit, SLAT, VT-x; hardware virtualization and DEP enabled in BIOS/UEFI.
+- Memory: at least 4 GB for the host plus resources of all concurrently running VMs; free space for VMs, data disks and backups; administrator rights on the host (role, switch, firewall and port forwarding require elevation).
+
+### 01.03. Host readiness check
+
+*Mandatory.*
+
+Run before any changes; record the results in the VM passport (03.05). In `systeminfo.exe`, all Hyper-V Requirements items must be Yes.
 
 ```powershell
 Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All | Select-Object FeatureName, State
 Get-Command New-VM, Set-VM, New-VMSwitch -ErrorAction SilentlyContinue
 Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='FreeGB';E={[math]::Round($_.Free/1GB,1)}}
-# Установка роли, если не установлена; требует перезагрузки хоста (01.05)
+# Install the role if missing; requires a host reboot (01.05)
 Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
 ```
 
-### 01.04. Термины
+### 01.04. Terms
 
-*Обязательно.*
+*Mandatory.*
 
-- **Хост** - физическая Windows-машина с ролью Hyper-V. **Гость** - Linux-ВМ на хосте. **Коммутатор** - виртуальный коммутатор Hyper-V, к которому подключена ВМ.
-- **Slug** - короткий идентификатор ВМ в нижнем регистре, он же имя ВМ Hyper-V и hostname гостя.
-- **Seed** - носитель с данными cloud-init (`user-data`, `meta-data`) для первичной настройки гостя. **Паспорт ВМ** - служебный документ с фактическими параметрами ВМ (03.05).
+- **Host** - the physical Windows machine with the Hyper-V role. **Guest** - the Linux VM on the host. **Switch** - the Hyper-V virtual switch the VM is connected to.
+- **Slug** - a short lowercase VM identifier, also the Hyper-V VM name and guest hostname.
+- **Seed** - a medium with cloud-init data (`user-data`, `meta-data`) for initial guest setup. **VM passport** - a service document with actual VM parameters (03.05).
 
-### 01.05. Границы автономии агента
+### 01.05. Agent autonomy boundaries
 
-*Обязательно.*
+*Mandatory.*
 
-- Документ применяется, когда агент работает на Windows-хосте напрямую (сессия PowerShell с правами администратора). Базовый режим `deploy_win_standards.md` (агент без прямого доступа к Windows-машине) к этим сценариям не применяется; противоречий нет - режимы доступа разные.
-- Точки обязательного подтверждения пользователя: включение роли Hyper-V и перезагрузка хоста; создание или перепривязка внешнего коммутатора (может временно прервать сеть хоста); изменения Windows Firewall и проброса портов; удаление ВМ, дисков, снятие регистрации ВМ; операции с данными (форматирование диска данных, удаление бэкапов).
-- Секреты в документе и в папке ВМ не хранятся: приватный SSH-ключ остается вне папки ВМ, в seed попадает только публичный ключ; пароли и токены приложения - в `.env` на госте по `project_standards.md` (раздел 05.01).
+- This document applies when the agent works on the Windows host directly (a PowerShell session with administrator rights). The base mode of `deploy_win_standards.md` (agent without direct access to the Windows machine) does not apply to these scenarios; there is no conflict - access modes differ.
+- Points requiring explicit user confirmation: enabling the Hyper-V role and rebooting the host; creating or rebinding an external switch (may briefly interrupt host network); Windows Firewall and port forwarding changes; deleting VMs, disks, unregistering VMs; data operations (formatting the data disk, deleting backups).
+- Secrets are not stored in the document or the VM folder: the private SSH key stays outside the VM folder, only the public key enters the seed; application passwords and tokens - in `.env` on the guest per `project_standards.md` (05.01).
 
 ---
 
-## 02. Дистрибутив и источник образа
+## 02. Distribution and image source
 
-### 02.01. Выбор дистрибутива
+### 02.01. Distribution choice
 
-*Обязательно.*
+*Mandatory.*
 
-- Канонический дистрибутив - **Ubuntu Server 24.04 LTS** (Noble Numbat), amd64: официальная поддержка Hyper-V Generation 1/2 (включая Secure Boot), драйверы LIS в ядре, облачные образы с cloud-init, длительная поддержка. Допустимая альтернатива - 22.04 LTS; другие дистрибутивы - по явному решению пользователя с фиксацией в паспорте ВМ.
+- The canonical distribution is **Ubuntu Server 24.04 LTS** (Noble Numbat), amd64: official Hyper-V Generation 1/2 support (including Secure Boot), LIS drivers in the kernel, cloud images with cloud-init, long-term support. An acceptable alternative is 22.04 LTS; other distributions - by explicit user decision recorded in the VM passport.
 
-### 02.02. Облачный образ
+### 02.02. Cloud image
 
-*Обязательно.*
+*Mandatory.*
 
-- Источник - официальные облачные образы `https://cloud-images.ubuntu.com/releases/24.04/release/`; основной файл - `ubuntu-24.04-server-cloudimg-amd64.img` (qcow2) с `SHA256SUMS` того же каталога. Hyper-V загружается с VHDX, образ конвертируется (05.01). Облачный образ не содержит учетных данных; вход возможен только после первичной настройки через cloud-init (05.04-05.06).
+- Source - official cloud images at `https://cloud-images.ubuntu.com/releases/24.04/release/`; the main file is `ubuntu-24.04-server-cloudimg-amd64.img` (qcow2) with the same directory's `SHA256SUMS`. Hyper-V boots from VHDX, so the image is converted (05.01). The cloud image contains no credentials; login is possible only after initial setup via cloud-init (05.04-05.06).
 
-### 02.03. Загрузка и проверка
+### 02.03. Download and verification
 
-*Обязательно.*
+*Mandatory.*
 
 ```powershell
 $root = "D:\vms"; $baseUrl = "https://cloud-images.ubuntu.com/releases/24.04/release"; $image = "ubuntu-24.04-server-cloudimg-amd64.img"
@@ -108,114 +108,114 @@ $actual = (Get-FileHash "$root\iso\$image" -Algorithm SHA256).Hash.ToLower()
 if ($expected -ne $actual) { throw "SHA256 не совпала: образ поврежден или подменен" }
 ```
 
-- Образ и контрольные суммы хранятся в `<root>\iso\` и переиспользуются; при обновлении образа старая версия не удаляется до успешного развертывания новой ВМ.
+- Store the image and checksums in `<root>\iso\` and reuse them; when updating the image, do not delete the old version until the new VM deploys successfully.
 
-### 02.04. Утилита qemu-img
+### 02.04. qemu-img utility
 
-*Обязательно.*
+*Mandatory.*
 
-- Конвертация qcow2 в VHDX выполняется утилитой `qemu-img`: `winget install --id SoftwareFreedomConservancy.QEMU -e --accept-source-agreements --accept-package-agreements` (альтернативы: `https://qemu.weilnetz.de/w64/`, `choco install qemu`, `scoop install qemu`); путь по умолчанию - `C:\Program Files\qemu\qemu-img.exe`, при необходимости добавляется в `PATH`. Утилита нужна только на этапе конвертации; остальные операции - штатные средства Hyper-V.
+- Convert qcow2 to VHDX with `qemu-img`: `winget install --id SoftwareFreedomConservancy.QEMU -e --accept-source-agreements --accept-package-agreements` (alternatives: `https://qemu.weilnetz.de/w64/`, `choco install qemu`, `scoop install qemu`); default path - `C:\Program Files\qemu\qemu-img.exe`, add it to `PATH` when needed. The utility is needed only for conversion; all other operations use native Hyper-V tools.
 
 ---
 
-## 03. Раскладка на диске и нейминг
+## 03. Disk layout and naming
 
-### 03.01. Корень и общие папки
+### 03.01. Root and shared folders
 
-*Обязательно.*
+*Mandatory.*
 
-Все служебные данные - в едином корне `<root>` (по умолчанию `D:\vms`), без пробелов в путях.
+All service data lives under one root `<root>` (default `D:\vms`), with no spaces in paths.
 
 ```
 <root>\
-  iso\            образы ОС и контрольные суммы
-  tools\          qemu-img и вспомогательные утилиты
-  scripts\        служебные PowerShell-скрипты развертывания и бэкапа
-  logs\           журналы операций по датам
-  backup\<slug>\  vm\<stamp>\ - полный образ ВМ; data\<stamp>\ - дампы данных; seed\<stamp>\ - копии seed (09)
-  <slug>\         папка конкретной ВМ (03.02)
+  iso\            OS images and checksums
+  tools\          qemu-img and helper utilities
+  scripts\        deployment and backup PowerShell scripts
+  logs\           operation logs by date
+  backup\<slug>\  vm\<stamp>\ - full VM image; data\<stamp>\ - data dumps; seed\<stamp>\ - seed copies (09)
+  <slug>\         folder of a specific VM (03.02)
 ```
 
-### 03.02. Папка виртуальной машины
+### 03.02. Virtual machine folder
 
-*Обязательно.*
+*Mandatory.*
 
-Конфигурация, диски, чекпоинты и служебные данные ВМ - только внутри `<root>\<slug>\`, не в стандартных путях `C:\ProgramData`.
+VM configuration, disks, checkpoints and service data live only inside `<root>\<slug>\`, not in the default `C:\ProgramData` paths.
 
 ```
 <root>\<slug>\
-  config\        конфигурация ВМ (.vmcx, .vmgs)   <- New-VM -Path
-  disks\         ext4.vhdx (системный), data.vhdx (данные)
-  snapshots\     чекпоинты (.avhdx, .vmrs)        <- Set-VM -SnapshotFileLocation
+  config\        VM configuration (.vmcx, .vmgs)   <- New-VM -Path
+  disks\         ext4.vhdx (system), data.vhdx (data)
+  snapshots\     checkpoints (.avhdx, .vmrs)        <- Set-VM -SnapshotFileLocation
   smartpaging\   Smart Paging                      <- Set-VM -SmartPagingFilePath
   seed\          user-data, meta-data, seed.vhdx
-  notes\         vm.md - паспорт ВМ (03.05)
+  notes\         vm.md - VM passport (03.05)
 ```
 
-### 03.03. Правила нейминга
+### 03.03. Naming rules
 
-*Обязательно.*
+*Mandatory.*
 
-- Имена и пути - латиница, нижний регистр, kebab-case, без пробелов. Slug - `<role>-<nn>` (например `srv-web-01`) либо имя проекта в kebab-case; slug задает имя ВМ Hyper-V и hostname гостя.
-- Коммутатор - `vsw-lan`; диски - `ext4.vhdx` (системный) и `data.vhdx` (данные); seed - `seed.vhdx`; метка seed-носителя - `cidata` (05.04). Время в именах архивов - `YYYYMMDD_HHMMSS`.
+- Names and paths - Latin, lowercase, kebab-case, no spaces. Slug - `<role>-<nn>` (for example `srv-web-01`) or the project name in kebab-case; the slug sets the Hyper-V VM name and the guest hostname.
+- Switch - `vsw-lan`; disks - `ext4.vhdx` (system) and `data.vhdx` (data); seed - `seed.vhdx`; seed volume label - `cidata` (05.04). Archive timestamps - `YYYYMMDD_HHMMSS`.
 
-### 03.04. Переопределение путей Hyper-V
+### 03.04. Hyper-V path overrides
 
-*Обязательно.*
+*Mandatory.*
 
-- Папка конфигурации задается при создании (`New-VM -Path`), чекпоинтов - до первого чекпоинта (`Set-VM -SnapshotFileLocation`), Smart Paging - сразу (`Set-VM -SmartPagingFilePath`); каталоги `snapshots` и `smartpaging` создаются заранее. Пути по умолчанию для новых ВМ хоста: `Set-VMHost -VirtualMachinePath <root> -VirtualHardDiskPath <root>\<slug>\disks`; изменение общих путей хоста - на усмотрение пользователя.
+- Set the configuration folder at creation (`New-VM -Path`), the checkpoint folder before the first checkpoint (`Set-VM -SnapshotFileLocation`), and Smart Paging immediately (`Set-VM -SmartPagingFilePath`); create the `snapshots` and `smartpaging` directories in advance. Default paths for new VMs on the host: `Set-VMHost -VirtualMachinePath <root> -VirtualHardDiskPath <root>\<slug>\disks`; changing shared host paths is at the user's discretion.
 
-### 03.05. Паспорт виртуальной машины
+### 03.05. Virtual machine passport
 
-*Обязательно.*
+*Mandatory.*
 
-`<root>\<slug>\notes\vm.md` - фактические параметры ВМ; заполняется по ходу развертывания, обновляется при изменениях. Минимальный состав: slug, имя ВМ, hostname; редакция Windows и версия Ubuntu; коммутатор, MAC, IP, модель доступа (04.01); vCPU, память, размеры дисков; пользователь гостя и публичный ключ; диск данных и точка монтирования; опубликованные порты и правила проброса/файрвола; расписание и место бэкапа, дата проверки восстановления; дата извлечения seed, примечания.
+`<root>\<slug>\notes\vm.md` - actual VM parameters; fill it during deployment and update it on changes. Minimum content: slug, VM name, hostname; Windows edition and Ubuntu version; switch, MAC, IP, access model (04.01); vCPU, memory, disk sizes; guest user and public key; data disk and mount point; published ports and forwarding/firewall rules; backup schedule and location, restore verification date; seed removal date, notes.
 
 ---
 
-## 04. Сеть
+## 04. Network
 
-### 04.01. Модели доступа
+### 04.01. Access models
 
-*Обязательно.*
+*Mandatory.*
 
-- **Модель A (по умолчанию). Проброс через хост:** ВМ получает собственный адрес в сети хоста, на хосте настраивается проброс портов (04.03), клиенты обращаются к адресу хоста и порту; адрес ВМ закрепляется (04.04).
-- **Модель B. Прямой доступ:** клиенты обращаются непосредственно по адресу ВМ; проброс портов не настраивается. Выбор модели фиксируется в паспорте ВМ; совпадение адреса ВМ с адресом хоста невозможно - конфликт адресов.
+- **Model A (default). Forwarding through the host:** the VM gets its own address on the host network, port forwarding is configured on the host (04.03), clients connect to the host address and port; the VM address is pinned (04.04).
+- **Model B. Direct access:** clients connect directly to the VM address; no port forwarding is configured. Record the model choice in the VM passport; the VM address cannot equal the host address - address conflict.
 
-### 04.02. Виртуальный коммутатор
+### 04.02. Virtual switch
 
-*Обязательно.*
+*Mandatory.*
 
 ```powershell
 New-VMSwitch -Name "vsw-lan" -NetAdapterName "Ethernet" -AllowManagementOS $true
 Get-VMSwitch -Name "vsw-lan" | Select-Object Name, SwitchType, NetAdapterInterfaceDescription
 ```
 
-- Внешний коммутатор привязывается к физическому адаптеру хоста (имя определяется на месте); `-AllowManagementOS $true` оставляет сеть хосту (может появиться служебный `vEthernet (vsw-lan)`). Создается один раз, переиспользуется всеми ВМ хоста.
+- The external switch binds to the host physical adapter (name determined on site); `-AllowManagementOS $true` keeps network for the host (a service `vEthernet (vsw-lan)` adapter may appear). Create it once and reuse it for all VMs on the host.
 
-### 04.03. Проброс портов через хост
+### 04.03. Port forwarding through the host
 
-*Обязательно при модели A.*
+*Mandatory under model A.*
 
-- Проброс - `netsh interface portproxy`, только TCP; адрес ВМ должен быть закреплен (04.04), иначе проброс перестанет работать после смены адреса. Внешний адрес прослушивания - LAN-адрес хоста (предпочтительно) либо `0.0.0.0` (осознанное решение, контроль файрволом). Требуется запущенная служба `iphlpsvc` (IP Helper) с автоматическим стартом.
+- Forwarding uses `netsh interface portproxy`, TCP only; the VM address must be pinned (04.04), otherwise forwarding stops working after an address change. The external listen address is the host LAN address (preferred) or `0.0.0.0` (deliberate decision, firewall-controlled). The `iphlpsvc` (IP Helper) service must run with automatic start.
 
 ```powershell
-$hostIp = "192.168.1.10"   # LAN-адрес хоста
-$vmIp = "192.168.1.50"     # адрес ВМ из 04.04
+$hostIp = "192.168.1.10"   # host LAN address
+$vmIp = "192.168.1.50"     # VM address from 04.04
 foreach ($p in 80, 443) { netsh interface portproxy add v4tov4 listenaddress=$hostIp listenport=$p connectaddress=$vmIp connectport=$p }
 netsh interface portproxy show v4tov4
 ```
 
-- Правила сохраняются между перезагрузками; при смене адреса ВМ обновляются. Удаление: `netsh interface portproxy delete v4tov4 listenaddress=<host-lan-ip> listenport=<port>`.
+- Rules persist across reboots; update them when the VM address changes. Delete: `netsh interface portproxy delete v4tov4 listenaddress=<host-lan-ip> listenport=<port>`.
 
-### 04.04. Собственный адрес гостя
+### 04.04. Guest own address
 
-*Обязательно.*
+*Mandatory.*
 
-- По умолчанию - DHCP от сети хоста; адрес закрепляется резервом по MAC-адресу ВМ на роутере. Статический адрес задается через cloud-init (05.06) или netplan внутри гостя; интерфейс сопоставляется по маске имени:
+- Default - DHCP from the host network; pin the address with a MAC-based reservation on the router. Set a static address via cloud-init (05.06) or netplan inside the guest; match the interface by name pattern:
 
 ```yaml
-# фрагмент netplan (версия 2), статический адрес
+# netplan fragment (version 2), static address
 network:
   version: 2
   ethernets:
@@ -230,36 +230,36 @@ network:
         addresses: [192.168.1.1]
 ```
 
-### 04.05. Имена и DNS
+### 04.05. Names and DNS
 
-*Обязательно.*
+*Mandatory.*
 
-- hostname гостя совпадает со slug; для модели A имена клиентов указывают на адрес хоста, для модели B - на адрес ВМ. При отсутствии локального DNS имя разрешается через hosts-файл клиента; записи фиксируются в паспорте ВМ.
+- The guest hostname matches the slug; for model A client names point to the host address, for model B to the VM address. Without local DNS, resolve the name through the client hosts file; record entries in the VM passport.
 
 ### 04.06. Windows Firewall
 
-*Обязательно.*
+*Mandatory.*
 
-- Трафик к ВМ через внешний коммутатор фильтруется Windows Firewall хоста; политика по умолчанию - запрет входящих. Для модели A открываются публикуемые порты:
+- Traffic to the VM through the external switch is filtered by the host Windows Firewall; the default policy denies inbound. For model A open the published ports:
 
 ```powershell
 New-NetFirewallRule -DisplayName "srv-web-01 http"  -Direction Inbound -Protocol TCP -LocalPort 80  -Action Allow
 New-NetFirewallRule -DisplayName "srv-web-01 https" -Direction Inbound -Protocol TCP -LocalPort 443 -Action Allow
 ```
 
-### 04.07. Проверка связности
+### 04.07. Connectivity check
 
-*Обязательно.*
+*Mandatory.*
 
-- Адрес ВМ: `Get-VMNetworkAdapter -VMName "<slug>" | Select-Object -ExpandProperty IPAddresses`. Порты: `Test-NetConnection -ComputerName <vm-ip> -Port 22`; для модели A дополнительно `Test-NetConnection -ComputerName <host-lan-ip> -Port 80`.
+- VM address: `Get-VMNetworkAdapter -VMName "<slug>" | Select-Object -ExpandProperty IPAddresses`. Ports: `Test-NetConnection -ComputerName <vm-ip> -Port 22`; for model A also `Test-NetConnection -ComputerName <host-lan-ip> -Port 80`.
 
 ---
 
-## 05. Подготовка образа и носителей
+## 05. Image and media preparation
 
-### 05.01. Конвертация образа в VHDX
+### 05.01. Image conversion to VHDX
 
-*Обязательно.*
+*Mandatory.*
 
 ```powershell
 $root = "D:\vms"; $slug = "srv-web-01"
@@ -269,30 +269,30 @@ New-Item -ItemType Directory -Force -Path "$root\$slug\disks" | Out-Null
 qemu-img convert -p -f qcow2 -O vhdx -o subformat=dynamic,block_size=1M $image $disk
 ```
 
-- Формат VHDX, подформат `dynamic`, размер блока `1M`; `block_state_zero` не отключать. Облачный образ не изменяется - конвертация создает рабочую копию ВМ.
+- VHDX format, `dynamic` subformat, `1M` block size; do not disable `block_state_zero`. The cloud image is unchanged - conversion creates a working VM copy.
 
-### 05.02. Расширение системного диска
+### 05.02. System disk extension
 
-*Обязательно.*
+*Mandatory.*
 
-- Выполняется до первого запуска ВМ, пока диск не занят: `Resize-VHD -Path "$root\$slug\disks\ext4.vhdx" -SizeBytes 64GB` (по умолчанию 64 ГБ; альтернатива - `qemu-img resize <image> 64G` до конвертации, выполнять оба способа не нужно). Для Generation 2 (SCSI) расширение VHDX допустимо и при работающей ВМ, но не при активной цепочке чекпоинтов (10.03); раздел и ФС внутри гостя растут отдельно (07.01) - обычно это выполняет cloud-init (`growpart`).
+- Run before the first VM start while the disk is unused: `Resize-VHD -Path "$root\$slug\disks\ext4.vhdx" -SizeBytes 64GB` (default 64 GB; alternative - `qemu-img resize <image> 64G` before conversion, do not run both). For Generation 2 (SCSI), VHDX extension is allowed while the VM runs but not with an active checkpoint chain (10.03); the partition and filesystem inside the guest grow separately (07.01) - usually cloud-init handles this (`growpart`).
 
-### 05.03. Диск данных
+### 05.03. Data disk
 
-*Обязательно.*
+*Mandatory.*
 
-- Данные приложения и БД - на отдельном диске `data.vhdx`, системный диск остается пересоздаваемым. Размер по умолчанию - 64 ГБ, тип - динамический.
+- Application and database data live on a separate `data.vhdx`; the system disk remains recreatable. Default size - 64 GB, type - dynamic.
 
 ```powershell
 New-VHD -Path "$root\$slug\disks\data.vhdx" -SizeBytes 64GB -Dynamic -BlockSizeBytes 1MB
-New-Item -ItemType Directory -Force -Path "$root\$slug\snapshots", "$root\$slug\smartpaging" | Out-Null   # папки заранее (03.04)
+New-Item -ItemType Directory -Force -Path "$root\$slug\snapshots", "$root\$slug\smartpaging" | Out-Null   # folders in advance (03.04)
 ```
 
-### 05.04. Seed-диск CIDATA
+### 05.04. CIDATA seed disk
 
-*Обязательно.*
+*Mandatory.*
 
-Seed - носитель, с которого cloud-init получает первичную конфигурацию: VHDX малого размера с FAT32 и меткой тома `cidata`, содержит в корне `user-data` и `meta-data`.
+The seed is the medium from which cloud-init obtains initial configuration: a small VHDX with FAT32 and volume label `cidata`, containing `user-data` and `meta-data` in the root.
 
 ```powershell
 $seed = "$root\$slug\seed\seed.vhdx"
@@ -309,11 +309,11 @@ Copy-Item "$root\$slug\seed\network-config" "S:\network-config"
 Dismount-VHD -Path $seed
 ```
 
-- Обязательные файлы - `user-data` и `meta-data`; `network-config` добавляется для сети (05.06). Файлы пишутся в UTF-8 без BOM, переводы строк - LF, строго в корне тома; допустим ISO9660-носитель с той же меткой. Исходники остаются в `<root>\<slug>\seed\` и попадают в бэкап.
+- Mandatory files - `user-data` and `meta-data`; `network-config` is added for networking (05.06). Write files in UTF-8 without BOM, LF line endings, strictly in the volume root; an ISO9660 medium with the same label is acceptable. Keep the sources in `<root>\<slug>\seed\`; they are included in backups.
 
-### 05.05. Шаблон user-data
+### 05.05. user-data template
 
-*Обязательно.*
+*Mandatory.*
 
 ```yaml
 #cloud-config
@@ -338,13 +338,13 @@ growpart:
 resize_rootfs: true
 ```
 
-- `<ssh-public-key>` - публичный ключ администратора; приватный ключ в seed не попадает (01.05). `lock_passwd` и `ssh_pwauth: false` исключают вход по паролю. Пользователь `deploy` - имя по умолчанию, фиксируется в паспорте ВМ. Пакеты подбираются под приложение; веб-рантайм и nginx ставятся на шаге 08 по `web_standards.md`.
+- `<ssh-public-key>` - the administrator public key; the private key never enters the seed (01.05). `lock_passwd` and `ssh_pwauth: false` exclude password login. User `deploy` is the default name, recorded in the VM passport. Select packages for the application; the web runtime and nginx are installed at step 08 per `web_standards.md`.
 
-### 05.06. Шаблон meta-data и network-config
+### 05.06. meta-data and network-config templates
 
-*Обязательно.*
+*Mandatory.*
 
-- `meta-data`: `instance-id: srv-web-01`, `local-hostname: srv-web-01`. Сеть задается отдельным файлом `network-config`: cloud-init не применяет сетевые параметры из `user-data`; при DHCP сеть отдельно не описывается. При статическом адресе интерфейс сопоставляется по MAC-адресу, имя не хардкодится (predictable names не гарантированы); MAC - из `Get-VMNetworkAdapter -VMName <slug>`, фиксируется в паспорте ВМ:
+- `meta-data`: `instance-id: srv-web-01`, `local-hostname: srv-web-01`. Networking is set by a separate `network-config` file: cloud-init does not apply network parameters from `user-data`; with DHCP do not describe the network separately. For a static address match the interface by MAC address, do not hardcode the name (predictable names are not guaranteed); take the MAC from `Get-VMNetworkAdapter -VMName <slug>` and record it in the VM passport:
 
 ```yaml
 version: 2
@@ -362,57 +362,57 @@ ethernets:
       addresses: [192.168.1.1]
 ```
 
-- Изменение `user-data` или `network-config` без смены `instance-id` не применяется: меняется `instance-id` либо выполняется `cloud-init clean`. Повторный запуск с тем же seed после завершения настройки не выполняется (06.08).
+- Changes to `user-data` or `network-config` without an `instance-id` change are not applied: change `instance-id` or run `cloud-init clean`. Do not rerun the same seed after setup completes (06.08).
 
 ---
 
-## 06. Создание и запуск виртуальной машины
+## 06. VM creation and start
 
-### 06.01. Создание ВМ
+### 06.01. VM creation
 
-*Обязательно.*
+*Mandatory.*
 
 ```powershell
 $root = "D:\vms"; $slug = "srv-web-01"
 
 New-VM -Name $slug -Generation 2 -MemoryStartupBytes 8GB `
     -VHDPath "$root\$slug\disks\ext4.vhdx" -SwitchName "vsw-lan" -Path "$root\$slug\config"
-# Служебные пути - сразу, до первого чекпоинта (03.04)
+# Service paths - immediately, before the first checkpoint (03.04)
 Set-VM -Name $slug -SnapshotFileLocation "$root\$slug\snapshots" -SmartPagingFilePath "$root\$slug\smartpaging"
 ```
 
-- Поколение - 2 (UEFI, Secure Boot, SCSI VHDX, онлайн-расширение); папка конфигурации - внутри папки ВМ (03.04).
+- Generation 2 (UEFI, Secure Boot, SCSI VHDX, online extension); the configuration folder is inside the VM folder (03.04).
 
-### 06.02. Подключение дисков
+### 06.02. Disk attachment
 
-*Обязательно.*
+*Mandatory.*
 
 ```powershell
 Add-VMHardDiskDrive -VMName $slug -Path "$root\$slug\disks\data.vhdx"
 Add-VMHardDiskDrive -VMName $slug -Path "$root\$slug\seed\seed.vhdx"
-# Первый загрузочный диск задается явно, иначе Gen2 может грузиться по сети
+# Set the first boot disk explicitly, otherwise Gen2 may boot from the network
 $osDisk = Get-VMHardDiskDrive -VMName $slug | Where-Object Path -like "*ext4.vhdx"
 Set-VMFirmware -VMName $slug -FirstBootDevice $osDisk
 ```
 
-- Порядок подключения: системный диск, диск данных, seed. После завершения первичной настройки seed-диск извлекается (06.08).
+- Attachment order: system disk, data disk, seed. Remove the seed disk after initial setup completes (06.08).
 
-### 06.03. Прошивка и Secure Boot
+### 06.03. Firmware and Secure Boot
 
-*Обязательно.*
+*Mandatory.*
 
-- Для Generation 2 Linux - шаблон Microsoft UEFI Certificate Authority: `Set-VMFirmware -VMName $slug -SecureBootTemplate "MicrosoftUEFICertificateAuthority"`. Если гость не загружается - временно отключить Secure Boot (`-EnableSecureBoot Off`), отключение фиксируется в паспорте ВМ.
-- При пустом NVRAM загрузка идет по fallback-пути `\EFI\BOOT\BOOTX64.EFI`; если системный диск не грузится, fallback-загрузчик создается в госте: `/boot/efi/EFI/ubuntu` копируется в `/boot/efi/EFI/BOOT`, `shimx64.efi` переименовывается в `BOOTX64.EFI`, `grub.cfg` - в `BOOTX64.CFG`. Проверять на конкретном образе.
+- For Generation 2 Linux use the Microsoft UEFI Certificate Authority template: `Set-VMFirmware -VMName $slug -SecureBootTemplate "MicrosoftUEFICertificateAuthority"`. If the guest does not boot, temporarily disable Secure Boot (`-EnableSecureBoot Off`) and record the change in the VM passport.
+- With empty NVRAM boot follows the fallback path `\EFI\BOOT\BOOTX64.EFI`; if the system disk does not boot, create the fallback loader in the guest: copy `/boot/efi/EFI/ubuntu` to `/boot/efi/EFI/BOOT`, rename `shimx64.efi` to `BOOTX64.EFI` and `grub.cfg` to `BOOTX64.CFG`. Verify on the specific image.
 
-### 06.04. Память и процессоры
+### 06.04. Memory and processors
 
-*Обязательно.*
+*Mandatory.*
 
-- `Set-VM -Name $slug -ProcessorCount 4 -StaticMemory`; по умолчанию фиксированная память (предсказуемое поведение под нагрузкой), динамическая память для сервера не применяется. Дефолтные лимиты: 4 vCPU, 8 ГБ памяти, 64 ГБ системный диск, 64 ГБ диск данных; значения - из решения пользователя, фиксируются в паспорте ВМ.
+- `Set-VM -Name $slug -ProcessorCount 4 -StaticMemory`; use fixed memory by default (predictable behavior under load), do not use dynamic memory for a server. Default limits: 4 vCPU, 8 GB memory, 64 GB system disk, 64 GB data disk; values come from the user decision and are recorded in the VM passport.
 
-### 06.05. Политика питания и автозапуск
+### 06.05. Power policy and autostart
 
-*Обязательно.*
+*Mandatory.*
 
 ```powershell
 Set-VM -Name $slug `
@@ -420,33 +420,33 @@ Set-VM -Name $slug `
     -AutomaticStopAction ShutDown -AutomaticCriticalErrorAction Pause -AutomaticCriticalErrorActionTimeout 30
 ```
 
-- `Start` - автозапуск при старте хоста с задержкой в секундах на поднятие служб; `ShutDown` - корректное завершение гостя при выключении хоста; таймаут критической ошибки - в минутах до перевода ВМ в паузу. Управление: `Start-VM`, `Stop-VM`, `Restart-VM`.
+- `Start` - autostart on host boot with a delay in seconds for service startup; `ShutDown` - graceful guest shutdown on host power-off; the critical error timeout is in minutes until the VM pauses. Control: `Start-VM`, `Stop-VM`, `Restart-VM`.
 
-### 06.06. Чекпоинты
+### 06.06. Checkpoints
 
-*Обязательно.*
+*Mandatory.*
 
-- `Set-VM -Name $slug -AutomaticCheckpointsEnabled $false -CheckpointType Production`: автоматические чекпоинты отключены, тип - Production (data-consistent, без снимка памяти). Чекпоинт - точка отката перед рискованными изменениями, а не бэкап (09); хранятся в `<root>\<slug>\snapshots\` (03.04).
+- `Set-VM -Name $slug -AutomaticCheckpointsEnabled $false -CheckpointType Production`: automatic checkpoints disabled, type Production (data-consistent, no memory snapshot). A checkpoint is a rollback point before risky changes, not a backup (09); stored in `<root>\<slug>\snapshots\` (03.04).
 
-### 06.07. Первый запуск и вход
+### 06.07. First start and login
 
-*Обязательно.*
+*Mandatory.*
 
 ```powershell
 Start-VM -Name $slug
-# Дождаться появления адреса (опрос адаптера ВМ), затем вход по ключу администратора
+# Wait for the address (poll the VM adapter), then log in with the administrator key
 $vmIp = (Get-VMNetworkAdapter -VMName $slug).IPAddresses | Where-Object { $_ -match '^\d+\.\d+\.\d+\.\d+$' } | Select-Object -First 1
 ssh deploy@$vmIp
 ```
 
-- На госте проверить завершение cloud-init: `cloud-init status --wait`, `hostnamectl`, `ip -brief address`.
-- Ожидание адреса ограничено: опрос адаптера с паузой, суммарно не более 10 минут; при истечении - диагностика сети ВМ (04) и seed (05), бесконечный цикл ожидания недопустим.
+- On the guest verify cloud-init completion: `cloud-init status --wait`, `hostnamectl`, `ip -brief address`.
+- Address waiting is bounded: poll the adapter with a pause for at most 10 minutes total; on timeout diagnose VM networking (04) and the seed (05); an endless wait loop is not allowed.
 
-### 06.08. Извлечение seed-диска
+### 06.08. Seed disk removal
 
-*Обязательно.*
+*Mandatory.*
 
-- После успешного завершения cloud-init и проверки входа seed-диск извлекается (исключение повторной инициализации); дата извлечения - в паспорт ВМ. Повторное подключение того же seed к работающей ВМ не выполняется; файл и исходники остаются в `seed\` для истории и бэкапа:
+- After cloud-init completes successfully and login is verified, remove the seed disk (prevents re-initialization); record the removal date in the VM passport. Never reattach the same seed to a running VM; keep the file and sources in `seed\` for history and backup:
 
 ```powershell
 Get-VMHardDiskDrive -VMName $slug | Where-Object Path -like "*seed.vhdx" | Remove-VMHardDiskDrive
@@ -454,35 +454,35 @@ Get-VMHardDiskDrive -VMName $slug | Where-Object Path -like "*seed.vhdx" | Remov
 
 ---
 
-## 07. Первичная настройка гостя
+## 07. Initial guest setup
 
-### 07.01. Расширение корневой ФС
+### 07.01. Root filesystem extension
 
-*Опционально - если cloud-init не выполнил growpart.*
+*Optional - when cloud-init did not run growpart.*
 
-- `sudo growpart /dev/sda 1 && sudo resize2fs /dev/sda1`; устройство и раздел определяются по `lsblk` (пример - типовая разметка), контроль - `df -h /`.
+- `sudo growpart /dev/sda 1 && sudo resize2fs /dev/sda1`; determine the device and partition with `lsblk` (the example shows typical layout), verify with `df -h /`.
 
-### 07.02. Пользователь и SSH
+### 07.02. User and SSH
 
-*Обязательно.*
+*Mandatory.*
 
-- Пользователь создается cloud-init (05.05): группы `adm`, `sudo`, sudo без пароля, вход только по ключу; приватный ключ хранится только у администратора. Проверка: `sudo sshd -T | grep -Ei 'passwordauthentication|permitrootlogin|pubkeyauthentication'`; ожидается запрет входа по паролю и root, разрешение ключа; изменения применяются `sudo systemctl reload ssh`.
+- cloud-init creates the user (05.05): groups `adm`, `sudo`, passwordless sudo, key-only login; the private key stays with the administrator only. Verify: `sudo sshd -T | grep -Ei 'passwordauthentication|permitrootlogin|pubkeyauthentication'`; expect password and root login disabled, key login enabled; apply changes with `sudo systemctl reload ssh`.
 
-### 07.03. Время и локаль
+### 07.03. Time and locale
 
-*Обязательно.*
+*Mandatory.*
 
-- `sudo timedatectl set-timezone <timezone>`, контроль - `timedatectl`, `locale`. Синхронизацию времени предоставляет Hyper-V; дополнительно проверяется служба времени гостя. Часовой пояс и локаль - в паспорт ВМ.
+- `sudo timedatectl set-timezone <timezone>`, verify with `timedatectl`, `locale`. Hyper-V provides time synchronization; additionally check the guest time service. Record timezone and locale in the VM passport.
 
-### 07.04. Обновления ОС
+### 07.04. OS updates
 
-*Обязательно.*
+*Mandatory.*
 
-- `sudo apt update && sudo apt upgrade -y`; автоматические обновления безопасности - `unattended-upgrades` (`sudo dpkg-reconfigure -plow unattended-upgrades`). Перезагрузка после обновления ядра - в регламентное окно (10.02).
+- `sudo apt update && sudo apt upgrade -y`; automatic security updates - `unattended-upgrades` (`sudo dpkg-reconfigure -plow unattended-upgrades`). Reboot after a kernel update in the maintenance window (10.02).
 
-### 07.05. Файрвол и защита
+### 07.05. Firewall and protection
 
-*Обязательно для модели B (прямой доступ); для модели A (проброс через хост) - рекомендуется как второй барьер.*
+*Mandatory for model B (direct access); for model A (host forwarding) - recommended as a second barrier.*
 
 ```bash
 sudo ufw default deny incoming
@@ -494,76 +494,76 @@ sudo ufw enable
 sudo ufw status verbose
 ```
 
-SSH открыт только подсети администрирования (`<admin-subnet>` - фактическая подсеть по 04); вариант `allow OpenSSH` (доступ к порту 22 отовсюду) - только по явному решению пользователя.
+SSH is open only to the administration subnet (`<admin-subnet>` - the actual subnet from 04); the `allow OpenSSH` variant (port 22 from anywhere) is allowed only by explicit user decision.
 
-- Открываются только необходимые порты; порт 22 - из доверенной подсети; правила оформляются с комментарием, состав согласуется с `web_standards.md` (раздел 09.01). Дополнительно ставится `fail2ban` для защиты SSH. Для модели A файрвол гостя - второй барьер, не обязателен.
+- Open only required ports; port 22 from the trusted subnet; format rules with a comment, coordinate the set with `web_standards.md` (09.01). Additionally install `fail2ban` for SSH protection. For model A the guest firewall is a second barrier, not mandatory.
 
-### 07.06. Монтирование диска данных
+### 07.06. Data disk mount
 
-*Обязательно.*
+*Mandatory.*
 
-- Диск данных форматируется в ext4 и монтируется в `/srv/<slug>`; устройство определяется по размеру, а не по имени (`sda`/`sdb` могут отличаться):
+- Format the data disk as ext4 and mount it at `/srv/<slug>`; determine the device by size, not by name (`sda`/`sdb` may differ):
 
 ```bash
 lsblk -o NAME,SIZE,FSTYPE
-sudo mkfs.ext4 /dev/sdb   # пример: /dev/sdb - диск данных
+sudo mkfs.ext4 /dev/sdb   # example: /dev/sdb is the data disk
 sudo mkdir -p /srv/<slug>
 echo "UUID=$(sudo blkid -s UUID -o value /dev/sdb) /srv/<slug> ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
 sudo mount -a && sudo chown deploy:deploy /srv/<slug> && df -h /srv/<slug>
 ```
 
-### 07.07. Структура данных
+### 07.07. Data structure
 
-*Обязательно.*
+*Mandatory.*
 
-- Данные приложения и БД - на диске данных в `/srv/<slug>`; системный диск для прикладных данных не используется (пересоздаваемость ВМ без потери данных). Классы данных (`var/user`, `var/system`) и правила бэкапа - по `web_standards.md` (раздел 02.07).
+- Application and database data live on the data disk at `/srv/<slug>`; the system disk is not used for application data (the VM remains recreatable without data loss). Data classes (`var/user`, `var/system`) and backup rules - per `web_standards.md` (02.07).
 
-### 07.08. Завершение cloud-init
+### 07.08. cloud-init completion
 
-*Опционально.*
+*Optional.*
 
-- После извлечения seed-диска повторная инициализация не выполняется; ненужный cloud-init отключается командой `sudo touch /etc/cloud/cloud-init.disabled` (фиксируется в паспорте ВМ). Повторное применение измененных `user-data` или `network-config` - только со сменой `instance-id` либо `sudo cloud-init clean --logs` с последующей перезагрузкой.
-
----
-
-## 08. Прикладной уровень
-
-*Обязательно.* Прикладной уровень гостя целиком ведется по `web_standards.md`; настоящий документ не дублирует:
-
-| Тема | Канон |
-|------|-------|
-| Модель развертывания: A (systemd и nginx) или B (Docker compose), одна модель на узел | `web_standards.md`, раздел 01.04 |
-| Размещение приложения, системный пользователь, systemd-юниты | `web_standards.md`, разделы 05.01, 05.02 |
-| nginx, TLS (ACME/certbot при публичном домене, self-signed для LAN), обновление и откат | `web_standards.md`, разделы 07, 08, 10 |
-| Данные приложения - на диске данных `/srv/<slug>` (07.06, 07.07); публикация наружу - проброс 80/443 через хост (04.03) | настоящий документ |
+- After seed disk removal, re-initialization does not occur; disable unneeded cloud-init with `sudo touch /etc/cloud/cloud-init.disabled` (record it in the VM passport). Reapply changed `user-data` or `network-config` only with an `instance-id` change or `sudo cloud-init clean --logs` followed by a reboot.
 
 ---
 
-## 09. Резервное копирование
+## 08. Application level
 
-### 09.01. Состав бэкапа
+*Mandatory.* The guest application level is governed entirely by `web_standards.md`; this document does not duplicate it:
 
-*Обязательно.*
+| Topic | Canon |
+|-------|-------|
+| Deployment model: A (systemd and nginx) or B (Docker compose), one model per node | `web_standards.md`, 01.04 |
+| Application placement, system user, systemd units | `web_standards.md`, 05.01, 05.02 |
+| nginx, TLS (ACME/certbot for a public domain, self-signed for LAN), update and rollback | `web_standards.md`, 07, 08, 10 |
+| Application data on the data disk `/srv/<slug>` (07.06, 07.07); external publication - forward 80/443 through the host (04.03) | this document |
 
-- Полный образ ВМ (конфигурация и системный диск) - восстановление узла целиком; диск данных или дампы приложения - точечное восстановление данных; файлы seed и паспорт ВМ - воспроизводимость. Файлы приложения и его конфигурация - по `web_standards.md` (раздел 10.01).
+---
 
-### 09.02. Политика
+## 09. Backup
 
-*Обязательно.*
+### 09.01. Backup scope
 
-- По умолчанию - ежедневно: выгрузка данных и полный образ ВМ; точные значения - по решению пользователя, фиксируются в паспорте ВМ. Перед каждым изменением конфигурации дополнительно создается чекпоинт (06.06). Хранение: не менее 7 ежедневных копий; при наличии места - 4 недельных.
+*Mandatory.*
 
-### 09.03. Расположение и именование
+- Full VM image (configuration and system disk) - whole-node recovery; data disk or application dumps - point-in-time data recovery; seed files and VM passport - reproducibility. Application files and configuration - per `web_standards.md` (10.01).
 
-*Обязательно.*
+### 09.02. Policy
 
-- Бэкапы - на отдельном от ВМ диске хоста, в `<root>\backup\<slug>\`; не на том диске, где лежат рабочие VHDX ВМ. Именование: `vm\<YYYYMMDD_HHMMSS>\`, `data\<YYYYMMDD_HHMMSS>\`, `seed\<YYYYMMDD_HHMMSS>\`.
+*Mandatory.*
 
-### 09.04. Экспорт и импорт ВМ
+- Default - daily: data export and full VM image; exact values come from the user decision and are recorded in the VM passport. Create an additional checkpoint before every configuration change (06.06). Retention: at least 7 daily copies; 4 weekly copies when space allows.
 
-*Обязательно.*
+### 09.03. Location and naming
 
-Экспорт работающей ВМ - через Production-чекпоинт (согласованное состояние):
+*Mandatory.*
+
+- Backups live on a host disk separate from the VM, in `<root>\backup\<slug>\`; not on the disk holding working VM VHDX files. Naming: `vm\<YYYYMMDD_HHMMSS>\`, `data\<YYYYMMDD_HHMMSS>\`, `seed\<YYYYMMDD_HHMMSS>\`.
+
+### 09.04. VM export and import
+
+*Mandatory.*
+
+Export a running VM through a Production checkpoint (consistent state):
 
 ```powershell
 $slug = "srv-web-01"; $stamp = Get-Date -Format "yyyyMMdd_HHmmss"; $dest = "D:\vms\backup\$slug\vm\$stamp"
@@ -572,87 +572,87 @@ Export-VM -Name $slug -Path $dest
 $cp | Remove-VMCheckpoint
 ```
 
-Удаляется только созданный для экспорта чекпоинт (`-PassThru` возвращает его объект); пакетное удаление всех чекпоинтов ВМ запрещено - среди них могут быть рабочие точки отката.
+Delete only the checkpoint created for export (`-PassThru` returns its object); bulk deletion of all VM checkpoints is forbidden - working rollback points may be among them.
 
-Восстановление (в тестовую или новую ВМ): `Import-VM -Path "<dest>\<slug>\Virtual Machines\<GUID>.vmcx" -Copy -GenerateNewId` - регистрируется копия с новым идентификатором, каталог бэкапа не затрагивается (`-Register` на месте - только для целевого переноса, не для проверки бэкапа).
+Restore (to a test or new VM): `Import-VM -Path "<dest>\<slug>\Virtual Machines\<GUID>.vmcx" -Copy -GenerateNewId` - registers a copy with a new identifier and leaves the backup directory untouched (`-Register` in place - only for target migration, not for backup verification).
 
-### 09.05. Выгрузка данных
+### 09.05. Data export
 
-*Обязательно.*
+*Mandatory.*
 
-- Дампы приложения и БД формируются средствами самого приложения (`pg_dump`, резервная копия SQLite), складываются на диск данных и копируются в `<root>\backup\<slug>\data\<stamp>\`. Согласованность СУБД обеспечивается дампом, а не копированием файлов работающей базы.
+- Application and database dumps are produced by the application itself (`pg_dump`, SQLite backup), stored on the data disk, then copied to `<root>\backup\<slug>\data\<stamp>\`. DBMS consistency comes from the dump, not from copying files of a running database.
 
-### 09.06. Целостность и ротация
+### 09.06. Integrity and rotation
 
-*Обязательно.*
+*Mandatory.*
 
-- После каждой копии проверяются наличие и размер архива (для критичных копий - контрольная сумма); ротация - удаление копий старее политики (09.02) с контролем свободного места; сбой бэкапа фиксируется в журнале `<root>\logs\` и не игнорируется.
+- After each copy verify archive presence and size (checksum for critical copies); rotation - delete copies older than the policy (09.02) while controlling free space; log backup failures in `<root>\logs\` and never ignore them.
 
-### 09.07. Проверка восстановления
+### 09.07. Restore verification
 
-*Обязательно.*
+*Mandatory.*
 
-- Не реже одного раза в квартал - тестовое восстановление образа ВМ и данных в изолированное окружение с проверкой работоспособности приложения; результат (дата, состав, итог) - в паспорт ВМ. Бэкап без проверенного восстановления считается нерабочим.
-
----
-
-## 10. Обслуживание
-
-### 10.01. Обновления
-
-*Обязательно.*
-
-- Хост: обновления Windows, включая Hyper-V, с плановой перезагрузкой; гость: `apt update && apt upgrade`, обновления безопасности - автоматически (07.04). Обновления ядра гостя и хоста - в регламентное окно (10.02). Драйверы интеграции Linux входят в ядро гостя, отдельная установка LIS не требуется; проверка - `lsmod | grep hv_`, `systemctl status hv-kvp-daemon`.
-
-### 10.02. Регламентные работы
-
-*Обязательно.*
-
-- Порядок: остановка приложения в госте, затем `Stop-VM` (корректное завершение), затем работы на хосте; возврат - `Start-VM` с проверкой автозапуска и доступности сервиса.
-- Перезагрузка хоста с работающей ВМ - штатный сценарий: ВМ должна подняться автоматически (06.05).
-
-### 10.03. Диски
-
-*Обязательно.*
-
-- Динамические VHDX растут по мере записи; свободное место на диске хоста контролируется, заполнение диска данных под 100 процентов не допускается - расширение выполняется заранее. TRIM: в госте периодически выполняется `sudo fstrim -av`.
-- Расширение диска: удалить активную цепочку чекпоинтов, затем `Resize-VHD` и расширение раздела и ФС в госте (`growpart`, `resize2fs`); расширение VHDX несовместимо с активной цепочкой чекпоинтов, остановка ВМ не обязательна (05.02), но гарантирует результат при сомнениях.
-- Сжатие динамического VHDX - только при остановленной ВМ штатными средствами; перед сжатием - очистка свободного места в госте и `fstrim`.
-
-### 10.04. Мониторинг
-
-*Обязательно.*
-
-- Хост: `Get-VM`, счетчики Performance Monitor (Hyper-V Hypervisor, Virtual Processor, Virtual Network Adapter), журналы событий. Гость: свободное место (`df -h`), состояние служб (`systemctl`), журналы приложения.
-- Минимальный контроль: место на дисках хоста и гостя, состояние ВМ, доступность сервиса по health-check (`web_standards.md`, раздел 10).
-
-### 10.05. Инциденты
-
-*Обязательно.*
-
-- Диагностика гостя: `journalctl`, `cloud-init status`, `systemctl --failed`; хоста: `Get-VM`, `Get-VMNetworkAdapter`, журналы Hyper-V.
-- Типовые причины: ВМ не стартует - Secure Boot, занятый или поврежденный VHDX (06.03); нет сети - перепривязка коммутатора, смена адреса (04.02, 04.04); проброс не работает - сменился адрес ВМ, остановлена `iphlpsvc` (04.03); диск хоста заполнен - рост VHDX и бэкапов (09.06, 10.03); ошибки ФС гостя - некорректное завершение, проверка с rescue-ISO или `e2fsck` с подключением диска к отдельной Linux-ВМ; повторная первичная настройка - не извлечен seed (06.08).
-
-### 10.06. Перенос ВМ
-
-*Обязательно.*
-
-- Перенос на другой диск или хост - экспортом и импортом (09.04) либо штатным перемещением хранилища ВМ; после переноса обновляется паспорт ВМ (пути, адрес, коммутатор). Для ВМ с кластеризацией задается статический MAC; для одиночного хоста не требуется.
+- At least quarterly, test-restore the VM image and data into an isolated environment and verify application operation; record the result (date, scope, outcome) in the VM passport. A backup without verified restore is considered non-working.
 
 ---
 
-## 11. Связь и версионирование
+## 10. Maintenance
 
-### 11.01. Связь с другими документами
+### 10.01. Updates
 
-| Документ | Связь |
-|----------|-------|
-| `doc/standards/project_standards.md` | Основной стандарт; настоящий документ применяется поверх него (структура, безопасность, документация) |
-| `doc/standards/web_standards.md` | Прикладной уровень на госте: модель развертывания (01.04), размещение и systemd (05), nginx (07), TLS (08), обновление и откат (10), данные и бэкап (02.07) |
-| `doc/standards/deploy_standards.md`, `deploy_lin_standards.md`, `deploy_win_standards.md` | Не применяются к веб-приложениям: предмет - установка CLI-инструмента (граница - `web_standards.md`, раздел 12.02) |
-| `doc/standards/deploy_docker_standards.md` | Применяется при модели B на госте: compose, тома, сеть, публикация портов |
-| `doc/standards/_index_standards.md` | Реестр пакета, карта маршрутизации, политика версионирования |
+*Mandatory.*
 
-### 11.02. Версионирование
+- Host: Windows updates including Hyper-V, with a planned reboot; guest: `apt update && apt upgrade`, security updates automatically (07.04). Guest and host kernel updates - in the maintenance window (10.02). Linux integration drivers are part of the guest kernel; separate LIS installation is not required; verify with `lsmod | grep hv_`, `systemctl status hv-kvp-daemon`.
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя (см. _index_standards.md).
+### 10.02. Scheduled maintenance
+
+*Mandatory.*
+
+- Order: stop the application in the guest, then `Stop-VM` (graceful shutdown), then host work; return with `Start-VM` and verify autostart and service availability.
+- Rebooting the host with a running VM is a standard scenario: the VM must start automatically (06.05).
+
+### 10.03. Disks
+
+*Mandatory.*
+
+- Dynamic VHDX files grow as data is written; monitor free space on the host disk and never let the data disk approach 100 percent - extend in advance. TRIM: periodically run `sudo fstrim -av` in the guest.
+- Disk extension: remove the active checkpoint chain, then `Resize-VHD` and extend the partition and filesystem in the guest (`growpart`, `resize2fs`); VHDX extension is incompatible with an active checkpoint chain, VM shutdown is not mandatory (05.02) but guarantees the result when in doubt.
+- Compress a dynamic VHDX only with the VM stopped, using native tools; before compression clean free space in the guest and run `fstrim`.
+
+### 10.04. Monitoring
+
+*Mandatory.*
+
+- Host: `Get-VM`, Performance Monitor counters (Hyper-V Hypervisor, Virtual Processor, Virtual Network Adapter), event logs. Guest: free space (`df -h`), service state (`systemctl`), application logs.
+- Minimum control: disk space on host and guest, VM state, service availability via health-check (`web_standards.md`, 10).
+
+### 10.05. Incidents
+
+*Mandatory.*
+
+- Guest diagnostics: `journalctl`, `cloud-init status`, `systemctl --failed`; host: `Get-VM`, `Get-VMNetworkAdapter`, Hyper-V logs.
+- Typical causes: VM does not start - Secure Boot, busy or corrupted VHDX (06.03); no network - switch rebind, address change (04.02, 04.04); forwarding broken - VM address changed, `iphlpsvc` stopped (04.03); host disk full - VHDX and backup growth (09.06, 10.03); guest filesystem errors - improper shutdown, check with a rescue ISO or `e2fsck` after attaching the disk to a separate Linux VM; repeated initial setup - seed not removed (06.08).
+
+### 10.06. VM migration
+
+*Mandatory.*
+
+- Move to another disk or host by export and import (09.04) or native VM storage migration; after the move update the VM passport (paths, address, switch). For clustered VMs set a static MAC; a single host does not need it.
+
+---
+
+## 11. Relations and versioning
+
+### 11.01. Related documents
+
+| Document | Relation |
+|----------|----------|
+| `doc/standards/project_standards.md` | Core standard; this document applies on top of it (structure, security, documentation) |
+| `doc/standards/web_standards.md` | Application level on the guest: deployment model (01.04), placement and systemd (05), nginx (07), TLS (08), update and rollback (10), data and backup (02.07) |
+| `doc/standards/deploy_standards.md`, `deploy_lin_standards.md`, `deploy_win_standards.md` | Do not apply to web applications: their subject is CLI tool installation (boundary - `web_standards.md`, 12.02) |
+| `doc/standards/deploy_docker_standards.md` | Applies to model B on the guest: compose, volumes, network, port publication |
+| `doc/standards/_index_standards.md` | Package registry, routing map, versioning policy |
+
+### 11.02. Versioning
+
+Standards package versioning is unified for all package documents. The versioning policy, registry and routing map live in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see _index_standards.md).

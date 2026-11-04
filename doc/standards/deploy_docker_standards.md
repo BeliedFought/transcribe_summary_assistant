@@ -1,190 +1,110 @@
-# Стандарт развертывания Docker-приложений. Версия 4.16.0
+# Docker Deploy Standards. Version 5.0.0
 
-Документ описывает правила и соглашения для развертывания сервисов в Docker. Является дополнением к `doc/standards/project_standards.md` и применяется поверх него. Все требования основного стандарта остаются в силе, кроме случаев, явно описанных в данном документе.
-
----
-
-## Оглавление
-
-**01. Структура и порядок развертывания:** 01.01 Файловая структура - 01.02 Тома - 01.03 Сеть - 01.04 Взаимозависимости сервисов - 01.05 Порядок добавления сервиса - 01.06 Адресное пространство Docker (daemon.json) - 01.07 Восстановление compose-контейнеров после старта Docker (рекуррентная регрессия moby)
-
-**02. Шаблон docker-compose.yml:** 02.01 Обязательные элементы - 02.02 Опциональные секции (02.02.01 environment - 02.02.06 Docker socket) - 02.03 Правила - 02.04 Именование томов - 02.05 Сеть - 02.06 Публикация портов - 02.07 Reverse proxy (доступ из интернета)
-
-**03. Файрвол (ufw):** 03.01 Правила - 03.02 Порядок настройки
-
-**04. Резервное копирование:** 04.01 Что бэкапить - 04.02 Расположение и именование архивов - 04.03 Требования к бэкапу
-
-**05. Шаблон документации сервиса:** 05.01 Обязательные секции - 05.02 Опциональные секции - 05.03 Run-based сервисы (ephemeral-инструменты)
-
-**06. Машинные оверрайды документации:** 06.01 Назначение - 06.02 Структура `override/` - 06.03 Правила - 06.04 Порядок добавления машины
-
-**07. Связь и версионирование:** 07.01 Связь с другими документами - 07.02 Версионирование
+This document defines rules and conventions for deploying services in Docker. It supplements `doc/standards/project_standards.md` and applies on top of it. All core requirements remain in force unless this document explicitly overrides them.
 
 ---
 
-## 01. Структура и порядок развертывания
+## Table of Contents
 
-### 01.01. Файловая структура
+**01. Structure and deploy order:** 01.01 File structure - 01.02 Volumes - 01.03 Network - 01.04 Service dependencies - 01.05 Service addition order - 01.06 Docker address space (daemon.json) - 01.07 Restoring compose containers after Docker start
 
-*Обязательно.*
+**02. docker-compose.yml template:** 02.01 Mandatory elements - 02.02 Optional sections (02.02.01 environment - 02.02.06 Docker socket) - 02.03 Rules - 02.04 Volume naming - 02.05 Network - 02.06 Port publication - 02.07 Reverse proxy (internet access)
 
-- Каждый сервис - отдельная папка `~/.docker/<service>/`
-- Внутри папки сервиса - `docker-compose.yml` и при необходимости подпапки с конфигурационными файлами (ключи, параметры)
-- Для веб-подсистемы веб-приложения размещение сервиса - по `web_standards.md` (раздел 06.01): `docker-compose.yml` в репозитории (`web/deploy/docker/`), а не в `~/.docker/<service>/`
+**03. Firewall (ufw):** 03.01 Rules - 03.02 Setup order
 
-### 01.02. Тома
+**04. Backup:** 04.01 What to back up - 04.02 Archive location and naming - 04.03 Backup requirements
 
-*Обязательно.*
+**05. Service documentation template:** 05.01 Mandatory sections - 05.02 Optional sections - 05.03 Run-based services (ephemeral tools)
 
-- Тома создаются автоматически при первом `docker compose up -d` - явное создание не требуется
-- Данные сервисов хранятся **только в именованных томах** - не в bind mount
-- Каждый том объявляется с явным `name:` для исключения авто-префиксов проекта (см. раздел 02.04)
-- Паттерн имени: `<service>_vol` для одного тома, `<service>_<purpose>_vol` для нескольких (например `scrutiny_config_vol`, `scrutiny_influxdb_vol`)
-- `docker compose down` останавливает и удаляет контейнер, но **не удаляет именованные тома** - данные сохраняются
-- Для полного удаления данных тома - удалять явно
-- Bind mount допускается для:
-  - **Конфигурационные файлы** (ключи, параметры): путь относительно папки сервиса `./<dir>:<container_path>:ro`, всегда только чтение (`:ro`), файлы размещаются в подпапке сервиса (`~/.docker/<service>/keys/`)
-  - **Docker socket** для управления Docker: `/var/run/docker.sock:/var/run/docker.sock` (без `:ro`)
+**06. Machine documentation overrides:** 06.01 Purpose - 06.02 `override/` structure - 06.03 Rules - 06.04 Machine addition order
 
-### 01.03. Сеть
-
-*Обязательно.*
-
-- Все контейнеры работают в одной внешней сети `docker_network`
-- Сеть создается один раз перед первым сервисом
-- Контейнеры обращаются друг к другу по `container_name` (например `postgres:5432`)
-- В каждом compose-файле сеть указывается как external
-- Адресное пространство дефолтного моста и автосетей настраивается отдельно через daemon.json (см. 01.06)
-
-### 01.04. Взаимозависимости сервисов
-
-*Обязательно.*
-
-- Если сервис зависит от другого (например, Gitea требует PostgreSQL), зависимый сервис настраивается и запускается первым
-- Порядок развертывания управляется документацией, не через `depends_on` в compose-файле
-- Подключение к зависимому сервису через `container_name` и внутренний порт (например `postgres:5432`)
-
-### 01.05. Порядок добавления сервиса
-
-*Обязательно.*
-
-1. Создать папку сервиса и при необходимости подпапки для конфигурационных файлов
-2. Создать `docker-compose.yml` по шаблону (раздел 02)
-3. Запустить контейнер (`docker compose up -d`)
-4. Определить публикацию портов и привязку к интерфейсу хоста (раздел 02.06); правила ufw для опубликованных портов Docker не создаются (раздел 03.01)
-5. Проверить работоспособность (healthcheck, curl, docker exec)
-6. При необходимости - выполнить первоначальную настройку внутри контейнера (создание пользователей, БД, загрузка данных)
-
-### 01.06. Адресное пространство Docker (daemon.json)
-
-*Обязательно.*
-
-- Дефолтный мост `docker0` и автосети (default bridge, проектные сети compose, `docker network create` без явной подсети) выводятся из диапазона `172.16.0.0/12` через `/etc/docker/daemon.json`: `bip` задает подсеть `docker0`, `default-address-pools` - пул для автосетей.
-- Выбранные блоки не пересекаются с `docker_network` (01.03), LAN сайта и диапазоном VPN.
-- Конкретные значения `bip` и `default-address-pools` зависят от диапазона VPN/LAN сайта: пример для VPN `172.16.0.0/12` - в `install/01_docker/docker.md`; примененные значения фиксируются в `override/<hostname>/_machine/network.md`.
-- Рабочая сеть `docker_network` (01.03) задается с явной подсетью вне диапазонов Docker и VPN и не зависит от `daemon.json`.
-- Тот же `/etc/docker/daemon.json` задает дефолтные лимиты драйвера логов для контейнеров без собственной секции `logging`: ключи `log-driver` и `log-opts` (`max-size`, `max-file`; раздел 02.03).
-
-### 01.07. Восстановление compose-контейнеров после старта Docker (рекуррентная регрессия moby)
-
-*Статус: регрессия закрыта upstream (фикс в v29.9.1), юнит-автоматизация снята с эксплуатации; раздел описывает диагностику и лечение при рецидиве и обязательный порядок загрузки для машин с привязкой портов к LAN-адресу.*
-
-**Регрессия (историческая справка).** Engine 29.7-29.9.0 (moby/moby#52642, moby/moby#53901): после ребута хоста или рестарта демона контейнеры, поднятые restart-manager'ом при восстановлении состояния, стартуют без network endpoint'ов:
-
-- `docker inspect <container> --format '{{json .NetworkSettings.Networks}}'` -> `{}`, `Ports` -> `{}` при корректной `HostConfig` (netmode и PortBindings на месте)
-- `docker network inspect <network>` - секция `containers` пустая; бриджи в DOWN, veth-интерфейсов на хосте нет
-- порты не публикуются (порты - следствие endpoint'а: docker-proxy + NAT), сервисы недоступны по привязанным адресам
-- в журнале dockerd по сетевым отказам ошибок нет - отказ молчаливый, контейнер при этом `Up`
-
-Закрыта upstream: PR moby/moby#53907 влит 14.10.2026, фикс включен в v29.9.1 (release notes: «Fix bridge networks failing to restore on daemon startup when their bridge is bound to a firewalld zone other than docker»); issue #53901 закрыт как completed. Ограничение: фикс описывает вариант с firewalld-зонами; на машине без firewalld (backend iptables) 17.10.2026 на 29.9.1 молчаливый пропуск endpoint воспроизвелся на plain-старте контейнера в состоянии Created - лечение то же (`--force-recreate`); при рецидиве искать апстрим-issue под вариант без firewalld.
-
-**Диагностика** - первый проверочный шаг после каждого ребута (входит в `docker-machine-runtime-audit`):
-
-```bash
-docker network inspect docker_network --format '{{range $k,$v := .Containers}}{{$v.Name}} {{end}}'
-```
-
-Пустой вывод при работающих контейнерах = endpoints потеряны.
-
-**Лечение** - пересоздание compose-контейнеров (compose-конфигурация не меняется, тома сохраняются):
-
-```bash
-cd ~/.docker/<service> && docker compose up -d --force-recreate
-```
-
-**Порядок загрузки (обязательно).** На машинах, публикующих порты на LAN-адрес по DHCP, dockerd стартует раньше появления адреса на интерфейсе: привязка портов падает (`cannot assign requested address`), контейнер зависает в Created, и restart-политика его не спасает - по документации Docker политика действует только после первого успешного старта контейнера. Обязательное условие - реальное ожидание сети до старта Docker: `NetworkManager-wait-online.service` включен (тогда `network-online.target`, от которого зависит `docker.service`, означает фактическую связность). Проверка: `systemctl is-enabled NetworkManager-wait-online.service` -> `enabled`.
-
-**Автоматизация docker-compose-restore (юнит).** Юнит пересоздавал compose-контейнеры при старте Docker как обход регрессии. На pcdc01 снят с эксплуатации 17.10.2026 после контрольного ребута на 29.9.1 (wait-online включен, собственное восстановление демона корректно - все контейнеры поднялись с endpoint'ами и портами). Юнит сохраняется только на машинах с docker <= 29.9.0 - до обновления пакета. Известные изъяны шаблона юнита (учитывать при использовании): скрипт не ждет появления LAN-адреса и всегда завершается кодом 0, поэтому провал невидим systemd (`RemainAfterExit=yes` держит юнит active); при включенном wait-online оба изъяна компенсируются.
-
-Шаблоны для машин с docker <= 29.9.0. Скрипт `~/.docker/scripts/docker-compose-restore.sh`:
-
-```bash
-#!/bin/bash
-# Восстановление compose-сервисов после старта Docker.
-# Регрессия moby 29.7-29.9: контейнеры после ребута стартуют без network endpoint'ов.
-# systemd не задает HOME - путь к каталогу сервисов указывать явно (/home/<user>/.docker).
-set -u
-SERVICES_DIR=/home/<user>/.docker
-
-for compose_dir in "$SERVICES_DIR"/*/; do
-  service=$(basename "$compose_dir")
-  compose_file="$compose_dir/docker-compose.yml"
-  [ -f "$compose_file" ] || continue
-  echo "$service: compose up -d --force-recreate"
-  if docker compose -f "$compose_file" up -d --force-recreate >/dev/null 2>&1; then
-    echo "$service: ok"
-  else
-    echo "$service: FAILED"
-  fi
-done
-
-for c in $(docker ps --format '{{.Names}}'); do
-  nets=$(docker inspect "$c" --format '{{len .NetworkSettings.Networks}}')
-  if [ "$nets" -eq 0 ]; then
-    echo "check: $c: NO NETWORK - recreate failed"
-  else
-    echo "check: $c: network ok"
-  fi
-done
-```
-
-Юнит `/etc/systemd/system/docker-compose-restore.service`:
-
-```ini
-[Unit]
-Description=Восстановление compose-контейнеров после старта Docker (регрессия moby 29.x - endpoints теряются при восстановлении после ребута)
-After=docker.service
-Requires=docker.service
-
-[Service]
-Type=oneshot
-ExecStart=/home/<user>/.docker/scripts/docker-compose-restore.sh
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Установка и включение (sudo выполняет пользователь):
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now docker-compose-restore.service
-```
-
-Проверка: `journalctl -u docker-compose-restore.service` - ожидаемые строки `<service>: ok` и `check: <service>: network ok` по каждому сервису. Окончательная верификация защиты - пустой вывод диагностики после следующего ребута.
-
-**Границы.** Юнит не пулит образы (обновление образов - отдельный шаг по разделу «Порядок применения» навыка аудита), тома не трогает и не блокирует загрузку (`Type=oneshot`, `RemainAfterExit=yes`). После обновления машины на 29.9.1+ юнит снимается (условия снятия и порядок загрузки - в начале раздела). Факт применения или снятия фиксируется в профиле машины (`<hostname>_services_summary.md`).
+**07. Relations and versioning:** 07.01 Related documents - 07.02 Versioning
 
 ---
 
-## 02. Шаблон docker-compose.yml
+## 01. Structure and deploy order
 
-### 02.01. Обязательные элементы
+### 01.01. File structure
 
-*Обязательно.*
+*Mandatory.*
 
-Каждый `docker-compose.yml` должен содержать:
+- Each service gets its own folder `~/.docker/<service>/`
+- Inside the service folder - `docker-compose.yml` and, when needed, subfolders with configuration files (keys, parameters)
+- For a web application subsystem the service placement follows `web_standards.md` (06.01): `docker-compose.yml` lives in the repository (`web/deploy/docker/`), not in `~/.docker/<service>/`
+
+### 01.02. Volumes
+
+*Mandatory.*
+
+- Volumes are created automatically on the first `docker compose up -d` - no explicit creation needed
+- Service data is stored **only in named volumes** - never in bind mounts
+- Declare every volume with an explicit `name:` to exclude project auto-prefixes (see 02.04)
+- Name pattern: `<service>_vol` for one volume, `<service>_<purpose>_vol` for several (for example `scrutiny_config_vol`, `scrutiny_influxdb_vol`)
+- `docker compose down` stops and removes the container but **does not remove named volumes** - data survives
+- To delete volume data completely, remove the volume explicitly
+- Bind mounts are allowed for:
+  - **Configuration files** (keys, parameters): path relative to the service folder `./<dir>:<container_path>:ro`, always read-only (`:ro`), files placed in a service subfolder (`~/.docker/<service>/keys/`)
+  - **Docker socket** for Docker management: `/var/run/docker.sock:/var/run/docker.sock` (without `:ro`)
+
+### 01.03. Network
+
+*Mandatory.*
+
+- All containers run on one external network `docker_network`
+- Create the network once before the first service
+- Containers address each other by `container_name` (for example `postgres:5432`)
+- In every compose file the network is declared as external
+- The default bridge and auto-network address space is configured separately via daemon.json (see 01.06)
+
+### 01.04. Service dependencies
+
+*Mandatory.*
+
+- If a service depends on another (for example Gitea needs PostgreSQL), configure and start the dependency first
+- Deploy order is governed by documentation, not by `depends_on` in the compose file
+- Connect to a dependency through `container_name` and the internal port (for example `postgres:5432`)
+
+### 01.05. Service addition order
+
+*Mandatory.*
+
+1. Create the service folder and, when needed, subfolders for configuration files
+2. Create `docker-compose.yml` from the template (section 02)
+3. Start the container (`docker compose up -d`)
+4. Decide port publication and host interface binding (02.06); do not create ufw rules for published Docker ports (03.01)
+5. Verify operation (healthcheck, curl, docker exec)
+6. If needed, perform initial setup inside the container (create users, databases, load data)
+
+### 01.06. Docker address space (daemon.json)
+
+*Mandatory.*
+
+- Move the default bridge `docker0` and auto-networks (default bridge, compose project networks, `docker network create` without an explicit subnet) out of `172.16.0.0/12` via `/etc/docker/daemon.json`: `bip` sets the `docker0` subnet, `default-address-pools` sets the pool for auto-networks.
+- Chosen blocks must not overlap `docker_network` (01.03), the site LAN or the VPN range.
+- Concrete `bip` and `default-address-pools` values depend on the site VPN/LAN range: an example for VPN `172.16.0.0/12` is in `install/01_docker/docker.md`; applied values are recorded in `override/<hostname>/_machine/network.md`.
+- The working network `docker_network` (01.03) is created with an explicit subnet outside Docker and VPN ranges and does not depend on `daemon.json`.
+- The same `/etc/docker/daemon.json` sets default log driver limits for containers without their own `logging` section: keys `log-driver` and `log-opts` (`max-size`, `max-file`; 02.03).
+
+### 01.07. Restoring compose containers after Docker start
+
+*Mandatory to diagnose after every Docker restart.*
+
+- **Symptom** - after a Docker restart, running containers have no network endpoints: `.NetworkSettings.Networks` and `Ports` are empty, the network `containers` section is empty, bridges are DOWN and no veth interfaces exist; services are unreachable although containers report `Up`.
+- **Cause class** - an upstream Docker regression on affected versions, fixed in newer releases; do not look for application or compose configuration errors first.
+- **Action** - recreate compose containers without configuration changes (volumes persist): `cd ~/.docker/<service> && docker compose up -d --force-recreate`.
+- **Diagnostics** - `docker network inspect <network>` (empty `containers` section) and `systemctl is-enabled docker-compose-restore.service` confirm the state.
+- **Restart ordering unit** - on affected Docker versions only, add a restore systemd unit (`After=docker.service`, `Requires=docker.service`) that recreates compose containers after Docker starts; remove it after the Docker upgrade.
+- **DHCP LAN port bindings** - on any Docker version, a host publishing ports on a DHCP LAN address requires `NetworkManager-wait-online.service` to be enabled before `docker.service` starts; this is a boot-order requirement independent of the regression.
+
+---
+
+## 02. docker-compose.yml template
+
+### 02.01. Mandatory elements
+
+*Mandatory.*
+
+Every `docker-compose.yml` must contain:
 
 ```yaml
 services:
@@ -213,15 +133,15 @@ networks:
     external: true
 ```
 
-Секция `ports` включается в шаблон только при необходимости публикации портов (раздел 02.06); для сервиса, доступного только другим контейнерам `docker_network`, секция опускается. Привязка `<host_ip>` определяется правилами раздела 02.06.
+Include the `ports` section only when port publication is needed (02.06); omit it for a service reachable only by other `docker_network` containers. The `<host_ip>` binding follows 02.06.
 
-### 02.02. Опциональные секции
+### 02.02. Optional sections
 
-*Опционально - по потребности сервиса.*
+*Optional - as the service requires.*
 
-#### 02.02.01. environment - переменные окружения
+#### 02.02.01. environment - environment variables
 
-Используется для передачи конфигурации сервису (учетные данные, настройки БД, параметры запуска).
+Used to pass configuration to the service (credentials, database settings, launch parameters).
 
 ```yaml
 environment:
@@ -230,15 +150,15 @@ environment:
   GITEA__database__HOST: postgres:5432
 ```
 
-- В документации допускаются дефолтные значения паролей для удобства копирования, с пометкой о смене для продакшена
-- Для продакшена - секреты выносить в `.env` файл с подстановкой `${VARIABLE}`
-- Файл `.env` не коммитируется в репозиторий
-- Файл `.env.example` - шаблон со списком всех переменных `${VARIABLE}`, используемых в compose-файлах сервиса, без значений. Ведется рядом с `.env`, обновляется синхронно при добавлении или удалении переменных, коммитируется в репозиторий
-- Для подключения к другому сервису использовать `container_name:port` (например `postgres:5432`)
+- Documentation may show default password values for copy-paste convenience, marked as requiring a change for production
+- For production, move secrets to a `.env` file with `${VARIABLE}` substitution
+- `.env` is not committed to the repository
+- `.env.example` is a template listing all `${VARIABLE}` entries used in the service compose files, without values. Keep it next to `.env`, update it in sync when variables are added or removed, and commit it to the repository
+- To connect to another service use `container_name:port` (for example `postgres:5432`)
 
-#### 02.02.02. Несколько портов
+#### 02.02.02. Multiple ports
 
-Если сервис слушает несколько портов (HTTP + SSH, REST + gRPC, TCP + UDP), каждый описывается отдельной строкой:
+If a service listens on several ports (HTTP + SSH, REST + gRPC, TCP + UDP), describe each on a separate line:
 
 ```yaml
 ports:
@@ -248,11 +168,11 @@ ports:
   - "6881:6881/udp"
 ```
 
-Привязка `<host_ip>` (префикс перед `<host_port>`) для каждого публикуемого порта определяется по правилам раздела 02.06.
+The `<host_ip>` binding (prefix before `<host_port>`) for each published port follows 02.06.
 
-#### 02.02.03. Несколько томов
+#### 02.02.03. Multiple volumes
 
-Для сервисов с несколькими томами - уточнять назначение через суффикс:
+For services with several volumes, clarify purpose with a suffix:
 
 ```yaml
 volumes:
@@ -266,12 +186,12 @@ volumes:
     name: sftp_vol
 ```
 
-- Именованные тома - для данных сервиса
-- Bind mount (`./`) - только для конфигурационных файлов, всегда `:ro`
+- Named volumes - for service data
+- Bind mounts (`./`) - only for configuration files, always `:ro`
 
-#### 02.02.04. deploy - GPU-ускорение
+#### 02.02.04. deploy - GPU acceleration
 
-Для сервисов, использующих GPU (например, LLM):
+For GPU services (for example LLM):
 
 ```yaml
 deploy:
@@ -283,11 +203,11 @@ deploy:
           capabilities: [gpu]
 ```
 
-- Требует предустановленного `nvidia-container-toolkit` на хосте
+- Requires `nvidia-container-toolkit` preinstalled on the host
 
-#### 02.02.05. cap_add и devices - доступ к оборудованию
+#### 02.02.05. cap_add and devices - hardware access
 
-Для сервисов, которым требуется прямой доступ к устройствам (например, чтение SMART-данных дисков):
+For services requiring direct device access (for example reading disk SMART data):
 
 ```yaml
 cap_add:
@@ -296,241 +216,241 @@ devices:
   - /dev/nvme0n1:/dev/nvme0n1
 ```
 
-- `cap_add` - дополнительные возможности Linux (capabilities), недоступные в контейнере по умолчанию
-- `devices` - проброс блочных устройств хоста в контейнер
+- `cap_add` - additional Linux capabilities unavailable to the container by default
+- `devices` - pass host block devices into the container
 
-#### 02.02.06. Docker socket - управление Docker
+#### 02.02.06. Docker socket - Docker management
 
-Для сервисов, управляющих Docker (мониторинг, оркестрация):
+For services managing Docker (monitoring, orchestration):
 
 ```yaml
 volumes:
   - /var/run/docker.sock:/var/run/docker.sock
 ```
 
-- Docker socket предоставляет полный доступ к Docker API на хосте
+- The Docker socket grants full access to the Docker API on the host
 
-### 02.03. Правила
+### 02.03. Rules
 
-*Обязательно.*
+*Mandatory.*
 
-- **container_name** - задавать явно. Без этого Docker генерирует имя с префиксом папки
-- **restart: unless-stopped** - стандартная политика перезапуска для всех сервисов
-- **image** - указывать тег версии (`postgres:18`) или `:latest` если автообновление приемлемо. Не использовать образы без тега - явно указывать `:latest`. Для кастомных образов, собираемых из Dockerfile, указывать `build:` вместе с `image:` - имя и тег собираемого образа (например `image: superset-custom:latest` при `build: .`), чтобы образ получал явное имя вместо безымянного хеша
-- **logging** - лимиты драйвера логов `json-file`: `max-size` (например `10m`) и `max-file` (например `3`); без лимитов логи контейнера растут без границы, глобальная альтернатива для всех сервисов сразу - `log-driver` и `log-opts` в `/etc/docker/daemon.json` (раздел 01.06)
-- **ports** - формат `"[<host_ip>:]<host_port>:<container_port>"` в кавычках; привязку `<host_ip>` задавать по правилам раздела 02.06. Для UDP добавлять суффикс: `"6881:6881/udp"`
-- **volumes** - только именованные тома для данных. Bind mount допускается для конфигурационных файлов с `:ro` и для Docker socket без `:ro`
-- **networks** - все сервисы подключаются к внешней сети `docker_network`
-- Не использовать директиву `version` в docker-compose.yml (устарела с Compose v2)
+- **container_name** - set explicitly. Otherwise Docker generates a name with the folder prefix
+- **restart: unless-stopped** - the standard restart policy for all services
+- **image** - specify a version tag (`postgres:18`) or `:latest` when auto-update is acceptable. Never use untagged images - state `:latest` explicitly. For custom images built from a Dockerfile, specify `build:` together with `image:` - the name and tag of the built image (for example `image: superset-custom:latest` with `build: .`), so the image gets an explicit name instead of an anonymous hash
+- **logging** - `json-file` driver limits: `max-size` (for example `10m`) and `max-file` (for example `3`); without limits container logs grow unbounded; the global alternative for all services is `log-driver` and `log-opts` in `/etc/docker/daemon.json` (01.06)
+- **ports** - format `"[<host_ip>:]<host_port>:<container_port>"` in quotes; set the `<host_ip>` binding per 02.06. For UDP add a suffix: `"6881:6881/udp"`
+- **volumes** - named volumes only for data. Bind mounts are allowed for configuration files with `:ro` and for the Docker socket without `:ro`
+- **networks** - all services connect to the external network `docker_network`
+- Do not use the `version` directive in docker-compose.yml (obsolete since Compose v2)
 
-### 02.04. Именование томов
+### 02.04. Volume naming
 
-*Обязательно.*
+*Mandatory.*
 
-- Именованные тома задаются с явным `name:` для исключения авто-префиксов проекта
-- Паттерн имени: `<service>_vol` для одного тома, `<service>_<purpose>_vol` для нескольких
-- Без `name:` Docker добавит префикс имени папки (например `postgres_postgres_vol`)
+- Named volumes are declared with an explicit `name:` to exclude project auto-prefixes
+- Name pattern: `<service>_vol` for one volume, `<service>_<purpose>_vol` for several
+- Without `name:` Docker prepends the folder name (for example `postgres_postgres_vol`)
 
-### 02.05. Сеть
+### 02.05. Network
 
-*Обязательно.*
+*Mandatory.*
 
-Канон - раздел 01.03: одна внешняя сеть `docker_network`, создается один раз перед первым сервисом; в каждом compose-файле сеть указывается как external; контейнеры обращаются друг к другу по `container_name` (например `postgres:5432`).
+Canon - 01.03: one external network `docker_network`, created once before the first service; every compose file declares it as external; containers address each other by `container_name` (for example `postgres:5432`).
 
-### 02.06. Публикация портов
+### 02.06. Port publication
 
-*Обязательно при публикации портов.*
+*Mandatory when publishing ports.*
 
-Публиковать порты только при необходимости доступа к сервису извне `docker_network` - для межсервисного трафика публикация не нужна, контейнеры общаются по `container_name` (раздел 01.03).
+Publish ports only when the service must be reachable from outside `docker_network` - inter-service traffic needs no publication, containers communicate by `container_name` (01.03).
 
-Опубликованные порты Docker **не регулируются ufw**: демон вставляет собственные правила iptables (`nat/DOCKER`, `FORWARD`) до цепочек ufw, поэтому порт, опубликованный без привязки, доступен из LAN независимо от правил файрвола. Контроль доступа выполняется привязкой к интерфейсу хоста:
+Docker published ports **are not governed by ufw**: the daemon inserts its own iptables rules (`nat/DOCKER`, `FORWARD`) before ufw chains, so a port published without binding is reachable from the LAN regardless of firewall rules. Access control is done by binding to a host interface:
 
-| Кого пускаем | Формат | ufw |
-|--------------|--------|-----|
-| Только другие контейнеры | `ports` не публикуются | Не требуется |
-| Только сам хост | `"127.0.0.1:<host_port>:<container_port>"` | Не требуется |
-| Из LAN | `"<LAN_IP>:<host_port>:<container_port>"` - осознанное решение; доступ регулирует сам сервис (аутентификация) или VPN | Правило не действует |
-| Из интернета | через reverse proxy (раздел 02.07): бэкенд порты не публикует, прокси публикует `80/443` | Не требуется |
+| Who is allowed | Format | ufw |
+|----------------|--------|-----|
+| Only other containers | `ports` not published | Not needed |
+| Only the host itself | `"127.0.0.1:<host_port>:<container_port>"` | Not needed |
+| From the LAN | `"<LAN_IP>:<host_port>:<container_port>"` - a deliberate decision; access is governed by the service itself (authentication) or VPN | Rule has no effect |
+| From the internet | via reverse proxy (02.07): backends publish no ports, the proxy publishes `80/443` | Not needed |
 
-Если для опубликованного порта нужна фильтрация по источнику, это возможно через утилиту `ufw-docker` (правила в цепочке `DOCKER-USER`). Такой вариант опционален: применяется для отдельных задач по явному запросу пользователя и не входит в базовую настройку.
+If source filtering is required for a published port, use the `ufw-docker` utility (rules in the `DOCKER-USER` chain). This option is optional: apply it for individual tasks on explicit user request; it is not part of the base setup.
 
-Привязка к `<LAN_IP>` открывает порт только на этом адресе - `localhost` самой машины не отвечает, так как порт не слушает loopback. Для веб-интерфейса, используемого и с других машин, и с самой машины (дашборд, admin-панель), в `ports` добавляют обе привязки - LAN (`<LAN_IP>:<host_port>:<container_port>`) и loopback (`127.0.0.1:<host_port>:<container_port>`, строка «Только сам хост» таблицы выше). Проверку доступности после публикации выполнять по обоим адресам: отсутствие loopback-привязки внешне выглядит как отказ сервиса - из LAN порт работает, а по `localhost` подключение отклоняется.
+Binding to `<LAN_IP>` opens the port only on that address - the machine's own `localhost` does not answer because the port does not listen on loopback. For a web interface used both from other machines and from the machine itself (dashboard, admin panel), add both bindings to `ports` - LAN (`<LAN_IP>:<host_port>:<container_port>`) and loopback (`127.0.0.1:<host_port>:<container_port>`, the "Only the host itself" row above). After publication verify reachability on both addresses: a missing loopback binding looks like a service failure from the outside - the port works from the LAN while `localhost` connections are refused.
 
-### 02.07. Reverse proxy (доступ из интернета)
+### 02.07. Reverse proxy (internet access)
 
-*Опционально - при доступе к сервису из интернета.*
+*Optional - when the service is reachable from the internet.*
 
-Канонический путь публикации Docker-сервиса в интернет - reverse proxy как отдельный сервис:
+The canonical way to publish a Docker service to the internet is a reverse proxy as a separate service:
 
-- Прокси (caddy, nginx или аналог) разворачивается по общему шаблону (раздел 02) в `docker_network`
-- Прокси публикует порты `80` и `443` без привязки `<host_ip>` - единственный штатный случай публикации на все интерфейсы
-- Бэкенд-сервисы порты не публикуют (строка «Только другие контейнеры» таблицы 02.06); прокси обращается к ним по `container_name` и внутреннему порту (например `gitea:3000`)
-- TLS терминируется на прокси: автоматические сертификаты ACME (Let's Encrypt) либо файлы сертификатов через bind mount `:ro`
-- Маршрутизация запросов - по доменному имени; публичный IP, DNS-записи и проброс портов на роутере - вне области стандарта, фактические значения фиксируются в оверрайде машины (раздел 06)
+- The proxy (caddy, nginx or similar) is deployed by the common template (section 02) on `docker_network`
+- The proxy publishes ports `80` and `443` without a `<host_ip>` binding - the only standard case of publication on all interfaces
+- Backend services publish no ports ("Only other containers" row of 02.06); the proxy reaches them by `container_name` and internal port (for example `gitea:3000`)
+- TLS terminates on the proxy: automatic ACME certificates (Let's Encrypt) or certificate files via a `:ro` bind mount
+- Request routing is by domain name; public IP, DNS records and router port forwarding are outside the standard, actual values are recorded in the machine override (section 06)
 
-Прямая публикация в интернет без прокси (`"0.0.0.0:<host_port>:<container_port>"` либо формат без `<host_ip>`) - исключение по явному решению пользователя: сервис обязан самостоятельно обеспечивать TLS и аутентификацию, в документации сервиса указать обоснование.
-
----
-
-## 03. Файрвол (ufw)
-
-### 03.01. Правила
-
-*Обязательно.*
-
-- Использовать `ufw` в качестве файрвола для сервисов самого хоста
-- SSH (порт 22) - разрешать только из доверенной подсети
-- Порты сервисов хоста - открывать индивидуально, по одному правилу на сервис
-- Каждое правило сопровождать комментарием с названием сервиса
-- Если сервис использует несколько портов - каждый порт описывается отдельным правилом с комментарием
-- Для опубликованных портов Docker правила `ufw` не создавать: демон вставляет свои цепочки iptables до цепочек ufw, правила не действуют (раздел 02.06). Доступ определяется привязкой порта к интерфейсу хоста
-
-### 03.02. Порядок настройки
-
-*Обязательно.*
-
-Файрвол настраивается на базовом этапе (SSH) и для сервисов самого хоста. При добавлении сервиса в Docker правила ufw не создаются - публикация и привязка портов определяются разделом 02.06.
+Direct internet publication without a proxy (`"0.0.0.0:<host_port>:<container_port>"` or a format without `<host_ip>`) is an exception by explicit user decision: the service must provide TLS and authentication itself, and the service documentation must state the rationale.
 
 ---
 
-## 04. Резервное копирование
+## 03. Firewall (ufw)
 
-### 04.01. Что бэкапить
+### 03.01. Rules
 
-*Обязательно.*
+*Mandatory.*
 
-- Папка `~/.docker/` - все compose-файлы и конфигурации
-- Все именованные тома Docker
-- Логи контейнеров (`json-file`) в бэкап не входят: рост ограничен лимитами `logging` в compose (раздел 02.03) либо дефолтом daemon.json (раздел 01.06)
+- Use `ufw` as the firewall for host services
+- SSH (port 22) - allow only from the trusted subnet
+- Host service ports - open individually, one rule per service
+- Add a comment with the service name to every rule
+- If a service uses several ports, describe each port with a separate commented rule
+- Do not create `ufw` rules for published Docker ports: the daemon inserts its own iptables chains before ufw chains, so the rules have no effect (02.06). Access is determined by the port binding to the host interface
 
-### 04.02. Расположение и именование архивов
+### 03.02. Setup order
 
-*Обязательно.*
+*Mandatory.*
 
-- Архивы размещаются в `~/backup/docker/`
-- Архивы compose-файлов: `compose_YYYYMMDD_HHMMSS.tar.gz`
-- Архивы томов: `<volume_name>_YYYYMMDD.tar.gz`
-
-### 04.03. Требования к бэкапу
-
-*Обязательно.*
-
-- Для томов с активными контейнерами данные могут быть неконсистентны
-- Для СУБД (PostgreSQL и аналоги) использовать дамп (`pg_dump`) перед бэкапом тома
-- При восстановлении тома - сначала создать том, затем распаковать архив в него
+The firewall is configured at the base stage (SSH) and for host services. When adding a Docker service, no ufw rules are created - port publication and binding follow 02.06.
 
 ---
 
-## 05. Шаблон документации сервиса
+## 04. Backup
 
-Каждый сервис описывается в отдельном файле `<install_dir>/<service>.md`. Файлы следуют единой структуре.
+### 04.01. What to back up
 
-Расположение файлов по доменам:
-- `install/02_apps_main/` - основные сервисы и приложения
-- `install/03_apps_analytics/` - сервисы аналитического стека (БД, хранилища, инструменты обработки данных)
+*Mandatory.*
 
-Документы в обеих папках подпадают под единый шаблон (разделы 05.01-05.03).
+- The `~/.docker/` folder - all compose files and configurations
+- All named Docker volumes
+- Container logs (`json-file`) are not backed up: growth is limited by `logging` limits in compose (02.03) or the daemon.json default (01.06)
 
-### 05.01. Обязательные секции
+### 04.02. Archive location and naming
 
-*Обязательно.*
+*Mandatory.*
 
-1. **Заголовок** (`# <service>`) + краткое описание (1-2 предложения, указать порты)
-2. **Установка** - создание папки + `docker-compose.yml` через heredoc (`cat > docker-compose.yml << 'EOF'`)
-3. **Расположение** - пути на хосте:
-   - Файлы Compose: `~/.docker/<service>/`
-   - Том(а): `/var/lib/docker/volumes/<volume_name>/_data`
-4. **Управление** - 5 команд: запуск (`up -d`), остановка (`down`), статус (`ps`), логи (`logs -f`), обновление (`pull` + `up -d`). Для сервисов со сборкой из Dockerfile (`build:`) обновление - `build --pull` + `up -d`
-5. **Файрвол** - «Не требуется»: опубликованные порты Docker ufw не регулирует (раздел 02.06). Указать фактическую привязку каждого порта - `127.0.0.1`, LAN-IP, `80/443` reverse proxy (раздел 02.07) или отсутствие публикации; для LAN-привязки пояснить, чем регулируется доступ (аутентификация сервиса, VPN)
-6. **Проверка** - healthcheck-команды (`curl`, `docker exec`, `docker inspect`)
+- Archives live in `~/backup/docker/`
+- Compose file archives: `compose_YYYYMMDD_HHMMSS.tar.gz`
+- Volume archives: `<volume_name>_YYYYMMDD.tar.gz`
 
-### 05.02. Опциональные секции
+### 04.03. Backup requirements
 
-*Опционально - по необходимости.*
+*Mandatory.*
 
-Добавляются перед «Установка» или после «Файрвол» по необходимости:
-
-- **Подготовка** (перед «Установка») - предварительные шаги: установка пакетов, создание БД, генерация ключей
-- **Базовая настройка** (после «Файрвол») - обязательная первичная конфигурация после запуска: создание учетных записей, подключение клиентов, загрузка обязательных данных
-- **Конфигурация** (после "Базовая настройка") - опциональные и альтернативные конфигурации сервиса: тюнинг производительности, расширенные опции. Не относится к обязательной первичной настройке
-
-Порядок секций: `Подготовка` -> `Установка` -> `Расположение` -> `Управление` -> `Файрвол` -> `Базовая настройка` -> `Конфигурация` -> `Проверка`
-
-**Корневой уровень (`##`):** на корневом уровне документа допускаются **только** перечисленные выше секции (`Подготовка`, `Установка`, `Расположение`, `Управление`, `Файрвол`, `Базовая настройка`, `Конфигурация`, `Проверка`). Никаких других секций на уровне `##` быть не должно. Любой дополнительный материал - подразделы уровнем ниже (`###` и глубже) внутри одной из стандартных секций.
-
-### 05.03. Run-based сервисы (ephemeral-инструменты)
-
-*Опционально - для ephemeral-инструментов без постоянного сервиса и compose-файла.*
-
-Для инструментов, запускаемых как ephemeral-контейнер через `docker run --rm` без постоянного сервиса и compose-файла (например dbt), разделы 05.01 адаптируются:
-
-- **Установка** - `docker pull <image>:<tag>` (без compose-файла)
-- **Расположение** - пути конфигов и файлов проекта (профили, монтируемая директория); именованный том Docker отсутствует - это указать явно
-- **Управление** - команды работы с образом и запуска: `pull`, `run`, `--version`, `rmi` (вместо `up`/`down`/`ps`/`logs`)
-- **Файрвол** - «Не требуется»: порты не публикуются, контейнер работает в `docker_network` и обращается к зависимостям по `container_name`
-
-Имена корневых секций и их порядок остаются стандартными (05.01, 05.02).
+- Data in volumes of active containers may be inconsistent
+- For DBMS (PostgreSQL and similar) take a dump (`pg_dump`) before backing up the volume
+- When restoring a volume, create the volume first, then unpack the archive into it
 
 ---
 
-## 06. Машинные оверрайды документации (`override/`)
+## 05. Service documentation template
 
-*Опционально - для репозиториев документации Docker, где базовые инструкции универсальны, а отклонения зависят от хоста.*
+Each service is described in a separate file `<install_dir>/<service>.md`. Files follow one structure.
 
-### 06.01. Назначение
+File locations by domain:
+- `install/02_apps_main/` - main services and applications
+- `install/03_apps_analytics/` - analytics stack services (databases, storage, data processing tools)
 
-*Обязательно при применении машинных оверрайдов.*
+Documents in both folders follow the same template (05.01-05.03).
 
-- `install/` (или эквивалентный каталог базовых документов) - **универсальная база**: команды и параметры, общие для любой машины
-- `override/<hostname>/` - **готовые к запуску переопределения** под конкретный хост: не абстрактное описание отличий, а конкретная замена (что -> на что, где, как применить)
-- Секреты (пароли, токены, ключи) в `override/` не хранить - только в `.env` / секретах целевой машины
+### 05.01. Mandatory sections
 
-### 06.02. Структура `override/`
+*Mandatory.*
 
-*Обязательно при применении машинных оверрайдов.*
+1. **Название** (`# <service>`) + краткое описание (1-2 sentences, state ports)
+2. **Установка** - folder creation + `docker-compose.yml` via heredoc (`cat > docker-compose.yml << 'EOF'`)
+3. **Расположение** - host paths:
+   - Compose files: `~/.docker/<service>/`
+   - Volume(s): `/var/lib/docker/volumes/<volume_name>/_data`
+4. **Управление** - 5 commands: start (`up -d`), stop (`down`), status (`ps`), logs (`logs -f`), update (`pull` + `up -d`). For services built from a Dockerfile (`build:`), update is `build --pull` + `up -d`
+5. **Файрвол** - "Not needed": ufw does not govern published Docker ports (02.06). State the actual binding of each port - `127.0.0.1`, LAN IP, `80/443` reverse proxy (02.07) or no publication; for a LAN binding explain what governs access (service authentication, VPN)
+6. **Проверка** - healthcheck commands (`curl`, `docker exec`, `docker inspect`)
+
+### 05.02. Optional sections
+
+*Optional - as needed.*
+
+Add before "Установка" or after "Файрвол" as needed:
+
+- **Подготовка** (before "Установка") - preliminary steps: package installation, database creation, key generation
+- **Базовая настройка** (after "Файрвол") - mandatory initial configuration after launch: account creation, client connection, loading required data
+- **Конфигурация** (after "Базовая настройка") - optional and alternative service configurations: performance tuning, advanced options. Not part of mandatory initial setup
+
+Section order: `Подготовка` -> `Установка` -> `Расположение` -> `Управление` -> `Файрвол` -> `Базовая настройка` -> `Конфигурация` -> `Проверка`
+
+**Root level (`##`):** only the sections listed above are allowed at the document root (`Preparation`, `Installation`, `Location`, `Management`, `Firewall`, `Base setup`, `Configuration`, `Verification`). No other sections may exist at `##` level. Put any additional material in lower-level subsections (`###` and deeper) inside one of the standard sections.
+
+### 05.03. Run-based services (ephemeral tools)
+
+*Optional - for ephemeral tools without a permanent service and compose file.*
+
+For tools run as an ephemeral container via `docker run --rm` without a permanent service and compose file (for example dbt), adapt 05.01:
+
+- **Installation** - `docker pull <image>:<tag>` (no compose file)
+- **Location** - config and project file paths (profiles, mounted directory); there is no named Docker volume - state this explicitly
+- **Management** - image and run commands: `pull`, `run`, `--version`, `rmi` (instead of `up`/`down`/`ps`/`logs`)
+- **Firewall** - "Not needed": ports are not published, the container runs in `docker_network` and reaches dependencies by `container_name`
+
+Root section names and their order stay standard (05.01, 05.02).
+
+---
+
+## 06. Machine documentation overrides (`override/`)
+
+*Optional - for Docker documentation repositories where base instructions are universal and deviations depend on the host.*
+
+### 06.01. Purpose
+
+*Mandatory when machine overrides are used.*
+
+- `install/` (or an equivalent base document directory) - the **universal base**: commands and parameters common to any machine
+- `override/<hostname>/` - **ready-to-run overrides** for a specific host: not an abstract description of differences but a concrete replacement (what -> with what, where, how to apply)
+- Do not store secrets (passwords, tokens, keys) in `override/` - only in `.env` / secrets of the target machine
+
+### 06.02. `override/` structure
+
+*Mandatory when machine overrides are used.*
 
 ```
 override/
-└── <hostname>/                         # short hostname (`hostname -s`), нижний регистр
-    ├── <hostname>_services_summary.md  # профиль машины и сводная таблица сервисов
-    ├── _machine/                       # темы без оригинала в install/ (gpu, network и др.)
+└── <hostname>/                         # short hostname (`hostname -s`), lowercase
+    ├── <hostname>_services_summary.md  # machine profile and service summary table
+    ├── _machine/                       # topics without an original in install/ (gpu, network, etc.)
     │   └── *.md
-    └── <path_mirrored_from_install/>   # только файлы с реальными отклонениями
+    └── <path_mirrored_from_install/>   # only files with real deviations
         └── <service>.md
 ```
 
-### 06.03. Правила
+### 06.03. Rules
 
-*Обязательно при применении машинных оверрайдов.*
+*Mandatory when machine overrides are used.*
 
-1. **Одна папка на машину.** Имя = short hostname в нижнем регистре.
-2. **Зеркало базы.** Путь оверрайда повторяет путь базового документа: `install/02_apps_main/postgres.md` -> `override/<hostname>/02_apps_main/postgres.md`. Создавать только файлы с отклонениями.
-3. **Готовые команды.** В документе оверрайда - копируемые bash-блоки замены/применения (sed, перезапись файла, `docker compose up -d` и т.п.), плюс ссылка на базовый документ из `install/`.
-4. **Без базового оригинала.** Машинные темы, которых нет в `install/`, - только в `override/<hostname>/_machine/`.
-5. **Профиль машины.** `<hostname>_services_summary.md` - железо/сеть/Docker-профиль и сводная таблица сервисов этой машины; перед работой агент определяет хост (`hostname -s`) и читает профиль.
-6. **Документация на русском**; команды - готовыми блоками.
-7. **Веб-адреса в профиле машины.** В сводной таблице сервисов `<hostname>_services_summary.md` для каждого сервиса с публикуемым HTTP/HTTPS-портом, доступным из браузера (веб-интерфейс, дашборд, REST UI), указывается конкретный адрес подключения `http(s)://<IP>:<port>` - с реальным LAN-IP машины и подпутем при необходимости (например `/dashboard`); для сервисов за reverse proxy - домен `https://<domain>` (раздел 02.07). Для сервисов без публикуемого веб-порта (БД без UI, Redis, run-based, SSH-only) - не указывается.
+1. **One folder per machine.** Name = short hostname in lowercase.
+2. **Mirror of the base.** The override path repeats the base document path: `install/02_apps_main/postgres.md` -> `override/<hostname>/02_apps_main/postgres.md`. Create only files with deviations.
+3. **Ready commands.** The override document contains copyable bash blocks for replacement/application (sed, file rewrite, `docker compose up -d` and similar), plus a link to the base document in `install/`.
+4. **No base original.** Machine topics absent from `install/` go only to `override/<hostname>/_machine/`.
+5. **Machine profile.** `<hostname>_services_summary.md` - hardware/network/Docker profile and the service summary table for this machine; before work the agent determines the host (`hostname -s`) and reads the profile.
+6. **Documentation in Russian**; commands as ready-to-run blocks.
+7. **Web addresses in the machine profile.** In the service summary table `<hostname>_services_summary.md`, for every service with a published HTTP/HTTPS port reachable from a browser (web interface, dashboard, REST UI), state the concrete connection address `http(s)://<IP>:<port>` - with the real machine LAN IP and a subpath when needed (for example `/dashboard`); for services behind a reverse proxy - the domain `https://<domain>` (02.07). Do not state an address for services without a published web port (DB without UI, Redis, run-based, SSH-only).
 
-### 06.04. Порядок добавления машины
+### 06.04. Machine addition order
 
-*Обязательно при применении машинных оверрайдов.*
+*Mandatory when machine overrides are used.*
 
-1. Создать `override/<hostname>/`.
-2. Создать `<hostname>_services_summary.md` (собрать факты командами хоста: `hostname -s`, `uname -r`, `lscpu`, `lspci`, `free -h`, `lsblk`, `ip`, `docker ps`, `docker volume ls` и при необходимости GPU).
-3. Для каждого отклонения от `install/` - зеркальный файл оверрайда.
-4. Темы без базы - в `_machine/`.
+1. Create `override/<hostname>/`.
+2. Create `<hostname>_services_summary.md` (collect facts with host commands: `hostname -s`, `uname -r`, `lscpu`, `lspci`, `free -h`, `lsblk`, `ip`, `docker ps`, `docker volume ls` and GPU commands when needed).
+3. For each deviation from `install/` - a mirrored override file.
+4. Topics without a base - in `_machine/`.
 
 ---
 
-## 07. Связь и версионирование
+## 07. Relations and versioning
 
-### 07.01. Связь с другими документами
+### 07.01. Related documents
 
-| Документ | Связь |
-|----------|-------|
-| `doc/standards/project_standards.md` | Основной стандарт; настоящий документ применяется поверх него (структура репозитория, безопасность, документация) |
-| `install/01_docker/docker.md`, `override/<hostname>/` | Целевые документы репозитория Docker-документации, оформляемые по разделам 02, 05 и 06 настоящего стандарта |
+| Document | Relation |
+|----------|----------|
+| `doc/standards/project_standards.md` | Core standard; this document applies on top of it (repository structure, security, documentation) |
+| `install/01_docker/docker.md`, `override/<hostname>/` | Target documents of the Docker documentation repository, formatted by sections 02, 05 and 06 of this standard |
 
-### 07.02. Версионирование
+### 07.02. Versioning
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя (см. _index_standards.md).
+Standards package versioning is unified for all package documents. The versioning policy, registry and routing map live in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see _index_standards.md).

@@ -1,241 +1,241 @@
-# Человеческие тексты: жанры, стили и словари. Версия 4.16.0
+# Human Text Standards. Version 5.0.0
 
-Канон текстов для человека, которые пишет AI-агент: реестр типов документов, матрица стилей речи, методика написания и самопроверки, состав словарей и механизм репо-оверрайдов. Документ - дополнение к `project_standards.md` и применяется поверх него. Порядок принятия решений при отсутствии или неоднозначности нормы - `project_standards.md`, раздел 07.06.
+Canon for human-facing texts written by an AI agent: the registry of document types, the speech style matrix, the writing and self-check method, the composition of the dictionaries, and the repo override mechanism. This document supplements `project_standards.md` and applies on top of it. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 
-Микро-уровень текста (язык, буква е без диакритики, дефис вместо тире, нейминг, плейсхолдеры) канонизирован в `project_standards.md`, раздел 04.03. Этот документ задает уровень документа и речи: жанр, структура, стиль. Правила раздела 04.03 действуют всегда и не переопределяются этим документом.
-
----
-
-## Оглавление
-
-**01. Область действия и термины:** 01.01 Область действия - 01.02 Граница с разделом 04.03 - 01.03 Термины
-
-**02. Реестр типов документов:** 02.01 Правило выбора жанра - 02.02 Инструкция пользователя - 02.03 Функциональные требования - 02.04 Деловое сообщение - 02.05 Тексты интерфейса - 02.06 Регламент (политика) - 02.07 Жанры вне реестра
-
-**03. Матрица стилей:** 03.01 Оси и перечень стилей - 03.02 Параметры стиля - 03.03 Разговорный легкий - 03.04 Разговорный строгий - 03.05 Деловой легкий - 03.06 Деловой строгий - 03.07 Технический легкий - 03.08 Технический строгий - 03.09 Применимость словарей по стилям
-
-**04. Методика написания:** 04.01 Процесс - 04.02 Стиль в чате - 04.03 Инварианты - 04.04 Смена стиля по запросу
-
-**05. Словари и уровни:** 05.01 Состав словарей пакета - 05.02 Порядок применения - 05.03 Репо-оверрайд - 05.04 Пополнение словарей
-
-**06. Чек-лист самопроверки**
-
-**07. Антипаттерны**
-
-**08. Источники и инструменты:** 08.01 Инструменты проверки - 08.02 Редполитики и справочники - 08.03 Агентские наборы правил - 08.04 Перспектива автоматизации
-
-**09. Связь и версионирование:** 09.01 Связь с другими документами - 09.02 Версионирование
+The micro level of text (language, the letter е without diacritics, hyphen instead of dash, naming, placeholders) is canonized in `project_standards.md`, 04.03. This document defines the document and speech level: genre, structure, style. The rules of 04.03 always apply and are not overridden by this document.
 
 ---
 
-## 01.01. Область действия
+## Table of Contents
 
-*Обязательно.*
+**01. Scope and Terms:** 01.01 Scope - 01.02 Boundary with Section 04.03 - 01.03 Terms
 
-Документ охватывает все человекочитаемые тексты, которые создает агент: документация и инструкции для пользователя, функциональные требования и спецификации, деловые сообщения и объявления, ответы на вопросы пользователя, сообщения пользователю в интерфейсе, общение агента с пользователем в чате. Не охватывает: исполняемый код и программные строковые литералы; навигационные документы агента (индексы, `AGENTS.md` - `index_nav_standards.md`); задания на изменение (CR - `change_request_standards.md`).
+**02. Document Type Registry:** 02.01 Genre Selection Rule - 02.02 User Guide - 02.03 Functional Requirements - 02.04 Business Message - 02.05 Interface Texts - 02.06 Policy (Regulation) - 02.07 Genres Outside the Registry
 
-Пользовательские строки, встроенные в код, - это человеческий текст, а не программный литерал: подписи интерфейса, заголовки и содержимое справок, подсказки, сообщения об ошибках, тексты инструкций, легенды выгрузок, ответы чата. Они подпадают под стандарт наравне с отдельными документами. Под исключение «программные строковые литералы» попадают только служебные строки, не адресованные человеку: ключи, коды, технические идентификаторы, отладочные строки.
+**03. Style Matrix:** 03.01 Axes and Style List - 03.02 Style Parameters - 03.03 Conversational Light - 03.04 Conversational Strict - 03.05 Business Light - 03.06 Business Strict - 03.07 Technical Light - 03.08 Technical Strict - 03.09 Dictionary Applicability by Style
+
+**04. Writing Method:** 04.01 Process - 04.02 Chat Style - 04.03 Invariants - 04.04 Style Change on Request
+
+**05. Dictionaries and Levels:** 05.01 Package Dictionary Composition - 05.02 Application Order - 05.03 Repo Override - 05.04 Dictionary Enrichment
+
+**06. Self-Check Checklist**
+
+**07. Antipatterns**
+
+**08. Sources and Tools:** 08.01 Checking Tools - 08.02 Style Guides and Reference Books - 08.03 Agent Rule Sets - 08.04 Automation Outlook
+
+**09. Relations and Versioning:** 09.01 Related Documents - 09.02 Versioning
 
 ---
 
-## 01.02. Граница с разделом 04.03
+## 01.01. Scope
 
-*Обязательно.*
+*Mandatory.*
 
-Разделение уровней:
+The document covers all human-readable texts the agent creates: documentation and user instructions, functional requirements and specifications, business messages and announcements, answers to user questions, user-facing messages in the interface, and the agent's communication with the user in chat. It does not cover: executable code and program string literals; agent navigation documents (indexes, `AGENTS.md` - `index_nav_standards.md`); change requests (CR - `change_request_standards.md`).
 
-| Уровень | Что регулирует | Канон |
+User-facing strings embedded in code are human text, not program literals: interface labels, help headings and content, hints, error messages, instruction texts, export legends, chat answers. They fall under the standard on par with standalone documents. The exclusion for "program string literals" covers only service strings not addressed to a human: keys, codes, technical identifiers, debug strings.
+
+---
+
+## 01.02. Boundary with Section 04.03
+
+*Mandatory.*
+
+Separation of levels:
+
+| Level | What it governs | Canon |
 |----------|----------------|-------|
-| Микро | Язык, буква е, дефис вместо тире, многоточия, эмодзи, нейминг, плейсхолдеры, регистр | `project_standards.md` (04.03) |
-| Документ и речь | Жанр, скелет структуры, стиль речи, словари слов и оборотов | Этот документ |
+| Micro | Language, the letter е, hyphen instead of dash, ellipses, emoji, naming, placeholders, case | `project_standards.md` (04.03) |
+| Document and speech | Genre, structure skeleton, speech style, dictionaries of words and phrases | This document |
 
-При конфликте приоритет у раздела 04.03. Пример: разговорный легкий стиль допускает живые обороты, но восклицательные знаки, эмодзи, буква е с диакритикой и тире запрещены им же - ограничение 04.03 сильнее.
-
----
-
-## 01.03. Термины
-
-*Обязательно.*
-
-- **Жанр** - тип документа из реестра раздела 02; определяет скелет структуры и стиль по умолчанию
-- **Стиль** - сочетание регистра (разговорный, деловой, технический) и тона (легкий, строгий); всего шесть стилей
-- **Образец-якорь** (якорь) - эталонный фрагмент текста стиля, задающий голос; правила фиксируют запреты, якорь - звучание
-- **Стоп-лист** - перечень слов и оборотов, не допускаемых в тексте (denylist)
-- **Канон-лексика** - предпочтительные слова, обороты и конструкции (allowlist)
-- **Маркеры ИИ-текста** - обороты и структуры, характерные для сгенерированного текста и выдающие его
-- **Оверрайд** - репо-специфичное дополнение или точечная отмена норм словарей в `doc/specs/text_overrides.md`
+On conflict, Section 04.03 takes priority. Example: the conversational light style allows lively turns of phrase, but exclamation marks, emoji, the letter е with diacritics, and dashes are banned by 04.03 itself - the 04.03 restriction is stronger.
 
 ---
 
-## 02.01. Правило выбора жанра
+## 01.03. Terms
 
-*Обязательно.*
+*Mandatory.*
 
-1. Жанр определяет структура текста и стиль по умолчанию; стиль переопределяется пользователем одной фразой без смены жанра
-2. Жанр задан пользователем явно - применяется он
-3. Жанр не задан - агент определяет по задаче (что должен получить читатель: выполнить действие, принять решение, узнать статус)
-4. Жанра нет в реестре - берется ближайший по назначению; при сомнении между двумя жанрами - вопрос пользователю
-5. Расширение реестра - только в этом документе в хабе (по правилам правки пакета, `project_standards.md`, раздел 07.05)
-
----
-
-## 02.02. Инструкция пользователя
-
-*Обязательно.*
-
-- **Назначение:** пошаговое выполнение задачи пользователем своими руками
-- **Аудитория:** пользователь без доступа к коду и внутренней кухне проекта
-- **Стиль по умолчанию:** разговорный легкий (03.03); для продвинутых инструкций - технический легкий (03.07)
-- **Скелет:**
-  1. Что получится в итоге - результат в 1-3 предложениях
-  2. Что нужно перед началом - доступы, аккаунты, версии, ограничения
-  3. Шаги - нумерованные; шаг = действие + команда или нажатие + ожидаемый результат (что пользователь увидит на экране)
-  4. Проверка результата - как убедиться, что все работает
-  5. Если не получилось - 2-4 частые ошибки и действия по каждой
-- **Антипаттерны:** шаг без ожидаемого результата; «см. код» или «см. документацию» вместо описания; пересказ внутренней реализации; важная информация только в скриншоте (текст дублирует то, что видно на скриншоте)
+- **Genre** - a document type from the registry in Section 02; it determines the structure skeleton and the default style
+- **Style** - a combination of register (conversational, business, technical) and tone (light, strict); six styles in total
+- **Anchor sample** (anchor) - a reference fragment of a style that sets the voice; rules fix prohibitions, the anchor sets the sound
+- **Stop list** - a list of words and phrases not allowed in the text (denylist)
+- **Canon lexicon** - preferred words, phrases, and constructions (allowlist)
+- **AI text markers** - turns of phrase and structures typical of generated text that give it away
+- **Override** - a repo-specific addition or a pinpoint cancellation of dictionary rules in `doc/specs/text_overrides.md`
 
 ---
 
-## 02.03. Функциональные требования
+## 02.01. Genre Selection Rule
 
-*Обязательно.*
+*Mandatory.*
 
-- **Назначение:** фиксация требований к системе для разработки и приемки
-- **Аудитория:** разработчик, аналитик, заказчик; читатель, который будет проверять выполнение
-- **Стиль по умолчанию:** технический строгий (03.08)
-- **Скелет:**
-  1. Обзор - что за система, границы и контекст
-  2. Термины - глоссарий предметной области
-  3. Функциональные требования - с идентификаторами (`FR-001`, `FR-001.1`); одно требование - одна проверяемая функция
-  4. Нефункциональные требования - производительность, надежность, безопасность (`NFR-001`)
-  5. Ограничения - стек, среда, нормативные условия
-  6. Критерии приемки - как проверяется каждое требование
-- **Правила формулировок:** модальность фиксированная - «должна», «допускается», «запрещено»; оценка допустима только с измеримым критерием («открывает список не более чем за 2 секунды», а не «быстро»)
-- **Антипаттерны:** неизмеримые требования («система должна быть удобной»); требования без идентификаторов; смешение требования с решением (требование фиксирует что, не как); нумерация без иерархии
+1. The genre is determined by the text structure and the default style; the user can override the style with one phrase without changing the genre
+2. The user set the genre explicitly - that genre applies
+3. The genre is not set - the agent determines it from the task (what the reader must get: perform an action, make a decision, learn a status)
+4. The genre is not in the registry - take the closest one by purpose; when in doubt between two genres - ask the user
+5. Extending the registry - only in this document in the hub (by the package editing rules, `project_standards.md`, 07.05)
 
 ---
 
-## 02.04. Деловое сообщение
+## 02.02. User Guide
 
-*Обязательно.*
+*Mandatory.*
 
-- **Назначение:** информирование, запрос, объявление, объяснение ситуации
-- **Аудитория:** конкретный получатель - коллега, заказчик, группа пользователей
-- **Стиль по умолчанию:** деловой легкий (03.05); для официальных уведомлений - деловой строгий (03.06)
-- **Скелет:**
-  1. Суть в первом абзаце - что произошло, что предлагается, что меняется
-  2. Детали и причины
-  3. Что нужно от получателя - действие и срок
-  4. Куда писать вопросы
-- **Антипаттерны:** длинное вступление до сути; действие без срока; отсутствие действия (сообщение ни к чему не обязывает получателя); пересказ всей истории вместо сути
-
----
-
-## 02.05. Тексты интерфейса
-
-*Обязательно.*
-
-- **Назначение:** подписи элементов управления, справка, подсказки, сообщения об ошибках, микротекст экрана
-- **Аудитория:** пользователь за экраном, без доступа к коду
-- **Стиль по умолчанию:** разговорный легкий (03.03); для технических подсказок - технический легкий (03.07)
-- **Скелет:** подпись - существительное дела; подсказка - один смысл в одно или два предложения; ошибка - что произошло и что сделать
-- **Правила формулировок:** одно понятие - одно имя по всему экрану, справке и инструкции; доменные понятия раскрываются до первого использования; имена таблиц, полей, внутренних систем, коды и значения перечислений, ключи настроек в текст не попадают (`project_standards.md`, 04.03)
-- **Антипаттерны:** стена текста в подсказке; имя таблицы или поля вместо человеческого слова; разные слова об одном объекте в подписи, справке и инструкции
-- Контракт вывода, роли, клавиши и макет интерфейса - `console_ui_standards.md`; настоящий раздел задает формулировки
+- **Purpose:** step-by-step task execution by the user with their own hands
+- **Audience:** a user without access to code or the project's internal workings
+- **Default style:** conversational light (03.03); for advanced instructions - technical light (03.07)
+- **Skeleton:**
+  1. Что получится в итоге - the result in 1-3 sentences
+  2. Что нужно перед началом - access, accounts, versions, restrictions
+  3. Шаги - numbered; a step = action + command or click + expected result (what the user will see on screen)
+  4. Проверка результата - how to make sure everything works
+  5. Если не получилось - 2-4 common errors and actions for each
+- **Antipatterns:** a step without an expected result; "see the code" or "see the documentation" instead of a description; retelling the internal implementation; important information only in a screenshot (the text duplicates what is visible in the screenshot)
 
 ---
 
-## 02.06. Регламент (политика)
+## 02.03. Functional Requirements
 
-*Обязательно.*
+*Mandatory.*
 
-- **Назначение:** зафиксировать обязательный порядок процесса, критерии применения, лимиты и метрики
-- **Аудитория:** подразделения и сотрудники, которых касается процесс; проверяющий
-- **Стиль по умолчанию:** деловой строгий (03.06)
-- **Скелет:**
-  1. Назначение и область действия
-  2. Термины и сокращения
-  3. Критерии применения и лимиты
-  4. Процесс и матрица ролей
-  5. Метрики с целевыми ориентирами
-  6. Ответственность и контроль
-  7. Порядок утверждения, версии и пересмотра
-- **Правила формулировок:** модальность фиксированная («должен», «допускается», «запрещено»); сокращение раскрывается при первом употреблении (`project_standards.md`, 04.03); один объект - одно имя по всему документу; имена таблиц, полей и внутренних систем в текст не попадают (`project_standards.md`, 04.03)
-- **Антипаттерны:** усилители и оценки без доказательств; разные имена одного подразделения; нераскрытые сокращения; колонка «целевой ориентир» без цифр; дублирование метрик между разделами
+- **Purpose:** capturing system requirements for development and acceptance
+- **Audience:** developer, analyst, customer; a reader who will verify compliance
+- **Default style:** technical strict (03.08)
+- **Skeleton:**
+  1. Обзор - what the system is, boundaries, and context
+  2. Термины - domain glossary
+  3. Функциональные требования - with identifiers (`FR-001`, `FR-001.1`); one requirement - one verifiable function
+  4. Нефункциональные требования - performance, reliability, security (`NFR-001`)
+  5. Ограничения - stack, environment, regulatory conditions
+  6. Критерии приемки - how each requirement is verified
+- **Wording rules:** fixed modality - «должна», «допускается», «запрещено»; an evaluation is allowed only with a measurable criterion («открывает список не более чем за 2 секунды», not «быстро»)
+- **Antipatterns:** immeasurable requirements («система должна быть удобной»); requirements without identifiers; mixing a requirement with a solution (a requirement fixes what, not how); numbering without hierarchy
 
 ---
 
-## 02.07. Жанры вне реестра
+## 02.04. Business Message
 
-*Обязательно.*
+*Mandatory.*
 
-| Тип текста | Канон структуры | Стиль и словари |
+- **Purpose:** informing, requesting, announcing, explaining a situation
+- **Audience:** a specific recipient - a colleague, a customer, a user group
+- **Default style:** business light (03.05); for official notifications - business strict (03.06)
+- **Skeleton:**
+  1. Суть в первом абзаце - what happened, what is proposed, what changes
+  2. Детали и причины - details and reasons
+  3. Что нужно от получателя - action and deadline
+  4. Куда писать вопросы - where to ask questions
+- **Antipatterns:** a long introduction before the point; an action without a deadline; no action (the message asks nothing of the recipient); retelling the whole story instead of the point
+
+---
+
+## 02.05. Interface Texts
+
+*Mandatory.*
+
+- **Purpose:** labels of controls, help, hints, error messages, screen microtext
+- **Audience:** a user at the screen, without access to code
+- **Default style:** conversational light (03.03); for technical hints - technical light (03.07)
+- **Skeleton:** label - a noun naming the action; hint - one meaning in one or two sentences; error - what happened and what to do
+- **Wording rules:** one concept - one name across the screen, help, and instruction; domain concepts are explained before first use; table names, field names, internal system names, codes and enum values, and config keys do not appear in the text (`project_standards.md`, 04.03)
+- **Antipatterns:** a wall of text in a hint; a table or field name instead of a human word; different words for one object in a label, help, and instruction
+- Output contract, roles, keys, and interface layout - `console_ui_standards.md`; this section defines wording
+
+---
+
+## 02.06. Policy (Regulation)
+
+*Mandatory.*
+
+- **Purpose:** establish the mandatory process order, applicability criteria, limits, and metrics
+- **Audience:** departments and employees affected by the process; the reviewer
+- **Default style:** business strict (03.06)
+- **Skeleton:**
+  1. Назначение и область действия - purpose and scope
+  2. Термины и сокращения - terms and abbreviations
+  3. Критерии применения и лимиты - applicability criteria and limits
+  4. Процесс и матрица ролей - process and role matrix
+  5. Метрики с целевыми ориентирами - metrics with targets
+  6. Ответственность и контроль - responsibility and control
+  7. Порядок утверждения, версии и пересмотра - approval, versions, and revision
+- **Wording rules:** fixed modality («должен», «допускается», «запрещено»); an abbreviation is explained at first use (`project_standards.md`, 04.03); one object - one name throughout the document; table names, field names, and internal system names do not appear in the text (`project_standards.md`, 04.03)
+- **Antipatterns:** intensifiers and evaluations without evidence; different names for one department; unexplained abbreviations; a "target" column without numbers; duplicating metrics across sections
+
+---
+
+## 02.07. Genres Outside the Registry
+
+*Mandatory.*
+
+| Text type | Structure canon | Style and dictionaries |
 |-------------|-----------------|------------------|
-| README, описания репозитория | `repo_info_doc_standards.md` | этот документ (03, 05) |
-| Документы установки ПО | `software_doc_standards.md` | этот документ (03, 05) |
-| Задания на изменение (CR) | `change_request_standards.md` | деловой легкий или строгий (03.05, 03.06) |
-| Спецификации проекта | `project_standards.md` (07.02) | технический строгий (03.08) для боевых спек |
+| README, repository descriptions | `repo_info_doc_standards.md` | this document (03, 05) |
+| Software installation documents | `software_doc_standards.md` | this document (03, 05) |
+| Change requests (CR) | `change_request_standards.md` | business light or strict (03.05, 03.06) |
+| Project specifications | `project_standards.md` (07.02) | technical strict (03.08) for production specs |
 
 ---
 
-## 03.01. Оси и перечень стилей
+## 03.01. Axes and Style List
 
-*Обязательно.*
+*Mandatory.*
 
-Стиль = регистр x тон:
+Style = register x tone:
 
-| | Легкий тон | Строгий тон |
+| | Light tone | Strict tone |
 |---|---|---|
-| **Разговорный регистр** | 03.03 разговорный легкий | 03.04 разговорный строгий |
-| **Деловой регистр** | 03.05 деловой легкий | 03.06 деловой строгий |
-| **Технический регистр** | 03.07 технический легкий | 03.08 технический строгий |
+| **Conversational register** | 03.03 conversational light | 03.04 conversational strict |
+| **Business register** | 03.05 business light | 03.06 business strict |
+| **Technical register** | 03.07 technical light | 03.08 technical strict |
 
-- Регистр выбирает словарь читателя: бытовой, деловой или предметно-технический
-- Тон выбирает дистанцию и вольность: легкий - живой и короткий, строгий - нейтрально-точный, без вольностей
-- Легкий не значит небрежный: правила 04.03 и словари (раздел 05) действуют во всех шести стилях
+- The register selects the reader's dictionary: everyday, business, or domain-technical
+- The tone selects distance and freedom: light - lively and short, strict - neutrally precise, without liberties
+- Light does not mean careless: the rules of 04.03 and the dictionaries (Section 05) apply in all six styles
 
 ---
 
-## 03.02. Параметры стиля
+## 03.02. Style Parameters
 
-*Обязательно.*
+*Mandatory.*
 
-Каждый стиль описан фиксированным набором параметров - измеримыми правилами, не прилагательными:
+Each style is described by a fixed set of parameters - measurable rules, not adjectives:
 
-| Параметр | Что фиксирует |
+| Parameter | What it fixes |
 |----------|----------------|
-| Обращение | Как текст обращается к читателю: «вы», безличное |
-| Предложение | Средняя и максимальная длина, допустимые конструкции |
-| Абзац | Количество предложений |
-| Словарь | Допустимость терминов, жаргона, расшифровка терминов |
-| Аналогии | Допустимость сравнений и бытовых примеров |
-| Хеджирование | Допустимость неопределенности («возможно», «как правило») |
-| Структура | Соотношение прозы, списков, таблиц, шагов |
-| Стоп-лист | Дополнения к общим словарям, характерные ошибки агента |
+| Forms of address | How the text addresses the reader: «вы», impersonal |
+| Sentence | Average and maximum length, allowed constructions |
+| Paragraph | Number of sentences |
+| Vocabulary | Acceptability of terms and jargon, explanation of terms |
+| Analogies | Acceptability of comparisons and everyday examples |
+| Hedging | Acceptability of uncertainty («возможно», «как правило») |
+| Structure | Ratio of prose, lists, tables, steps |
+| Stop list | Additions to the common dictionaries, characteristic agent errors |
 
 ---
 
-## 03.03. Разговорный легкий
+## 03.03. Conversational Light
 
-*Обязательно.*
+*Mandatory.*
 
-Дефолтные жанры: инструкция пользователя, FAQ.
+Default genres: user guide, FAQ.
 
-| Параметр | Значение |
+| Parameter | Value |
 |----------|----------|
-| Обращение | «вы» |
-| Предложение | до 15 слов, простые конструкции |
-| Абзац | 1-3 предложения |
-| Словарь | бытовая лексика; термин - только общеизвестный или расшифрованный сразу |
-| Аналогии | да, из быта, одна на понятие |
-| Хеджирование | минимум; инструкция говорит прямо |
-| Структура | короткие абзацы, нумерованные шаги, заголовок-вопрос допустим |
+| Forms of address | «вы» |
+| Sentence | up to 15 words, simple constructions |
+| Paragraph | 1-3 sentences |
+| Vocabulary | everyday vocabulary; a term only if widely known or explained immediately |
+| Analogies | yes, from everyday life, one per concept |
+| Hedging | minimal; an instruction speaks directly |
+| Structure | short paragraphs, numbered steps, a question heading is allowed |
 
-Стоп-лист: весь канцелярит (словарь стоп-слов, раздел 03); термины без расшифровки; цепочки подчиненных придаточных.
+Stop list: all officialese (stop-word dictionary, Section 03); unexplained terms; chains of subordinate clauses.
 
-Ошибки агента: подражание «дружелюбию» через восклицания и эмодзи (запрещены 04.03); поддакивание («отличный вопрос»); суетливые обороты («не за горами», «давайте разберемся»).
+Agent errors: imitating "friendliness" with exclamations and emoji (banned by 04.03); sycophancy («отличный вопрос»); fussy turns of phrase («не за горами», «давайте разберемся»).
 
-Образец-якорь (восстановление доступа):
+Anchor sample (restoring access):
 
 ```
 Вернуть доступ можно за пару минут.
@@ -250,27 +250,27 @@
 
 ---
 
-## 03.04. Разговорный строгий
+## 03.04. Conversational Strict
 
-*Обязательно.*
+*Mandatory.*
 
-Дефолтные жанры: ответ поддержки, объяснение сбоя или ошибки, ответ на вопрос пользователя.
+Default genres: support answer, explanation of a failure or error, answer to a user question.
 
-| Параметр | Значение |
+| Parameter | Value |
 |----------|----------|
-| Обращение | «вы» |
-| Предложение | до 15 слов |
-| Абзац | 1-3 предложения |
-| Словарь | простая лексика, точные формулировки; термин - с расшифровкой |
-| Аналогии | точечно, не для объяснения фактов |
-| Хеджирование | только при реальной неопределенности; установленный факт формулируется прямо |
-| Структура | схема: суть - детали - действие |
+| Forms of address | «вы» |
+| Sentence | up to 15 words |
+| Paragraph | 1-3 sentences |
+| Vocabulary | simple vocabulary, precise wording; a term with an explanation |
+| Analogies | selective, not for explaining facts |
+| Hedging | only under real uncertainty; an established fact is stated directly |
+| Structure | scheme: point - details - action |
 
-Стоп-лист: поддакивание и эмотивность; оценочные суждения без факта; маркеры ИИ-текста (словарь ИИ-маркеров целиком по матрице 03.09; приоритетные разделы - 03-06).
+Stop list: sycophancy and emotiveness; evaluative judgments without facts; AI text markers (the whole AI marker dictionary by matrix 03.09; priority sections - 03-06).
 
-Ошибки агента: имитация участия («полностью понимаю ваше разочарование»); обещания без полномочий («это точно больше не повторится»).
+Agent errors: imitation of involvement («полностью понимаю ваше разочарование»); promises without authority («это точно больше не повторится»).
 
-Образец-якорь (ответ поддержки о сбое):
+Anchor sample (support answer about a failure):
 
 ```
 Проверили: сбой был на нашей стороне, доступ восстановлен в 14:40.
@@ -284,27 +284,27 @@
 
 ---
 
-## 03.05. Деловой легкий
+## 03.05. Business Light
 
-*Обязательно.*
+*Mandatory.*
 
-Дефолтные жанры: деловое сообщение, объявление, письмо коллеге или заказчику.
+Default genres: business message, announcement, letter to a colleague or customer.
 
-| Параметр | Значение |
+| Parameter | Value |
 |----------|----------|
-| Обращение | «вы» к адресату; приветствие по формату канала |
-| Предложение | до 20 слов |
-| Абзац | 2-4 предложения |
-| Словарь | деловая лексика без канцелярита |
-| Аналогии | нет |
-| Хеджирование | умеренное; обязательства - без двусмысленности |
-| Структура | суть в первом абзаце, детали, действие и срок, контакт для вопросов |
+| Forms of address | «вы» to the addressee; greeting per the channel format |
+| Sentence | up to 20 words |
+| Paragraph | 2-4 sentences |
+| Vocabulary | business vocabulary without officialese |
+| Analogies | none |
+| Hedging | moderate; obligations without ambiguity |
+| Structure | point in the first paragraph, details, action and deadline, contact for questions |
 
-Стоп-лист: канцелярит (словарь стоп-слов целиком по матрице 03.09; приоритетные разделы - 03-04); трюизмы и формульные выводы (словарь ИИ-маркеров, раздел 06).
+Stop list: officialese (the whole stop-word dictionary by matrix 03.09; priority sections - 03-04); truisms and formulaic conclusions (AI marker dictionary, Section 06).
 
-Ошибки агента: бюрократические открытия («Настоящим сообщаем Вам»); действие получателя без срока; финальный пересказ всего письма.
+Agent errors: bureaucratic openings («Настоящим сообщаем Вам»); recipient action without a deadline; a final retelling of the whole letter.
 
-Образец-якорь (письмо о переносе сроков):
+Anchor sample (letter about postponing deadlines):
 
 ```
 Добрый день.
@@ -320,27 +320,27 @@
 
 ---
 
-## 03.06. Деловой строгий
+## 03.06. Business Strict
 
-*Обязательно.*
+*Mandatory.*
 
-Дефолтные жанры: официальное уведомление, политика, регламент, условия обслуживания.
+Default genres: official notification, policy, regulation, terms of service.
 
-| Параметр | Значение |
+| Parameter | Value |
 |----------|----------|
-| Обращение | безличное или «вы» в официальной форме |
-| Предложение | до 25 слов; допустимы сложные конструкции с однозначными связями |
-| Абзац | 3-5 предложений или нумерованные пункты |
-| Словарь | деловая и юридическая лексика допустима; часть канцелярита - норма жанра (помечено в словаре стоп-слов) |
-| Аналогии | нет |
-| Хеджирование | минимальное; даты и условия формулируются однозначно |
-| Структура | нумерованные пункты, перекрестные ссылки на пункты |
+| Forms of address | impersonal or «вы» in the official form |
+| Sentence | up to 25 words; complex constructions with unambiguous relations are allowed |
+| Paragraph | 3-5 sentences or numbered clauses |
+| Vocabulary | business and legal vocabulary is allowed; part of the officialese is the genre norm (marked in the stop-word dictionary) |
+| Analogies | none |
+| Hedging | minimal; dates and conditions are stated unambiguously |
+| Structure | numbered clauses, cross-references to clauses |
 
-Стоп-лист: вода и вводные, усилители, трюизмы - запрет (словарь стоп-слов, разделы 05-06; словарь ИИ-маркеров, раздел 06); канцелярит - по пометкам словаря.
+Stop list: filler and introductory phrases, amplifiers, truisms - banned (stop-word dictionary, Sections 05-06; AI marker dictionary, Section 06); officialese - per dictionary marks.
 
-Ошибки агента: смешение регистров (юридическая точность пополам с разговорностью); расплывчатые даты («в ближайшее время»).
+Agent errors: mixing registers (legal precision mixed with colloquialism); vague dates («в ближайшее время»).
 
-Образец-якорь (уведомление об изменении условий):
+Anchor sample (notification about changed terms):
 
 ```
 Уведомляем об изменении условий обслуживания с 01.10.2026.
@@ -356,27 +356,27 @@
 
 ---
 
-## 03.07. Технический легкий
+## 03.07. Technical Light
 
-*Обязательно.*
+*Mandatory.*
 
-Дефолтные жанры: гайд, руководство администратора, instruction для опытного пользователя.
+Default genres: guide, administrator manual, instruction for an experienced user.
 
-| Параметр | Значение |
+| Parameter | Value |
 |----------|----------|
-| Обращение | «вы» + императив («откройте», «запустите») |
-| Предложение | до 20 слов |
-| Абзац | 1-3 предложения |
-| Словарь | термины предметной области допустимы; при первом использовании - расшифровка; команды и пути - в code-блоках |
-| Аналогии | нет; вместо них - примеры ввода и вывода |
-| Хеджирование | нет; шаг либо выполняется, либо дает ошибку |
-| Структура | шаги по схеме: действие - команда - ожидаемый результат |
+| Forms of address | «вы» + imperative («откройте», «запустите») |
+| Sentence | up to 20 words |
+| Paragraph | 1-3 sentences |
+| Vocabulary | domain terms are allowed; explained at first use; commands and paths in code blocks |
+| Analogies | none; input and output examples instead |
+| Hedging | none; a step either succeeds or returns an error |
+| Structure | steps by the scheme: action - command - expected result |
 
-Стоп-лист: канцелярит (словарь стоп-слов целиком по матрице 03.09; приоритетные разделы - 03-04); пассивный залог в шагах; описание внутренней реализации вместо действий пользователя.
+Stop list: officialese (the whole stop-word dictionary by matrix 03.09; priority sections - 03-04); passive voice in steps; describing internal implementation instead of user actions.
 
-Ошибки агента: шаг без ожидаемого результата; команда без указания, откуда запускать; пересказ кода вместо действий.
+Agent errors: a step without an expected result; a command without saying where to run it from; retelling code instead of actions.
 
-Образец-якорь (настройка подключения):
+Anchor sample (setting up a connection):
 
 ```
 1. Откройте файл config/config.ini.
@@ -391,27 +391,27 @@
 
 ---
 
-## 03.08. Технический строгий
+## 03.08. Technical Strict
 
-*Обязательно.*
+*Mandatory.*
 
-Дефолтные жанры: функциональные требования, техническая спецификация, боевые спеки.
+Default genres: functional requirements, technical specification, production specs.
 
-| Параметр | Значение |
+| Parameter | Value |
 |----------|----------|
-| Обращение | безличное («система должна», «модуль выполняет») |
-| Предложение | до 25 слов |
-| Абзац | нумерованные пункты с иерархией идентификаторов |
-| Словарь | терминология предметной области, единый глоссарий; синонимия терминов запрещена (04.03, каноничный нейминг) |
-| Аналогии | запрещены |
-| Хеджирование | запрещено; модальность фиксированная: «должна», «допускается», «запрещено» |
-| Структура | требования с идентификаторами (`FR-NNN`, `NFR-NNN`), критерии приемки |
+| Forms of address | impersonal («система должна», «модуль выполняет») |
+| Sentence | up to 25 words |
+| Paragraph | numbered clauses with identifier hierarchy |
+| Vocabulary | domain terminology, a single glossary; synonymy of terms is banned (04.03, canonical naming) |
+| Analogies | banned |
+| Hedging | banned; fixed modality: «должна», «допускается», «запрещено» |
+| Structure | requirements with identifiers (`FR-NNN`, `NFR-NNN`), acceptance criteria |
 
-Стоп-лист: аналогии, оценки без измеримого критерия, хеджирование - запрет; часть канцелярита - норма жанра (помечено в словаре стоп-слов); ИИ-маркеры - запрет (словарь ИИ-маркеров).
+Stop list: analogies, evaluations without a measurable criterion, hedging - banned; part of the officialese is the genre norm (marked in the stop-word dictionary); AI markers - banned (AI marker dictionary).
 
-Ошибки агента: неизмеримые требования; разные термины для одного понятия; требования без критериев приемки.
+Agent errors: immeasurable requirements; different terms for one concept; requirements without acceptance criteria.
 
-Образец-якорь (фрагмент требований к авторизации):
+Anchor sample (fragment of authorization requirements):
 
 ```
 FR-001. Система выполняет аутентификацию пользователя по паре
@@ -429,279 +429,279 @@ FR-001.3. Сообщение об ошибке не раскрывает, как
 
 ---
 
-## 03.09. Применимость словарей по стилям
+## 03.09. Dictionary Applicability by Style
 
-*Обязательно.*
+*Mandatory.*
 
-Сокращения стилей: РЛ - разговорный легкий, РС - разговорный строгий, ДЛ - деловой легкий, ДС - деловой строгий, ТЛ - технический легкий, ТС - технический строгий.
+Style abbreviations: РЛ - conversational light, РС - conversational strict, ДЛ - business light, ДС - business strict, ТЛ - technical light, ТС - technical strict.
 
-Значения статусов: **запрет** - не допускается; **ограничено** - допускается при условиях, указанных в словаре; **норма** - допустимо как норма жанра, при самопроверке не правится.
+Status values: **запрет** - not allowed; **ограничено** - allowed under the conditions specified in the dictionary; **норма** - allowed as a genre norm, not corrected during self-check.
 
-Сводная матрица по категориям словарей (детальные пометки по отдельным словам - в таблицах словарей):
+Summary matrix by dictionary categories (detailed marks for individual words are in the dictionary tables):
 
-| Категория | РЛ | РС | ДЛ | ДС | ТЛ | ТС |
+| Category | РЛ | РС | ДЛ | ДС | ТЛ | ТС |
 |-----------|----|----|----|----|----|----|
-| Канцелярит-слова (является, данный) | запрет | запрет | запрет | ограничено | запрет | ограничено |
-| Канцелярские обороты (в целях, в рамках) | запрет | запрет | запрет | ограничено | запрет | ограничено |
-| Вода и вводные | запрет | запрет | запрет | запрет | запрет | запрет |
-| Усилители | запрет | запрет | запрет | запрет | запрет | запрет |
-| Оценки без доказательств | запрет | запрет | запрет | запрет | запрет | запрет |
-| Плеоназмы | запрет | запрет | запрет | запрет | запрет | запрет |
-| Корпоративные и рекламные штампы | запрет | запрет | запрет | запрет | запрет | запрет |
-| Газетные и бытовые штампы | запрет | запрет | запрет | запрет | запрет | запрет |
-| Паразиты времени | запрет | запрет | запрет | запрет | запрет | запрет |
-| Неопределенность (около, ряд, некий) | запрет | запрет | запрет | ограничено | запрет | ограничено |
-| Модальные ослабители (можно, следует) | ограничено | ограничено | ограничено | норма | ограничено | норма |
-| Заумь и псевдотерминология | запрет | запрет | запрет | запрет | запрет | запрет |
-| Структурные ограничения (причастия, родительные цепочки) | ограничено | ограничено | ограничено | ограничено | ограничено | ограничено |
-| ИИ-вводные-открытия | запрет | запрет | запрет | запрет | запрет | запрет |
-| Мотивационные клише, маркетинговые штампы | запрет | запрет | запрет | запрет | запрет | запрет |
-| Трюизмы и формульные выводы | запрет | запрет | запрет | запрет | запрет | запрет |
-| Псевдо-сократические и риторические конструкции | запрет | запрет | запрет | запрет | запрет | запрет |
-| Параллелизмы «не просто X, а Y» | запрет | запрет | запрет | запрет | запрет | запрет |
-| Кальки с английского | запрет | запрет | запрет | запрет | запрет | запрет |
-| Псевдо-терапевтические обороты | запрет | запрет | запрет | запрет | запрет | запрет |
-| Неодушевленный субъект (документ подчеркивает) | запрет | запрет | запрет | запрет | запрет | ограничено |
-| Самомаркировка честности (без воды, честный разбор) | запрет | запрет | запрет | запрет | запрет | запрет |
-| Лексика ИИ и формульные финалы | запрет | запрет | запрет | запрет | запрет | запрет |
-| Модальные хеджи | запрет | ограничено | ограничено | ограничено | запрет | ограничено |
+| Officialese words (является, данный) | запрет | запрет | запрет | ограничено | запрет | ограничено |
+| Officialese phrases (в целях, в рамках) | запрет | запрет | запрет | ограничено | запрет | ограничено |
+| Filler and introductory phrases | запрет | запрет | запрет | запрет | запрет | запрет |
+| Amplifiers | запрет | запрет | запрет | запрет | запрет | запрет |
+| Evaluations without evidence | запрет | запрет | запрет | запрет | запрет | запрет |
+| Pleonasms | запрет | запрет | запрет | запрет | запрет | запрет |
+| Corporate and advertising cliches | запрет | запрет | запрет | запрет | запрет | запрет |
+| Newspaper and everyday cliches | запрет | запрет | запрет | запрет | запрет | запрет |
+| Time parasites | запрет | запрет | запрет | запрет | запрет | запрет |
+| Uncertainty (около, ряд, некий) | запрет | запрет | запрет | ограничено | запрет | ограничено |
+| Modal softeners (можно, следует) | ограничено | ограничено | ограничено | норма | ограничено | норма |
+| Pretentiousness and pseudo-terminology | запрет | запрет | запрет | запрет | запрет | запрет |
+| Structural limits (participles, genitive chains) | ограничено | ограничено | ограничено | ограничено | ограничено | ограничено |
+| AI opening introductions | запрет | запрет | запрет | запрет | запрет | запрет |
+| Motivational cliches, marketing stamps | запрет | запрет | запрет | запрет | запрет | запрет |
+| Truisms and formulaic conclusions | запрет | запрет | запрет | запрет | запрет | запрет |
+| Pseudo-Socratic and rhetorical constructions | запрет | запрет | запрет | запрет | запрет | запрет |
+| Parallelisms «не просто X, а Y» | запрет | запрет | запрет | запрет | запрет | запрет |
+| Calques from English | запрет | запрет | запрет | запрет | запрет | запрет |
+| Pseudo-therapeutic phrases | запрет | запрет | запрет | запрет | запрет | запрет |
+| Inanimate subject (документ подчеркивает) | запрет | запрет | запрет | запрет | запрет | ограничено |
+| Honesty self-labeling (без воды, честный разбор) | запрет | запрет | запрет | запрет | запрет | запрет |
+| AI lexicon and formulaic finales | запрет | запрет | запрет | запрет | запрет | запрет |
+| Modal hedges | запрет | ограничено | ограничено | ограничено | запрет | ограничено |
 
-Хеджирование допускается только при реальной неопределенности факта; на установленных фактах - запрет во всех стилях (словарь ИИ-маркеров, раздел 04 и раздел 15).
-
----
-
-## 04.01. Процесс
-
-*Обязательно.*
-
-Порядок работы агента над текстом для человека:
-
-1. Определить жанр (раздел 02) - по задаче или явному указанию пользователя
-2. Назвать читателя конкретно: кто он, что уже знает, чего должен достичь; «пользователь без доступа к коду» и «разработчик смежной команды» - разные читатели
-3. Определить стиль: дефолт жанра или стиль, указанный пользователем
-4. Построить текст по скелету жанра; главное - в начале документа и каждого раздела
-5. Прогнать чек-лист самопроверки (раздел 06) и словари (раздел 05)
+Hedging is allowed only under real uncertainty of fact; on established facts it is banned in all styles (AI marker dictionary, Section 04 and Section 15).
 
 ---
 
-## 04.02. Стиль в чате
+## 04.01. Process
 
-*Обязательно.*
+*Mandatory.*
 
-- Базовый стиль чата агента - деловой легкий (03.05)
-- Агент подстраивает регистр под стиль сообщений пользователя: пользователь пишет разговорно - агент снижает формальность в пределах делового легкого, не ниже
-- Строгие стили (03.06, 03.08) в чате - для формальных тем: требования, уведомления, итоговые формулировки
-- Нормы 04.03 и словари действуют в чате наравне с документами
-- Ответ строится по существу запроса; вступительные обороты («Отличный вопрос», «Конечно») запрещены
+The agent's workflow for a human-facing text:
 
----
-
-## 04.03. Инварианты
-
-*Обязательно.*
-
-Стиль управляет формой, не содержанием. Ни один стиль не отменяет:
-
-- факты, цифры, версии, команды, пути - точность и полнота сохраняются
-- идентификаторы требований и ссылки на разделы
-- правила 04.03 (дефис, е без диакритики, без эмодзи, без многоточий)
-- словари раздела 05 с учетом статусов 03.09
-- каноничный нейминг: один термин для одного понятия по всему тексту
-- текст для человека - без имен таблиц, полей и внутренних систем, кодов и значений перечислений, ключей настроек (`project_standards.md`, 04.03)
+1. Determine the genre (Section 02) - from the task or an explicit user instruction
+2. Name the reader specifically: who they are, what they already know, what they must achieve; «пользователь без доступа к коду» and «разработчик смежной команды» are different readers
+3. Determine the style: the genre default or the style specified by the user
+4. Build the text by the genre skeleton; the main point goes at the start of the document and each section
+5. Run the self-check checklist (Section 06) and the dictionaries (Section 05)
 
 ---
 
-## 04.04. Смена стиля по запросу
+## 04.02. Chat Style
 
-*Обязательно.*
+*Mandatory.*
 
-- Пользователь называет стиль или направление: «строже» - тот же регистр, строгий тон; «проще» - разговорный легкий; «официально» - деловой строгий; «по-технически» - технический регистр
-- Перезапись ведется тем же содержанием: факты и структура данных не меняются, меняется форма
-- Смена стиля не требует пересогласования жанра, если скелет сохраняется
+- The base chat style of the agent is business light (03.05)
+- The agent adjusts the register to the user's message style: if the user writes conversationally, the agent lowers formality within business light, not below it
+- Strict styles (03.06, 03.08) in chat - for formal topics: requirements, notifications, final wording
+- The rules of 04.03 and the dictionaries apply in chat on par with documents
+- The answer is built on the substance of the request; opening phrases («Отличный вопрос», «Конечно») are banned
 
 ---
 
-## 05.01. Состав словарей пакета
+## 04.03. Invariants
 
-*Обязательно.*
+*Mandatory.*
 
-| Файл | Тип | Назначение |
+Style controls form, not content. No style cancels:
+
+- facts, numbers, versions, commands, paths - accuracy and completeness are preserved
+- requirement identifiers and section references
+- the rules of 04.03 (hyphen, е without diacritics, no emoji, no ellipses)
+- the dictionaries of Section 05 with the statuses of 03.09
+- canonical naming: one term for one concept throughout the text
+- human-facing text without table names, field names, internal system names, codes and enum values, config keys (`project_standards.md`, 04.03)
+
+---
+
+## 04.04. Style Change on Request
+
+*Mandatory.*
+
+- The user names the style or direction: «строже» - same register, strict tone; «проще» - conversational light; «официально» - business strict; «по-технически» - technical register
+- Rewriting keeps the same content: facts and data structure do not change, only the form changes
+- A style change does not require renegotiating the genre if the skeleton is preserved
+
+---
+
+## 05.01. Package Dictionary Composition
+
+*Mandatory.*
+
+| File | Type | Purpose |
 |------|-----|------------|
-| `human_text_dict_standards.md` | denylist | стоп-слова русского текста: канцелярит, вода, усилители, оценки, плеоназмы |
-| `human_text_dict_ai_standards.md` | denylist | маркеры ИИ-текста: вводные-открытия, клише, трюизмы, параллелизмы, кальки; запрещенные замены |
-| `human_text_allowlist_standards.md` | allowlist | канон-лексика: предпочтительные обороты и конструкции по стилям |
+| `human_text_dict_standards.md` | denylist | stop words of Russian text: officialese, filler, amplifiers, evaluations, pleonasms |
+| `human_text_dict_ai_standards.md` | denylist | AI text markers: opening introductions, cliches, truisms, parallelisms, calques; forbidden replacements |
+| `human_text_allowlist_standards.md` | allowlist | canon lexicon: preferred phrases and constructions by style |
 
-Каждая запись denylist-словаря содержит: слово или оборот, замену, статус по стилям (03.09); записи allowlist-словаря - пары «прием - пример», без замен и статусов (формат - `human_text_allowlist_standards.md`).
-
----
-
-## 05.02. Порядок применения
-
-*Обязательно.*
-
-1. При написании текста - правила этого документа (жанр, стиль, методика); полные словари в контекст до написания не загружаются
-2. При самопроверке - загрузить три словаря и оверрайд репо (05.03), прогнать текст по чек-листу (раздел 06); при доступном навыке ru-text прогон по его каталогу антипаттернов обязателен (08.01), типографика навыка не применяется (оговорка 08.01); навык недоступен - проверка по словарям пакета и чек-листу (раздел 06)
-3. Правка найденного: стоп-слово - замена из таблицы; замены в таблице нет - перестроить предложение; тест удаления: убрал - смысл цел, значит удалять
-4. Пометки «ограничено» и «норма» проверяются по условиям в словаре, а не по общему чувству
+Each denylist entry contains: a word or phrase, a replacement, a status by style (03.09); allowlist entries are "technique - example" pairs without replacements or statuses (format - `human_text_allowlist_standards.md`).
 
 ---
 
-## 05.03. Репо-оверрайд
+## 05.02. Application Order
 
-*Обязательно.*
+*Mandatory.*
 
-Репо-специфика текстов фиксируется в `doc/specs/text_overrides.md` производного репозитория; эталонный шаблон - в хабе `doc/specs/text_overrides.md`. Пакет стандартов в производных репозиториях read-only, поэтому доменная лексика и отраслевые запреты живут в оверрайде, а не в правках словарей.
-
-Правила:
-
-- Приоритет: оверрайд репо выше словарей пакета
-- Три типа записей: **запретить** (слова нет в хаб-стоп-листе), **разрешить** (точечная отмена статуса хаб-словаря для стиля или жанра), **предпочесть** (канон-лексика домена)
-- Каждая запись указывает стиль или жанр, которого касается; запись без указания стиля действует на все
-- Оверрайд дополняет и точечно отменяет; переписывание категорий словарей целиком запрещено
-- Шаблон в хабе не заполняется: в хабе он эталон формы, заполненные экземпляры - только в производных репозиториях
+1. When writing - the rules of this document (genre, style, method); full dictionaries are not loaded into context before writing
+2. During self-check - load the three dictionaries and the repo override (05.03), run the text through the checklist (Section 06); if the ru-text skill is available, a run through its antipattern catalog is mandatory (08.01), the skill's typography does not apply (caveat in 08.01); if the skill is unavailable - check against the package dictionaries and the checklist (Section 06)
+3. Fixing what is found: a stop word - the replacement from the table; no replacement in the table - rebuild the sentence; deletion test: removed it and the meaning is intact, so delete it
+4. The marks "ограничено" and "норма" are checked against the conditions in the dictionary, not against a general feeling
 
 ---
 
-## 05.04. Пополнение словарей
+## 05.03. Repo Override
 
-*Обязательно.*
+*Mandatory.*
 
-Триггер: пользователь исправил текст агента вручную.
+Repo-specific text rules are fixed in `doc/specs/text_overrides.md` of the derivative repository; the reference template is in the hub at `doc/specs/text_overrides.md`. The standards package is read-only in derivative repositories, so domain vocabulary and industry prohibitions live in the override, not in dictionary edits.
 
-1. Агент сверяет правку с тремя словарями и оверрайдом
-2. Правка покрывается существующей записью - ничего не предлагается
-3. Нового слова нет в словарях - агент определяет уровень: слово общего характера - предложение в хаб-словарь; доменное - предложение в оверрайд репо
-4. Агент предлагает строку в чате: слово, замена, статус по стилям
-5. По подтверждению пользователя запись вносится в словарь или оверрайд
+Rules:
 
-Пополнение ведется по тем же правилам правки пакета, что и остальные изменения (`project_standards.md`, раздел 07.05).
-
----
-
-## 06. Чек-лист самопроверки
-
-*Обязательно.*
-
-Перед выдачей текста пользователю агент проверяет:
-
-- [ ] Жанр определен, структура соответствует скелету жанра
-- [ ] Читатель назван конкретно; текст адресован ему, не агенту и не разработчику
-- [ ] Стиль соответствует дефолту жанра или явному указанию пользователя
-- [ ] Нет слов и оборотов из стоп-листов (статусы по стилям из 03.09 учтены)
-- [ ] Нет маркеров ИИ-текста и запрещенных замен (замена не является тем же маркером)
-- [ ] Текст прогнан по каталогу антипаттернов навыка ru-text; навык недоступен - проверка по словарям пакета и этому чек-листу (05.02, 08.01)
-- [ ] Канон-лексика применена: активный залог, глагол вместо отглагольного, конкретика
-- [ ] Каждый шаг инструкции содержит действие и ожидаемый результат
-- [ ] Главное - в начале документа и каждого раздела
-- [ ] Термины едины по тексту; при первом использовании расшифрованы
-- [ ] Нет тире (U+2014, U+2013), многоточий (U+2026), эмодзи, букв с диакритикой (U+0451, U+0401, в том числе е + U+0308), неразрывных и узких пробелов (U+00A0, U+202F) (04.03)
-- [ ] Факты, команды, пути и идентификаторы не искажены при стилизации
-- [ ] Записи оверрайда репо учтены
-
-Три и более замечаний - переписать абзац или раздел целиком; один-два - править точечно.
+- Priority: the repo override is above the package dictionaries
+- Three entry types: **запретить** (the word is not in the hub stop list), **разрешить** (a pinpoint cancellation of a hub dictionary status for a style or genre), **предпочесть** (domain canon lexicon)
+- Each entry names the style or genre it affects; an entry without a style applies to all
+- The override supplements and cancels pinpoint rules; rewriting dictionary categories wholesale is banned
+- The template in the hub is not filled in: in the hub it is the form reference, filled-in instances exist only in derivative repositories
 
 ---
 
-## 07. Антипаттерны
+## 05.04. Dictionary Enrichment
 
-*Обязательно.*
+*Mandatory.*
 
-| Плохо | Хорошо | Причина |
+Trigger: the user corrected the agent's text manually.
+
+1. The agent compares the correction with the three dictionaries and the override
+2. The correction is covered by an existing entry - nothing is proposed
+3. The new word is not in the dictionaries - the agent determines the level: a general word - a proposal for the hub dictionary; a domain word - a proposal for the repo override
+4. The agent proposes a row in chat: word, replacement, status by style
+5. On user confirmation, the entry is added to the dictionary or override
+
+Enrichment follows the same package editing rules as other changes (`project_standards.md`, 07.05).
+
+---
+
+## 06. Self-Check Checklist
+
+*Mandatory.*
+
+Before handing the text to the user, the agent checks:
+
+- [ ] Genre defined, structure matches the genre skeleton
+- [ ] Reader named specifically; the text is addressed to them, not to the agent or developer
+- [ ] Style matches the genre default or the explicit user instruction
+- [ ] No stop-list words or phrases (style statuses from 03.09 taken into account)
+- [ ] No AI text markers or forbidden replacements (the replacement is not the same marker)
+- [ ] The text has been run through the ru-text skill antipattern catalog; if the skill is unavailable - check against the package dictionaries and this checklist (05.02, 08.01)
+- [ ] Canon lexicon applied: active voice, verb instead of a verbal noun, specifics
+- [ ] Every instruction step contains an action and an expected result
+- [ ] The main point is at the start of the document and each section
+- [ ] Terms are consistent throughout; explained at first use
+- [ ] No dashes (U+2014, U+2013), ellipses (U+2026), emoji, letters with diacritics (U+0451, U+0401, including е + U+0308), non-breaking and narrow spaces (U+00A0, U+202F) (04.03)
+- [ ] Facts, commands, paths, and identifiers are not distorted by styling
+- [ ] Repo override entries taken into account
+
+Three or more findings - rewrite the paragraph or section completely; one or two - fix precisely.
+
+---
+
+## 07. Antipatterns
+
+*Mandatory.*
+
+| Bad | Good | Reason |
 |--------|---------|---------|
-| Осуществите вход в систему | Войдите в систему | канцелярит, отглагольная конструкция |
+| Осуществите вход в систему | Войдите в систему | officialese, verbal noun construction |
 | Данный модуль является компонентом ядра | Модуль входит в состав ядра | «данный», «является» |
-| Стоит отметить, что система позволяет экспорт | Система экспортирует отчеты в CSV и XLSX | трюизм, абстракция без факта |
-| В современном мире безопасность играет ключевую роль | Безопасность: пароли хранятся в виде хэша bcrypt | ИИ-открытие, оценка без факта |
-| Это не просто ускоряет работу, а революционизирует ее | Ускоряет загрузку в 3 раза (замер: таблица 04) | параллелизм, оценка без доказательства |
-| Шаг 3. Настройте подключение | Шаг 3. Впишите адрес в `server_host`. Ожидаемый результат: строка Connection OK | шаг без результата |
-| Система должна быть удобной | Система открывает список задач не более чем за 2 секунды | неизмеримое требование |
-| Таким образом, мы рассмотрели настройку подключения | конец на действии или факте, без пересказа | формульный вывод |
+| Стоит отметить, что система позволяет экспорт | Система экспортирует отчеты в CSV и XLSX | truism, abstraction without fact |
+| В современном мире безопасность играет ключевую роль | Безопасность: пароли хранятся в виде хэша bcrypt | AI opening, evaluation without fact |
+| Это не просто ускоряет работу, а революционизирует ее | Ускоряет загрузку в 3 раза (замер: таблица 04) | parallelism, evaluation without proof |
+| Шаг 3. Настройте подключение | Шаг 3. Впишите адрес в `server_host`. Ожидаемый результат: строка Connection OK | step without a result |
+| Система должна быть удобной | Система открывает список задач не более чем за 2 секунды | immeasurable requirement |
+| Таким образом, мы рассмотрели настройку подключения | конец на действии или факте, без пересказа | formulaic conclusion |
 
 ---
 
-## 08.01. Инструменты проверки
+## 08.01. Checking Tools
 
-*Обязательно.*
+*Mandatory.*
 
-Инструменты вспомогательные: канон - словари пакета и этот документ; результат инструмента не отменяет канон. Прогон по каталогу антипаттернов навыка ru-text при доступном навыке - обязательная часть самопроверки текста для человека (05.02, раздел 06).
+Tools are auxiliary: the canon is the package dictionaries and this document; a tool's result does not cancel the canon. A run through the ru-text skill antipattern catalog, when the skill is available, is a mandatory part of self-checking a human-facing text (05.02, Section 06).
 
-- Навык ru-text (OpenCode) - первичный инструмент редактуры и самопроверки: каталог антипаттернов по серьезности, стоп-слова, оценка качества ru-score 0-10 по пяти измерениям (типографика, чистота языка, грамотность, структура, точность для читателя). Оговорка - ниже
-- Главред (glvrd.ru) - информационный стиль, стоп-слова, оценка текста
-- Орфограммка (orfogrammka.ru), Грамота.ру (gramota.ru) - орфография, пунктуация
-- Типограф (typograf.artlebedev.ru) - не применяется: расставляет тире и многоточия, запрещенные 04.03
+- The ru-text skill (OpenCode) is the primary editing and self-check tool: an antipattern catalog by severity, stop words, and a ru-score quality score 0-10 across five dimensions (typography, language purity, literacy, structure, reader precision). Caveat below
+- Glavred (glvrd.ru) - information style, stop words, text scoring
+- Orfogrammka (orfogrammka.ru), Gramota.ru (gramota.ru) - spelling, punctuation
+- Typographer (typograf.artlebedev.ru) - not used: it inserts dashes and ellipses banned by 04.03
 
-Оговорка о типографике навыка ru-text: правила типографики навыка (длинное тире, короткое тире в диапазонах, многоточие одним символом, неразрывные пробелы) не применяются - действует раздел 04.03 `project_standards.md`: дефис-минус (U+002D) во всех позициях, без многоточий, без невидимых символов. При оценке ru-score измерение «Типографика» не учитывается, а вес делится между остальными четырьмя измерениями; итоговый балл - ориентир, не канон. Остальные измерения (чистота языка, грамотность, структура, точность для читателя) применяются как есть.
+Caveat on ru-text typography: the typography rules of the skill (em dash, en dash in ranges, single-character ellipsis, non-breaking spaces) do not apply - `project_standards.md`, 04.03 applies: hyphen-minus (U+002D) in all positions, no ellipses, no invisible characters. In OpenCode this is additionally fixed by the machine-level override in `~/.config/opencode/AGENTS.md`, which takes precedence over the skill's typography rules. In ru-score, the "Typography" dimension is not counted and its weight is split among the other four dimensions; the final score is a guide, not the canon. The other dimensions (language purity, literacy, structure, reader precision) apply as is.
 
-Оговорка об иерархии: каталог антипаттернов навыка и словари пакета пересекаются; при расхождении статуса слова приоритет у словарей пакета с пометками по стилям (03.09), затем - оверрайд репо.
+Caveat on hierarchy: the skill's antipattern catalog and the package dictionaries overlap; when a word status differs, the package dictionaries with style marks (03.09) take priority, then the repo override.
 
-Глобальный оверрайд текстовых норм (OpenCode). Для инструмента OpenCode правила раздела 04.03 могут быть продублированы на уровне конфигурации агента: файл `~/.config/opencode/AGENTS.md` OpenCode читает во всех сессиях. Оговорка инструмент-специфичная - относится только к OpenCode; в других инструментах действует их собственная конфигурация. Единый источник нормы - `project_standards.md`, раздел 04.03; в машинном файле правила задаются ссылкой на 04.03 без переписывания текста, чтобы копии не расходились. Файл в репозитории не хранится: создание - операция настройки машины, аналогичная активации pre-commit (`git config core.hooksPath .githooks`).
-
----
-
-## 08.02. Редполитики и справочники
-
-*Обязательно.*
-
-Источники методик, на которых построены словари:
-
-- Редполитика Т-Ж (Максим Ильяхов) - maximilyahov.ru/blog/all/tinkoff-bootcamp-5
-- «Пиши, сокращай» (Максим Ильяхов, Лена Сарычева) - методика инфостиля и стоп-слов
-- Справочник Розенталя - канцеляриты и штампы (раздел 140)
-- Справочник издателя и автора (А. Э. Мильчин) - редакторская правка
+Global override of text norms (OpenCode). For the OpenCode tool, the rules of 04.03 may be duplicated at the agent configuration level: OpenCode reads `~/.config/opencode/AGENTS.md` in all sessions. The caveat is tool-specific - it applies only to OpenCode; other tools use their own configuration. The single source of the norm is `project_standards.md`, 04.03; the machine file states the rules by reference to 04.03 without rewriting the text, so copies do not diverge. The file is not stored in the repository: creating it is a machine setup operation similar to enabling pre-commit (`git config core.hooksPath .githooks`).
 
 ---
 
-## 08.03. Агентские наборы правил
+## 08.02. Style Guides and Reference Books
 
-*Обязательно.*
+*Mandatory.*
 
-Наборы правил и словарей для ИИ-агентов, использованные при составлении словарей пакета:
+Sources of the methods on which the dictionaries are built:
 
-- github.com/talkstream/ru-text - каталог стоп-слов русского текста с заменами; развернут как локальный навык ru-text (инструмент проверки - 08.01)
-- github.com/ilyautov/humanizer-ru - маркеры ИИ-текста на русском, кальки, хеджи
-- github.com/Osmosy/russian-vector - AI-патологии русского текста, стоп-слова с заменами
-- github.com/n1arko/redaktura-skills - канцелярит, порядок редактуры
-- github.com/artgas1/infostyle-skill - 15 категорий стоп-слов по методике инфостиля
-- github.com/johan--/agent-stylebooks - редакционные системы для агентов (Google, GOV.UK, Microsoft и др.)
-- github.com/yzhao062/agent-style - правила письма для кодинг-агентов
-
-При встрече незнакомого паттерна - сверка с источниками; новое, подтвержденное, оформляется предложением в словарь (раздел 05.04).
+- T-J style guide (Maxim Ilyakhov) - maximilyahov.ru/blog/all/tinkoff-bootcamp-5
+- "Пиши, сокращай" (Maxim Ilyakhov, Lena Sarycheva) - the infostyle method and stop words
+- Rosenthal's reference book - officialese and stamps (Section 140)
+- Reference book of the publisher and author (A. E. Milchin) - editorial revision
 
 ---
 
-## 08.04. Перспектива автоматизации
+## 08.03. Agent Rule Sets
 
-*Обязательно.*
+*Mandatory.*
 
-Не реализовано в пакете; решается по явному запросу пользователя:
+Rule and dictionary sets for AI agents used in compiling the package dictionaries:
 
-- Частично закрыто навыком ru-text: оценка ru-score выполняется агентом без внешних сервисов (08.01)
-- Контроль запрещенных символов (тире U+2014, U+2013, многоточие U+2026, е с диакритикой U+0451, U+0401 и U+0308, неразрывные пробелы U+00A0, U+202F) - на агенте по чек-листу (06); автоконтроль на коммите не введен: сканер ложно срабатывает на самих стандартах, где символы приведены как примеры запрета
-- Конвертация стоп-листов в Vale-стиль и подключение Vale MCP - автоматическая проверка текстов по стоп-листам
-- Кастомный tool opencode над API Главреда - по `opencode_tool_standards.md`
+- github.com/talkstream/ru-text - a catalog of Russian text stop words with replacements; deployed as the local ru-text skill (checking tool - 08.01)
+- github.com/ilyautov/humanizer-ru - Russian AI text markers, calques, hedges
+- github.com/Osmosy/russian-vector - AI pathologies of Russian text, stop words with replacements
+- github.com/n1arko/redaktura-skills - officialese, editing order
+- github.com/artgas1/infostyle-skill - 15 stop-word categories by the infostyle method
+- github.com/johan--/agent-stylebooks - editorial systems for agents (Google, GOV.UK, Microsoft, and others)
+- github.com/yzhao062/agent-style - writing rules for coding agents
 
-Ограничение автоматизации: русская морфология (падежные формы) покрывается регулярными выражениями частично; финальная проверка - за агентом.
+When an unfamiliar pattern appears - check it against the sources; a new, confirmed one is formatted as a dictionary proposal (Section 05.04).
 
 ---
 
-## 09.01. Связь с другими документами
+## 08.04. Automation Outlook
 
-| Документ | Связь |
+*Mandatory.*
+
+Not implemented in the package; addressed on explicit user request:
+
+- Partially covered by the ru-text skill: ru-score is computed by the agent without external services (08.01)
+- Control of forbidden characters (dashes U+2014, U+2013, ellipsis U+2026, е with diacritics U+0451, U+0401 and U+0308, non-breaking spaces U+00A0, U+202F) - on the agent via the checklist (06); auto-control at commit is not introduced: a scanner gives false positives on the standards themselves, where the characters are given as prohibition examples
+- Converting stop lists to a Vale style and connecting Vale MCP - automatic text checking against stop lists
+- A custom OpenCode tool over the Glavred API - per `opencode_tool_standards.md`
+
+Automation limit: Russian morphology (case forms) is covered by regular expressions only partially; the final check is up to the agent.
+
+---
+
+## 09.01. Related Documents
+
+| Document | Relation |
 |----------|-------|
-| `project_standards.md` | Основной стандарт; микро-уровень текста (04.03), иерархия источников (07.06), правка пакета (07.05) |
-| `repo_info_doc_standards.md` | Структура README и человеческих документов репозитория; стиль внутри них - по этому документу |
-| `software_doc_standards.md` | Структура документов установки; стиль - по этому документу |
-| `console_ui_standards.md` | Контракт вывода и макет; формулировки UI - жанр 02.05 |
-| `code_standards.md` | Технический нейминг (раздел 02.01) |
-| `change_request_standards.md` | Жанр CR: структура - там, стиль - по этому документу (02.07) |
-| `opencode_tool_standards.md` | Канон кастомного tool при автоматизации проверки (08.04) |
-| `doc/specs/text_overrides.md` | Шаблон оверрайда словарей (05.03) |
-| `human_text_dict_standards.md` | Словарь стоп-слов русского текста |
-| `human_text_dict_ai_standards.md` | Словарь маркеров ИИ-текста |
-| `human_text_allowlist_standards.md` | Словарь канон-лексики |
+| `project_standards.md` | Core standard; text micro level (04.03), source hierarchy (07.06), package editing (07.05) |
+| `repo_info_doc_standards.md` | Structure of README and human repository documents; style inside them - per this document |
+| `software_doc_standards.md` | Structure of installation documents; style - per this document |
+| `console_ui_standards.md` | Output contract and layout; UI wording - genre 02.05 |
+| `code_standards.md` | Technical naming (Section 02.01) |
+| `change_request_standards.md` | CR genre: structure there, style per this document (02.07) |
+| `opencode_tool_standards.md` | Canon for a custom tool when automating checks (08.04) |
+| `doc/specs/text_overrides.md` | Dictionary override template (05.03) |
+| `human_text_dict_standards.md` | Russian text stop-word dictionary |
+| `human_text_dict_ai_standards.md` | AI text marker dictionary |
+| `human_text_allowlist_standards.md` | Canon lexicon dictionary |
 
 ---
 
-## 09.02. Версионирование
+## 09.02. Versioning
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя.
+Versioning of the standards package is unified for all package documents. The versioning policy, registry, and routing map are in `doc/standards/_index_standards.md`. A package version bump is performed only on explicit user request.

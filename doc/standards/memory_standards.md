@@ -1,99 +1,99 @@
-# Память агентов (data/memory). Версия 4.16.0
+# Agent Memory (data/memory). Version 5.0.0
 
-Канон постоянной памяти AI-агентов: два охвата (проектная и сессионная), закрытый перечень файлов, строгая структура, правила чтения и пополнения. Документ - дополнение к `project_standards.md` и применяется поверх него. Порядок принятия решений при отсутствии или неоднозначной норме - `project_standards.md`, раздел 07.06.
-
----
-
-## Оглавление
-
-**01. Назначение и охваты:** 01.01 Назначение - 01.02 Охваты - 01.03 Граница с соседними механизмами
-
-**02. Размещение и жизненный цикл:** 02.01 Размещение и коммитимость - 02.02 Создание и наполнение
-
-**03. Закрытый перечень файлов**
-
-**04. Структура файлов:** 04.01 Индекс memory.md - 04.02 Тематические файлы
-
-**05. Правила ведения**
-
-**06. Чтение памяти**
-
-**07. Связь и версионирование**
+Canon for persistent AI agent memory: two scopes (project and session), a closed file list, strict structure, and rules for reading and updating. The document supplements `project_standards.md` and applies on top of it. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 
 ---
 
-## 01.01. Назначение
+## Table of Contents
 
-*Обязательно.*
+**01. Purpose and scopes:** 01.01 Purpose - 01.02 Scopes - 01.03 Boundary with adjacent mechanisms
 
-Память агентов - постоянный контекст, передаваемый между сессиями, агентами и инструментами: принятые решения с обоснованием, факты об окружении проекта, предпочтения пользователя в контексте проекта. Без памяти каждый агент и каждая сессия начинают с нуля и накапливают контекст заново. Точка входа - индекс `memory.md`; память читается в начале сессии и пополняется по ходу работы. Память не заменяет стандарты, спецификации и git-историю - она хранит рабочий контекст, которому нет места в этих артефактах.
+**02. Placement and lifecycle:** 02.01 Placement and committability - 02.02 Creation and filling
 
----
+**03. Closed file list**
 
-## 01.02. Охваты
+**04. File structure:** 04.01 memory.md index - 04.02 Topic files
 
-*Обязательно.*
+**05. Maintenance rules**
 
-| Охват | Путь | Коммит |
-|-------|------|--------|
-| Проектная | `<repo>/data/memory/` | да - исключение `!data/memory/` в `.gitignore` (`project_standards.md`, 06.01) |
-| Сессионная | `<session-dir>/data/memory/` | по правилам папки сессии (`project_standards.md`, 01.01.01) |
+**06. Reading memory**
 
-- Проектная память общая для всех агентов, сессий и инструментов, работающих с репозиторием; git-транспорт делает ее общей для всех клонов
-- Сессионная память - рабочий контекст конкретной сессии: черновые решения и наблюдения до их переноса в проектную память
-- Перечень файлов и структура обоих охватов идентичны
+**07. Relations and versioning**
 
 ---
 
-## 01.03. Граница с соседними механизмами
+## 01.01. Purpose
 
-*Обязательно.*
+*Mandatory.*
 
-- Журнал уроков `data/lessons.md` (`project_standards.md`, 01.01.07) - не часть памяти: переносимый опыт для других проектов, записи только добавляются, фиксация - навыком `glob-mine-lesson`. Урок никогда не пишется в память; решение, ставшее уроком, переносится в журнал и из памяти убирается (раздел 05)
-- Рантайм-данные навыков - зоны `data/registries/`, `data/journals/`, `data/state/` (`doc/standards/skill_data_standards.md`) - не память: зоны хранят данные задач, память - контекст агента
-- Конфигурация проекта - `config/` и `.env` (`project_standards.md`, 01.02): параметры работы кода, не знания агента
-- Спецификации и CR - `doc/specs/`, `doc/change_requests/`: контракт задачи, не накопительный контекст
-- `AGENTS.md` - постоянные инструкции; память - изменчивый контекст. Разделение: правило - в AGENTS.md, факт состояния - в памяти
-- MCP memory server и векторные хранилища не канонизируются: содержимое памяти грепается и диффается git
+Agent memory is persistent context passed between sessions, agents, and tools: accepted decisions with rationale, facts about the project environment, user preferences in the project context. Without memory every agent and every session starts from scratch and accumulates context again. The entry point is the `memory.md` index; memory is read at session start and updated during work. Memory does not replace standards, specifications, and git history - it stores working context that has no place in those artifacts.
 
 ---
 
-## 02.01. Размещение и коммитимость
+## 01.02. Scopes
 
-*Обязательно.*
+*Mandatory.*
 
-Проектная память живет в `data/memory/` корня репозитория; сессионная - в `data/memory/` папки сессии. Каталог `data/` игнорируется git целиком; для проектной памяти добавляется исключение `!data/memory/` (шаблон `.gitignore` - `project_standards.md`, 06.01). Секреты, ключи и персональные данные в память не пишутся (раздел 05) - коммитимость памяти безопасна.
+| Scope | Path | Commit |
+| ----- | ---- | ------ |
+| Project | `<repo>/data/memory/` | yes - exception `!data/memory/` in `.gitignore` (`project_standards.md`, 06.01) |
+| Session | `<session-dir>/data/memory/` | per session folder rules (`project_standards.md`, 01.01.01) |
 
----
-
-## 02.02. Создание и наполнение
-
-*Обязательно.*
-
-Память создается при первой записи, а не при инициализации проекта: каталог `data/memory/` и индекс `memory.md` возникают, когда появляется контент. Репозиторий может жить без памяти неограниченно долго; отсутствие каталога - не расхождение со стандартом. Первая запись любого типа создает соответствующий тематический файл и регистрирует его в индексе.
-
----
-
-## 03. Закрытый перечень файлов
-
-*Обязательно.*
-
-Перечень закрыт: иные имена файлов в `data/memory/` запрещены. Расширение перечня - правка настоящего стандарта, не инициатива агента.
-
-| Файл | Назначение | Обязательность |
-|------|-----------|----------------|
-| `memory.md` | Индекс: реестр файлов, текущее состояние, правила работы | обязателен при наличии памяти; точка входа |
-| `decisions.md` | Журнал решений и выборов с обоснованием | при первой записи решения |
-| `env.md` | Факты об окружении: пути, версии, особенности проекта | при первой записи факта окружения |
-| `preferences.md` | Предпочтения пользователя в контексте проекта | при первой записи предпочтения |
+- Project memory is shared by all agents, sessions, and tools working with the repository; git transport makes it shared across all clones
+- Session memory is the working context of a specific session: draft decisions and observations before they move to project memory
+- The file list and structure are identical for both scopes
 
 ---
 
-## 04.01. Индекс memory.md
+## 01.03. Boundary with adjacent mechanisms
 
-*Обязательно.*
+*Mandatory.*
 
-Собственная SemVer у памяти не ведется: история изменений - в git. Структура индекса - три фиксированные секции в порядке ниже; собственные секции запрещены:
+- The lesson journal `data/lessons.md` (`project_standards.md`, 01.01.07) is not part of memory: it is transferable experience for other projects, records are only appended, and capture is done by the `glob-mine-lesson` skill. A lesson is never written to memory; a decision that becomes a lesson moves to the journal and is removed from memory (05)
+- Skill runtime data - zones `data/registries/`, `data/journals/`, `data/state/` (`doc/standards/skill_data_standards.md`) - is not memory: zones store task data, memory stores agent context
+- Project configuration - `config/` and `.env` (`project_standards.md`, 01.02): code operation parameters, not agent knowledge
+- Specifications and CR - `doc/specs/`, `doc/change_requests/`: task contract, not accumulated context
+- `AGENTS.md` - permanent instructions; memory - changing context. Separation: a rule goes to AGENTS.md, a state fact goes to memory
+- MCP memory servers and vector stores are not canonized: memory content is grepped and diffed by git
+
+---
+
+## 02.01. Placement and committability
+
+*Mandatory.*
+
+Project memory lives in `data/memory/` at the repository root; session memory - in the session folder `data/memory/`. The `data/` directory is ignored by git as a whole; for project memory the exception `!data/memory/` is added (`.gitignore` template - `project_standards.md`, 06.01). Secrets, keys, and personal data are not written to memory (05) - memory committability is safe.
+
+---
+
+## 02.02. Creation and filling
+
+*Mandatory.*
+
+Memory is created on the first write, not at project initialization: the `data/memory/` directory and the `memory.md` index appear when content exists. A repository can live without memory indefinitely; the absence of the directory is not a standard discrepancy. The first write of any type creates the corresponding topic file and registers it in the index.
+
+---
+
+## 03. Closed file list
+
+*Mandatory.*
+
+The list is closed: other file names in `data/memory/` are forbidden. Extending the list is an edit to this standard, not an agent initiative.
+
+| File | Purpose | Requirement |
+| ---- | ------- | ----------- |
+| `memory.md` | Index: file registry, current state, working rules | mandatory when memory exists; entry point |
+| `decisions.md` | Journal of decisions and choices with rationale | on the first decision record |
+| `env.md` | Environment facts: paths, versions, project specifics | on the first environment fact |
+| `preferences.md` | User preferences in the project context | on the first preference record |
+
+---
+
+## 04.01. memory.md index
+
+*Mandatory.*
+
+Memory does not keep its own SemVer: change history is in git. The index structure is three fixed sections in the order below; custom sections are forbidden:
 
 ```markdown
 # Память: <repo-or-session>
@@ -117,15 +117,15 @@
 - канон: doc/standards/memory_standards.md
 ```
 
-Секция «Реестр файлов» перечисляет все файлы перечня с фактическим статусом (`ведется` / `пуст`); файлы со статусом `пуст` присутствуют в реестре, только если созданы. Секция «Текущее состояние» - до 5 строк: на чем остановились, что следующее.
+The "Реестр файлов" section lists all files of the list with their actual status (`ведется` / `пуст`); files with status `пуст` are present in the registry only if created. The "Текущее состояние" section is up to 5 lines: where work stopped, what is next. Memory content language follows the project language; records may be Russian.
 
 ---
 
-## 04.02. Тематические файлы
+## 04.02. Topic files
 
-*Обязательно.*
+*Mandatory.*
 
-Заголовок файла - `# <topic>` (Решения, Окружение, Предпочтения). Записи вида:
+The file heading is `# <topic>` (Решения, Окружение, Предпочтения). Records have the form:
 
 ```markdown
 ## YYYY-MM-DD - краткий заголовок
@@ -134,44 +134,44 @@
 - обоснование: <rationale>
 ```
 
-- Новые записи добавляются сверху файла
-- Одна запись - одна мысль; нарратив и многоабзацный текст запрещены
-- Подробности реализации ссылаются на артефакты (спека, коммит, CR), а не пересказываются
+- New records are added at the top of the file
+- One record - one thought; narrative and multi-paragraph text are forbidden
+- Implementation details reference artifacts (spec, commit, CR) instead of retelling them
 
 ---
 
-## 05. Правила ведения
+## 05. Maintenance rules
 
-*Обязательно.*
+*Mandatory.*
 
-- Пополнение - по завершении шага задачи или всей задачи, не посреди работы; в сессионной памяти допустимы черновые записи в конце шага
-- Запись в проектную память выполняет один агент в момент завершения шага - завершение шага является точкой слияния, параллельное накопление идет в сессионной памяти
-- Противоречащие записи не сосуществуют: новая запись по той же теме правит или заменяет старую в том же изменении
-- Дубли запрещены: повторная запись по той же теме дополняет существующую или заменяет ее
-- Решение, ставшее переносимым уроком, фиксируется в журнале `data/lessons.md` (`project_standards.md`, 01.01.07, навык `glob-mine-lesson`) и из памяти убирается
-- Секреты, ключи и персональные данные запрещены
-- `env.md` не содержит идентифицирующих машину сведений (имена хостов, пользователи, адреса, серийные номера): файл коммитится и должен быть пригоден для публичного репозитория; конкретика машины - в проектный оверрайд (`doc/specs/overrides.md`) или сессионную память
-
----
-
-## 06. Чтение памяти
-
-*Обязательно.*
-
-- Обязательный минимум в начале сессии (при наличии каталога): `memory.md`, `decisions.md`, `env.md`
-- `preferences.md` читается по реестру индекса при релевантности задачи взаимодействия с пользователем
-- Для возобновляемой сессии сначала читается сессионная память, затем проектная
-- Агент сообщает пользователю, что память прочитана и что пополнено по итогам работы
+- Update at the end of a task step or the whole task, not in the middle of work; draft records at the end of a step are allowed in session memory
+- A write to project memory is performed by one agent at the moment a step completes - step completion is the merge point; parallel accumulation happens in session memory
+- Contradicting records do not coexist: a new record on the same topic edits or replaces the old one in the same change
+- Duplicates are forbidden: a repeated record on the same topic supplements or replaces the existing one
+- A decision that becomes a transferable lesson is recorded in the `data/lessons.md` journal (`project_standards.md`, 01.01.07, `glob-mine-lesson` skill) and removed from memory
+- Secrets, keys, and personal data are forbidden
+- `env.md` does not contain machine-identifying information (host names, users, addresses, serial numbers): the file is committed and must be suitable for a public repository; machine specifics go to the project override (`doc/specs/overrides.md`) or session memory
 
 ---
 
-## 07. Связь и версионирование
+## 06. Reading memory
 
-| Документ | Связь |
-|----------|-------|
-| `project_standards.md` | структура проекта и `data/` (01.01), сессии и сессионная память (01.01.01), шаблон `.gitignore` (06.01), журнал уроков (01.01.07) |
-| `index_nav_standards.md` | каркас AGENTS.md - строка про память в «Обзоре проекта» (07) |
-| `skill_anthropic_standards.md` | граница со снимком состояния конфигурирующих навыков (03.05) |
-| `skill_data_standards.md` | граница памяти и зон рантайм-данных навыков (01.03) |
+*Mandatory.*
 
-Версионирование пакета стандартов - единое для всех документов пакета; политика - в `doc/standards/_index_standards.md`. Bump версии - только по явному запросу пользователя.
+- Mandatory minimum at session start (when the directory exists): `memory.md`, `decisions.md`, `env.md`
+- `preferences.md` is read per the index registry when the task involves interaction with the user
+- For a resumable session, session memory is read first, then project memory
+- The agent tells the user that memory has been read and what was added at the end of the work
+
+---
+
+## 07. Relations and Versioning
+
+| Document | Relation |
+| -------- | -------- |
+| `project_standards.md` | project structure and `data/` (01.01), sessions and session memory (01.01.01), `.gitignore` template (06.01), lesson journal (01.01.07) |
+| `index_nav_standards.md` | AGENTS.md skeleton - the memory line in "Session Entry Points" (07) |
+| `skill_anthropic_standards.md` | boundary with the configuring skill state snapshot (03.05) |
+| `skill_data_standards.md` | boundary between memory and skill runtime data zones (01.03) |
+
+Standards package versioning is unified for all package documents; policy - in `doc/standards/_index_standards.md`. Bump the version only on an explicit user request.

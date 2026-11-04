@@ -1,98 +1,82 @@
-# Словарь стоп-слов русского текста. Версия 4.16.0
+# Human Text Dictionary Standards. Version 5.0.0
 
-Denylist русского текста: канцелярит, вода, усилители, оценки без доказательств, плеоназмы. Документ - дополнение к `human_text_standards.md` и применяется поверх него вместе с остальными словарями пакета. Порядок принятия решений при отсутствии или неоднозначности нормы - `project_standards.md`, раздел 07.06.
+Denylist of Russian text: officialese, filler, amplifiers, evaluations without evidence, pleonasms. This document supplements `human_text_standards.md` and applies on top of it together with the other package dictionaries. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 
-Сокращения стилей и статусы применимости - `human_text_standards.md`, раздел 03.09: РЛ - разговорный легкий, РС - разговорный строгий, ДЛ - деловой легкий, ДС - деловой строгий, ТЛ - технический легкий, ТС - технический строгий; статусы: запрет, ограничено, норма.
-
----
-
-## Оглавление
-
-**01. Назначение и порядок применения**
-
-**02. Применимость по стилям**
-
-**03. Канцелярит и отглагольные конструкции**
-
-**04. Канцелярские обороты и предлоги**
-
-**05. Вода и вводные конструкции**
-
-**06. Усилители**
-
-**07. Оценки без доказательств**
-
-**08. Плеоназмы**
-
-**09. Корпоративные и рекламные штампы**
-
-**10. Газетные и бытовые штампы**
-
-**11. Паразиты времени**
-
-**12. Неопределенность**
-
-**13. Модальные ослабители**
-
-**14. Заумь и псевдотерминология**
-
-**15. Структурные ограничения**
-
-**16. Пополнение словаря**
-
-**17. Связь и версионирование:** 17.01 Связь с другими документами - 17.02 Версионирование
+Style abbreviations and applicability statuses - `human_text_standards.md`, 03.09: РЛ - conversational light, РС - conversational strict, ДЛ - business light, ДС - business strict, ТЛ - technical light, ТС - technical strict; statuses: запрет, ограничено, норма.
 
 ---
 
-## 01. Назначение и порядок применения
+## Table of Contents
 
-*Обязательно.*
+**01. Purpose and Application Order**
 
-Словарь содержит слова и обороты, ослабляющие текст: не несущие смысла, заменяющие действие существительными, добавляющие неопределенность. Основная часть - канцелярит: язык документов, перенесенный в живой текст; источники методики - `human_text_standards.md`, раздел 08.02.
+**02. Applicability by Styles**
 
-Порядок правки найденного:
+**03. Officialese and Verbal Noun Constructions**
 
-1. Стоп-слово из таблицы - замена из колонки «Замена»
-2. Замены в таблице нет - перестроить предложение: найти, кто делает действие, вернуть глагол, убрать пустые слова
-3. Тест удаления: убрать слово или оборот - если смысл не пострадал, удалять без замены
-4. Статус по стилям проверять по пометкам раздела 02 и колонки «Отклонения»; пометка «норма» означает, что при самопроверке позиция не правится
-5. Разделитель в таблицах - стрелка из дефиса и знака «больше» (тире в текстах пакета запрещены, 04.03)
+**04. Officialese Phrases and Prepositions**
 
----
+**05. Filler and Introductory Constructions**
 
-## 02. Применимость по стилям
+**06. Amplifiers**
 
-*Обязательно.*
+**07. Evaluations without Evidence**
 
-Базовые статусы категорий (детальные отклонения по отдельным позициям - в колонке «Отклонения» таблиц):
+**08. Pleonasms**
 
-| Категория | РЛ | РС | ДЛ | ДС | ТЛ | ТС |
-|-----------|----|----|----|----|----|----|
-| 03. Канцелярит и отглагольные | запрет | запрет | запрет | ограничено | запрет | ограничено |
-| 04. Канцелярские обороты и предлоги | запрет | запрет | запрет | ограничено | запрет | ограничено |
-| 05. Вода и вводные | запрет | запрет | запрет | запрет | запрет | запрет |
-| 06. Усилители | запрет | запрет | запрет | запрет | запрет | запрет |
-| 07. Оценки без доказательств | запрет | запрет | запрет | запрет | запрет | запрет |
-| 08. Плеоназмы | запрет | запрет | запрет | запрет | запрет | запрет |
-| 09. Корпоративные и рекламные штампы | запрет | запрет | запрет | запрет | запрет | запрет |
-| 10. Газетные и бытовые штампы | запрет | запрет | запрет | запрет | запрет | запрет |
-| 11. Паразиты времени | запрет | запрет | запрет | запрет | запрет | запрет |
-| 12. Неопределенность | запрет | запрет | запрет | ограничено | запрет | ограничено |
-| 13. Модальные ослабители | ограничено | ограничено | ограничено | норма | ограничено | норма |
-| 14. Заумь и псевдотерминология | запрет | запрет | запрет | запрет | запрет | запрет |
-| 15. Структурные ограничения | ограничено | ограничено | ограничено | ограничено | ограничено | ограничено |
+**09. Corporate and Advertising Cliches**
 
-В ДС и ТС канцелярит - ограничено: юридическая и техническая точность допускает отдельные формулы («в соответствии с», «осуществляет учет»). Допустимость проверяется по колонке «Отклонения» таблиц; без явной пометки позиция правится и в ДС, и в ТС. Вода, усилители, оценки и плеоназмы - мусор в любом стиле.
+**10. Newspaper and Everyday Cliches**
+
+**11. Time Parasites**
+
+**12. Uncertainty**
+
+**13. Modal Softeners**
+
+**14. Pretentiousness and Pseudo-Terminology**
+
+**15. Structural Limits**
+
+**16. Dictionary Enrichment**
+
+**17. Relations and Versioning:** 17.01 Related Documents - 17.02 Versioning
 
 ---
 
-## 03. Канцелярит и отглагольные конструкции
+## 01. Purpose and Application Order
 
-*Обязательно.*
+*Mandatory.*
 
-Базовый статус: запрет в РЛ, РС, ДЛ, ТЛ; ограничено в ДС и ТС (по пометкам). Отглагольное существительное заменяется глаголом - это самая частая правка агентского текста.
+The dictionary contains words and phrases that weaken the text: those that carry no meaning, replace an action with nouns, or add uncertainty. The main part is officialese: the language of documents transferred into living text; method sources - `human_text_standards.md`, 08.02.
 
-| Слово или оборот | Замена | Отклонения |
+Order of fixing what is found:
+
+1. A stop word from the table - the replacement from the "Replacement" column
+2. No replacement in the table - rebuild the sentence: find who performs the action, restore the verb, remove empty words
+3. Deletion test: remove the word or phrase - if the meaning is intact, delete it without a replacement
+4. Check the style status against the marks in Section 02 and the "Deviations" column; the mark "норма" means the item is not corrected during self-check
+5. The separator in tables is an arrow made of a hyphen and a greater-than sign (dashes are banned in package texts, 04.03)
+
+---
+
+## 02. Applicability by Styles
+
+*Mandatory.*
+
+The applicability matrix is common to the package: it lives in `human_text_standards.md`, 03.09, and is not duplicated here.
+
+In ДС and ТС officialese is limited: legal and technical precision allows individual formulas («в соответствии с», «осуществляет учет»). Acceptability is checked against the "Deviations" column of the tables; without an explicit mark the item is corrected in both ДС and ТС. Filler, amplifiers, evaluations, and pleonasms are garbage in any style.
+
+---
+
+## 03. Officialese and Verbal Noun Constructions
+
+*Mandatory.*
+
+Base status: banned in РЛ, РС, ДЛ, ТЛ; limited in ДС and ТС (per marks). A verbal noun is replaced with a verb - this is the most frequent correction of agent text.
+
+| Word or phrase | Replacement | Deviations |
 |-------------------|--------|------------|
 | является | это, входит в состав, тире-конструкция | в ДС и ТС допустимо в определениях терминов |
 | данный, указанный | этот | в ДС и ТС допустимо в отсылках к пунктам и документам |
@@ -127,13 +111,13 @@ Denylist русского текста: канцелярит, вода, усил
 
 ---
 
-## 04. Канцелярские обороты и предлоги
+## 04. Officialese Phrases and Prepositions
 
-*Обязательно.*
+*Mandatory.*
 
-Базовый статус: запрет в РЛ, РС, ДЛ, ТЛ; ограничено в ДС и ТС (по пометкам).
+Base status: banned in РЛ, РС, ДЛ, ТЛ; limited in ДС and ТС (per marks).
 
-| Оборот | Замена | Отклонения |
+| Phrase | Replacement | Deviations |
 |--------|--------|------------|
 | в настоящее время, в данный момент | сейчас | |
 | на сегодняшний день | сегодня, сейчас | |
@@ -164,13 +148,13 @@ Denylist русского текста: канцелярит, вода, усил
 
 ---
 
-## 05. Вода и вводные конструкции
+## 05. Filler and Introductory Constructions
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Пустые слова и вводные, не несущие смысла: тест удаления срабатывает почти всегда.
+Status: banned in all styles. Empty words and introductory phrases carrying no meaning: the deletion test works almost always.
 
-| Слово или оборот | Замена |
+| Word or phrase | Replacement |
 |-------------------|--------|
 | в принципе, в общем, в целом | удалить |
 | на самом деле, действительно | удалить или дать факт |
@@ -191,13 +175,13 @@ Denylist русского текста: канцелярит, вода, усил
 
 ---
 
-## 06. Усилители
+## 06. Amplifiers
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Слова-присадки, усиливающие без обоснования: усилить можно фактом, не словом.
+Status: banned in all styles. Add-on words that amplify without justification: you can amplify with a fact, not with a word.
 
-| Слово | Замена |
+| Word | Replacement |
 |--------|--------|
 | очень | удалить; усилить фактом |
 | крайне, чрезвычайно, максимально, предельно | удалить |
@@ -215,13 +199,13 @@ Denylist русского текста: канцелярит, вода, усил
 
 ---
 
-## 07. Оценки без доказательств
+## 07. Evaluations without Evidence
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Оценочное прилагательное допустимо только с измеримым критерием рядом (в ТС - по правилам требований, `human_text_standards.md`, раздел 02.03).
+Status: banned in all styles. An evaluative adjective is allowed only with a measurable criterion next to it (in ТС - by the requirements rules, `human_text_standards.md`, 02.03).
 
-| Слово или оборот | Замена |
+| Word or phrase | Replacement |
 |-------------------|--------|
 | удобный, комфортный | дать критерий: количество действий, время |
 | быстрый, медленный | дать число: секунды, операции в секунду |
@@ -246,13 +230,13 @@ Denylist русского текста: канцелярит, вода, усил
 
 ---
 
-## 08. Плеоназмы
+## 08. Pleonasms
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Избыточное удвоение значения - ошибка языка, не вопрос стиля.
+Status: banned in all styles. Redundant doubling of meaning is a language error, not a matter of style.
 
-| Оборот | Замена |
+| Phrase | Replacement |
 |--------|--------|
 | свободная вакансия | вакансия |
 | прейскурант цен | прейскурант |
@@ -271,13 +255,13 @@ Denylist русского текста: канцелярит, вода, усил
 
 ---
 
-## 09. Корпоративные и рекламные штампы
+## 09. Corporate and Advertising Cliches
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Готовые обороты, которые читатель проскальзывает не видя. Тест на штамп: могла бы конкурирующая компания написать то же слово в слово - если да, это штамп.
+Status: banned in all styles. Ready-made phrases that the reader skips without seeing. The cliche test: could a competing company write the same thing word for word - if yes, it is a cliche.
 
-| Штамп | Замена |
+| Cliche | Replacement |
 |--------|--------|
 | команда профессионалов | квалификация и опыт: число специалистов, годы |
 | молодая динамично развивающаяся компания | год основания, рост |
@@ -298,13 +282,13 @@ Denylist русского текста: канцелярит, вода, усил
 
 ---
 
-## 10. Газетные и бытовые штампы
+## 10. Newspaper and Everyday Cliches
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Мертвые метафоры и разговорные клише.
+Status: banned in all styles. Dead metaphors and colloquial cliches.
 
-| Штамп | Замена |
+| Cliche | Replacement |
 |--------|--------|
 | виновники торжества | имена |
 | ударными темпами | дать темп: сроки и объемы |
@@ -325,13 +309,13 @@ Denylist русского текста: канцелярит, вода, усил
 
 ---
 
-## 11. Паразиты времени
+## 11. Time Parasites
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Избыточные указания на время, когда контекст его уже задает. Исключение - явное противопоставление прошлого и настоящего.
+Status: banned in all styles. Redundant time references when the context already sets them. Exception - an explicit contrast between past and present.
 
-| Оборот | Замена |
+| Phrase | Replacement |
 |--------|--------|
 | в наши дни | удалить; при важности - назвать год |
 | нынче | удалить |
@@ -344,13 +328,13 @@ Denylist русского текста: канцелярит, вода, усил
 
 ---
 
-## 12. Неопределенность
+## 12. Uncertainty
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет в РЛ, РС, ДЛ и ТЛ; ограничено в ДС и ТС - допустимо, когда точность в принципе недостижима и это оговорено. Слова, прячущие конкретику.
+Status: banned in РЛ, РС, ДЛ, and ТЛ; limited in ДС and ТС - allowed when precision is fundamentally unattainable and this is stated. Words that hide specifics.
 
-| Слово | Замена |
+| Word | Replacement |
 |--------|--------|
 | кто-то, какой-то, что-то, где-то, как-то | назвать конкретно |
 | некий, некоторый | указать количество или убрать |
@@ -360,17 +344,17 @@ Denylist русского текста: канцелярит, вода, усил
 | определенный, соответствующий (без референта) | назвать конкретно |
 | различный, всевозможный | удалить или перечислить |
 
-Трансформация: «Более 15 лет на рынке» -> «Работаем с 2010 года»; «Ряд преимуществ» -> перечислить преимущества.
+Transformation: «Более 15 лет на рынке» -> «Работаем с 2010 года»; «Ряд преимуществ» -> перечислить преимущества.
 
 ---
 
-## 13. Модальные ослабители
+## 13. Modal Softeners
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: ограничено. В инструкциях (РЛ, ТЛ) заменяются императивом; в требованиях и уставах (ДС, ТС) - норма жанра; в остальных - перестраивать прямо.
+Status: limited. In instructions (РЛ, ТЛ) they are replaced with the imperative; in requirements and charters (ДС, ТС) they are the genre norm; elsewhere - rebuild directly.
 
-| Слово | Замена | Отклонения |
+| Word | Replacement | Deviations |
 |--------|--------|------------|
 | можно (в инструкции) | императив: «сделайте» вместо «можно сделать» | в РС и ДЛ допустимо о внешних возможностях |
 | нужно, необходимо | в инструкциях - императив; в остальных указать, кому и зачем | в ДС и ТС норма жанра |
@@ -381,13 +365,13 @@ Denylist русского текста: канцелярит, вода, усил
 
 ---
 
-## 14. Заумь и псевдотерминология
+## 14. Pretentiousness and Pseudo-Terminology
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: запрет во всех стилях. Умные слова для впечатления вместо смысла. Термин, нужный по делу, остается и объясняется при первом употреблении.
+Status: banned in all styles. Pretentious words meant to impress instead of convey meaning. A term needed for the point stays and is explained at first use.
 
-| Слово | Замена |
+| Word | Replacement |
 |--------|--------|
 | имплементация | внедрение, реализация |
 | синергия | совместный эффект |
@@ -402,45 +386,45 @@ Denylist русского текста: канцелярит, вода, усил
 
 ---
 
-## 15. Структурные ограничения
+## 15. Structural Limits
 
-*Обязательно.*
+*Mandatory.*
 
-Статус: ограничено во всех стилях. Правила формы предложения; превышение - повод перестроить предложение.
+Status: limited in all styles. Rules of sentence form; exceeding them is a reason to rebuild the sentence.
 
-1. Причастные обороты: максимум один на предложение; больше - разбить на отдельные предложения
-2. Родительный падеж: три и более существительных подряд - переписать («решение задачи оптимизации функции награды агента» -> «как подобрать функцию награды для агента»)
-3. Страдательный залог: если деятель известен и важен - активный («банк решает за 2 часа», а не «решение принимается банком»); допустим, когда деятель неизвестен или неважен, а также в ДС и ТС
-4. Избыточные местоимения: «мы предлагаем вам попробовать» -> «попробуйте»
-5. Перечисления: чередовать длину; тройки «X, Y и Z» в каждом абзаце - маркер ритма (см. `human_text_dict_ai_standards.md`, раздел 08)
-
----
-
-## 16. Пополнение словаря
-
-*Обязательно.*
-
-Механизм пополнения - `human_text_standards.md`, раздел 05.04. Дополнение записи:
-
-1. Слово или оборот - в категорию по смыслу
-2. Замена - конкретная и применимая в большинстве контекстов; если замены нет - перестроение предложения
-3. Отклонения - пометка стиля и условие, если позиция допустима в ДС или ТС
-4. Источник - ссылка на редполитику, справочник или указание «правка пользователя»
+1. Participial phrases: at most one per sentence; more - split into separate sentences
+2. Genitive case: three or more nouns in a row - rewrite («решение задачи оптимизации функции награды агента» -> «как подобрать функцию награды для агента»)
+3. Passive voice: if the actor is known and important - active («банк решает за 2 часа», not «решение принимается банком»); allowed when the actor is unknown or unimportant, and also in ДС and ТС
+4. Redundant pronouns: «мы предлагаем вам попробовать» -> «попробуйте»
+5. Enumerations: alternate lengths; triples "X, Y и Z" in every paragraph are a rhythm marker (see `human_text_dict_ai_standards.md`, 08)
 
 ---
 
-## 17.01. Связь с другими документами
+## 16. Dictionary Enrichment
 
-| Документ | Связь |
+*Mandatory.*
+
+The enrichment mechanism is in `human_text_standards.md`, 05.04. Adding an entry:
+
+1. Word or phrase - into the category by meaning
+2. Replacement - concrete and applicable in most contexts; if there is no replacement - rebuild the sentence
+3. Deviations - a style mark and condition if the item is allowed in ДС or ТС
+4. Source - a link to a style guide, reference book, or the note "user correction"
+
+---
+
+## 17.01. Related Documents
+
+| Document | Relation |
 |----------|-------|
-| `human_text_standards.md` | Основной документ: жанры, стили, методика, статусы применимости (03.09), механизм пополнения (05.04) |
-| `human_text_dict_ai_standards.md` | Парный denylist: маркеры ИИ-текста, запрещенные замены |
-| `human_text_allowlist_standards.md` | Канон-лексика: чем заменять при перестроении |
-| `project_standards.md` | Микро-уровень текста (04.03), правка пакета (07.05) |
-| `doc/specs/text_overrides.md` | Шаблон оверрайда: доменные запреты и разрешения поверх этого словаря |
+| `human_text_standards.md` | Main document: genres, styles, method, applicability statuses (03.09), enrichment mechanism (05.04) |
+| `human_text_dict_ai_standards.md` | Paired denylist: AI text markers, forbidden replacements |
+| `human_text_allowlist_standards.md` | Canon lexicon: what to replace with when rebuilding |
+| `project_standards.md` | Text micro level (04.03), package editing (07.05) |
+| `doc/specs/text_overrides.md` | Override template: domain prohibitions and permissions on top of this dictionary |
 
 ---
 
-## 17.02. Версионирование
+## 17.02. Versioning
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя.
+Versioning of the standards package is unified for all package documents. The versioning policy, registry, and routing map are in `doc/standards/_index_standards.md`. A package version bump is performed only on explicit user request.

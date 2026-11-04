@@ -1,160 +1,162 @@
-# Документация репозитория для человека: README и описания. Версия 4.16.0
+# Repository Human Documentation: README and Descriptions. Version 5.0.0
 
-Канон человеческих документов репозитория: README.md, инструкции и описания для пользователя. Документ - дополнение к `project_standards.md` и применяется поверх него. Порядок принятия решений при отсутствии или неоднозначности нормы - `project_standards.md`, раздел 07.06.
+Canon for human repository documents: README.md, instructions, and user descriptions. The document supplements `project_standards.md` and applies on top of it. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 
-Канон навигационных документов для агентов (индексы, AGENTS.md) - `index_nav_standards.md`.
-
----
-
-## Оглавление
-
-**01. Аудитория и принципы:** 01.01 Аудитория - 01.02 Язык - 01.03 Стиль текста - 01.04 Граница с документами агента
-
-**02. README.md:** 02.01 Обязательность и минимальная структура - 02.02 Структура файлов и директорий - 02.03 Меню
-
-**03. Применимость секций:** 03.01 Правило применимости - 03.02 Всегда обязательные секции
-
-**04. Актуализация и прочие документы:** 04.01 Актуализация README - 04.02 Прочие человеческие документы
-
-**05. Связь и версионирование:** 05.01 Связь с другими документами - 05.02 Версионирование
+The canon for agent navigation documents (indexes, AGENTS.md) is `index_nav_standards.md`.
 
 ---
 
-## 01.01. Аудитория
+## Table of Contents
 
-*Обязательно.*
+**01. Audience and principles:** 01.01 Audience - 01.02 Language - 01.03 Text style - 01.04 Boundary with agent documents
 
-Человеческие документы пишет для пользователя проекта, а не для агента: деловой язык предметной области проекта, без технического жаргона там, где он не нужен, без упоминания AI-агентов, стандартов и внутренней кухни агентной работы (индексы, маршрутизация, триггеры). Правила работы агента - в `AGENTS.md` (`index_nav_standards.md`); в README им не место.
+**02. README.md:** 02.01 Mandatory status and minimum structure - 02.02 File and directory structure - 02.03 Menu
 
----
+**03. Section applicability:** 03.01 Applicability rule - 03.02 Always mandatory sections
 
-## 01.02. Язык
+**04. Updates and other documents:** 04.01 README updates - 04.02 Other human documents
 
-*Обязательно.*
-
-Язык документов - русский по умолчанию; английский - только по явному запросу пользователя или если документ уже ведется на английском. Не смешивать языки в одном документе. При редактировании существующего документа писать на языке этого документа. Команды, пути, ключи конфигурации - в оригинальном написании (латиница).
+**05. Relations and versioning:** 05.01 Related documents - 05.02 Versioning
 
 ---
 
-## 01.03. Стиль текста
+## 01.01. Audience
 
-*Обязательно.*
+*Mandatory.*
 
-Текст - по факту: что делает, из чего состоит, как запускается. Без оценок, без историй изменения, без обещаний будущих функций (требования к тексту - `project_standards.md`, раздел 04.03). Пути в документе - относительные от корня репозитория. Изменчивые перечни (версии зависимостей, состав файлов) держать синхронными с фактическим состоянием проекта.
-
----
-
-## 01.04. Граница с документами агента
-
-*Обязательно.*
-
-README и описания - для человека; индексы и `AGENTS.md` - для агента (`index_nav_standards.md`). Требования этого документа не переносятся на навигационные документы, и наоборот: карта меню в README не дублирует `spec_ui.html`, а ссылки README на служебные документы агента даются без пересказа их содержания.
+Human documents are written for the project user, not for an agent: business language of the project domain, without technical jargon where it is not needed, without mention of AI agents, standards, and the internal mechanics of agent work (indexes, routing, triggers). Agent working rules live in `AGENTS.md` (`index_nav_standards.md`); they do not belong in README.
 
 ---
 
-## 02.01. Обязательность и минимальная структура
+## 01.02. Language
 
-*Обязательно.*
+*Mandatory.*
 
-Каждый проект содержит `README.md` в корне. Минимальная структура:
+The document language is Russian by default; English only on an explicit user request or when the document is already maintained in English. Do not mix languages in one document. When editing an existing document, write in that document language. Commands, paths, and configuration keys keep their original spelling (Latin).
 
-- **Версия стандарта** - строка вида `Соответствует стандарту: X.Y.Z` (семантическая версия пакета стандартов, по которой создан проект; раздел 07.04 основного стандарта)
-- **Назначение** - что делает проект (1-3 предложения)
-- **Требования** - версия Python, список зависимостей
-- **Установка** - создание окружения, установка зависимостей. Обязательно включать bash-команды для настройки venv:
+---
+
+## 01.03. Text style
+
+*Mandatory.*
+
+The text is factual: what it does, what it consists of, how it starts. No evaluations, no change stories, no promises of future features (text requirements - `project_standards.md`, 04.03). Paths in the document are relative to the repository root. Volatile lists (dependency versions, file composition) are kept in sync with the actual project state.
+
+---
+
+## 01.04. Boundary with agent documents
+
+*Mandatory.*
+
+README and descriptions are for humans; indexes and `AGENTS.md` are for the agent (`index_nav_standards.md`). The requirements of this document do not extend to navigation documents, and vice versa: the README menu map does not duplicate `spec_ui.html`, and README references to agent service documents are given without retelling their content.
+
+---
+
+## 02.01. Mandatory status and minimum structure
+
+*Mandatory.*
+
+Every project contains `README.md` at the root. Minimum structure:
+
+- **Standard version** - the line `Соответствует стандарту: X.Y.Z` (the standards package semantic version the project was created with; `project_standards.md`, 07.04)
+- **`Назначение`** - what the project does (1-3 sentences)
+- **`Требования`** - Python version, dependency list
+- **`Установка`** - environment creation, dependency installation. Must include bash commands for venv setup:
 
 ```bash
 python3 -m venv --copies .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
-- **Настройка** - что заполнить в `.env` (перечень ключей) и `config/config.ini` (перечень параметров)
-- **Пайплайн проекта** - описание последовательности этапов обработки данных: какие шаги выполняются, в каком порядке, что поступает на вход и что получается на выходе каждого этапа
-- **Структура файлов и директорий** - таблица (раздел 02.02)
-- **Запуск** - какие скрипты запускать и в каком порядке
-- **Меню** - только для проектов с интерактивным меню (раздел 02.03)
+- **`Настройка`** - what to fill in `.env` (key list) and `config/config.ini` (parameter list)
+- **`Пайплайн проекта`** - description of the data processing stage sequence: which steps run, in what order, what each stage receives and what it produces
+- **`Структура файлов и директорий`** - table (02.02)
+- **`Запуск`** - which scripts to run and in what order
+- **`Меню`** - only for projects with an interactive menu (02.03)
+
+The section names above stay Russian in the README; the standard describes their meaning.
 
 ---
 
-## 02.02. Структура файлов и директорий
+## 02.02. File and directory structure
 
-*Обязательно.*
+*Mandatory.*
 
-Секция «Структура файлов и директорий» - таблица с описанием назначения каждой папки и каждого файла проекта, без исключений. Формат: первый столбец - путь к папке или файлу, второй столбец - назначение. Таблица - источник истины по составу репозитория для человека; `AGENTS.md` дублирует ее указателем на README, а не копией.
+The `Структура файлов и директорий` section is a table describing the purpose of every project folder and file, without exceptions. Format: the first column is the folder or file path, the second column is the purpose. The table is the source of truth on repository composition for humans; `AGENTS.md` duplicates it with a pointer to README, not a copy.
 
-При актуализации документации по запросу пользователя агент перечитывает весь проект и обновляет таблицу в соответствии с текущим состоянием проекта.
-
----
-
-## 02.03. Меню
-
-*Обязательно для проектов с интерактивным меню.*
-
-Карта меню в README не дублируется; единственный источник карты, кадров и клавиш - `doc/specs/spec_ui.html` (обязателен по `console_ui_standards.md`). В README приводится явная ссылка на `doc/specs/spec_ui.html` как на источник структуры меню.
+When updating documentation on a user request, the agent rereads the whole project and updates the table to the current project state.
 
 ---
 
-## 03.01. Правило применимости
+## 02.03. Menu
 
-*Обязательно.*
+*Mandatory for projects with an interactive menu.*
 
-Секции README (раздел 02.01) обязательны при применимости к проекту. Неприменимая секция не создается и не оставляется заглушкой - вместо нее включается секция, отвечающая на тот же вопрос для данного типа репозитория. Примеры замены:
-
-- non-runnable репозиторий (хаб стандартов, каркас, документация) вместо «Требования», «Установка», «Настройка», «Пайплайн» - секции о реальном использовании: активация pre-commit хука, процедура синхронизации, способ работы с репозиторием
-- библиотека вместо «Запуск» - секция об импортировании и точках входа
-
-Фиктивные секции (с заголовком и текстом «нет» или пустым содержимым) запрещены: README не должен притворяться runnable-проектом.
+The menu map is not duplicated in README; the only source of the map, frames, and keys is `doc/specs/spec_ui.html` (mandatory per `console_ui_standards.md`). README provides an explicit reference to `doc/specs/spec_ui.html` as the source of the menu structure.
 
 ---
 
-## 03.02. Всегда обязательные секции
+## 03.01. Applicability rule
 
-*Обязательно.*
+*Mandatory.*
 
-Независимо от типа репозитория в README присутствуют:
+README sections (02.01) are mandatory when applicable to the project. A non-applicable section is not created and not left as a stub - instead, a section answering the same question for the given repository type is included. Replacement examples:
 
-1. Строка версии стандарта `Соответствует стандарту: X.Y.Z`
-2. «Назначение»
-3. «Структура файлов и директорий» (раздел 02.02)
-4. Секция о запуске или способе использования репозитория
+- a non-runnable repository (standards hub, scaffold, documentation) instead of `Требования`, `Установка`, `Настройка`, `Пайплайн` uses sections about real usage: pre-commit hook activation, synchronization procedure, how to work with the repository
+- a library instead of `Запуск` uses a section about importing and entry points
 
-Остальные секции - по правилу применимости (раздел 03.01).
+Fictitious sections (a heading with the text "none" or empty content) are forbidden: README must not pretend to be a runnable project.
 
 ---
 
-## 04.01. Актуализация README
+## 03.02. Always mandatory sections
 
-*Обязательно.*
+*Mandatory.*
 
-README актуализируется при изменении фактов, которые он описывает: состав файлов и папок, пайплайн, настройки, способ запуска. Изменение репозитория и правка README - одно изменение (коммит), если README затронуто. По запросу пользователя «актуализируй документацию» агент перечитывает весь проект и приводит README (прежде всего таблицу структуры) к текущему состоянию.
+Regardless of repository type, README contains:
 
----
+1. The standard version line `Соответствует стандарту: X.Y.Z`
+2. `Назначение`
+3. `Структура файлов и директорий` (02.02)
+4. A section about launching or the way to use the repository
 
-## 04.02. Прочие человеческие документы
-
-*Обязательно при наличии соответствующих документов.*
-
-- Документы установки приложений в репозиториях документации - `software_doc_standards.md`
-- Документация сервиса веб-приложения (установка, деплой, обновление) - `web_standards.md` (раздел 12)
-- `README.txt` деплой-архива Windows - генерируется скриптом сборки, канон текста - `deploy_win_standards.md`
-- Спецификации проекта: стартовые (папка `doc/specs/init/`: `init_base.txt`, `init_final.md`) - этап разработки до MVP, при переходе в боевую эксплуатацию папка архивируется в `.arch/`; боевые - модульные `spec_<module>.md` сопровождения. Процесс создания и согласование - `project_standards.md` (раздел 07.02), размещение - раздел 01.01; этот документ на них не распространяется
-- Макет `doc/specs/spec_ui.html` - `console_ui_standards.md`
+Other sections follow the applicability rule (03.01).
 
 ---
 
-## 05.01. Связь с другими документами
+## 04.01. README updates
 
-| Документ | Связь |
-|----------|-------|
-| `doc/standards/project_standards.md` | Основной стандарт; процесс спецификаций (раздел 07.02), размещение документов (раздел 01.01) |
-| `index_nav_standards.md` | Канон навигационных документов агента; граница - индексы и `AGENTS.md` против документов для человека |
-| `console_ui_standards.md` | Источник карты меню (`doc/specs/spec_ui.html`); README не дублирует карту |
-| `software_doc_standards.md` | Шаблон документов установки приложений |
-| `web_standards.md` | Шаблон документации сервиса веб-приложения (раздел 12) |
-| `deploy_win_standards.md` | Канон текста `README.txt` деплой-архива Windows |
+*Mandatory.*
+
+README is updated when the facts it describes change: file and folder composition, pipeline, settings, launch method. A repository change and a README edit are one change (commit) when README is affected. On the user request "update the documentation" the agent rereads the whole project and brings README (primarily the structure table) to the current state.
 
 ---
 
-## 05.02. Версионирование
+## 04.02. Other human documents
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя (см. _index_standards.md).
+*Mandatory when the corresponding documents exist.*
+
+- Application installation documents in documentation repositories - `software_doc_standards.md`
+- Web application service documentation (installation, deploy, update) - `web_standards.md` (12)
+- Windows deploy archive `README.txt` - generated by the build script, text canon - `deploy_win_standards.md`
+- Project specifications: start specifications (`doc/specs/init/` folder: `init_base.txt`, `init_final.md`) - the pre-MVP development stage; on transition to production the folder is archived to `.arch/`; live ones - module `spec_<module>.md` support specifications. Creation and approval - `project_standards.md` (07.02), placement - 01.01; this document does not extend to them
+- Mockup `doc/specs/spec_ui.html` - `console_ui_standards.md`
+
+---
+
+## 05.01. Related documents
+
+| Document | Relation |
+| -------- | -------- |
+| `doc/standards/project_standards.md` | Core standard; specification process (07.02), document placement (01.01) |
+| `index_nav_standards.md` | Agent navigation document canon; boundary - indexes and `AGENTS.md` versus human documents |
+| `console_ui_standards.md` | Source of the menu map (`doc/specs/spec_ui.html`); README does not duplicate the map |
+| `software_doc_standards.md` | Application installation document template |
+| `web_standards.md` | Web application service documentation template (12) |
+| `deploy_win_standards.md` | Text canon for the Windows deploy archive `README.txt` |
+
+---
+
+## 05.02. Versioning
+
+Standards package versioning is unified for all package documents. Versioning policy, registry, and routing map - in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see `_index_standards.md`).

@@ -1,46 +1,46 @@
-# Канон-лексика человеческих текстов. Версия 4.16.0
+# Human Text Allowlist Standards. Version 5.0.0
 
-Allowlist человеческих текстов: предпочтительные конструкции, обороты и схемы, которыми заменяются стоп-слова и маркеры ИИ-текста. Документ - дополнение к `human_text_standards.md` и применяется вместе с остальными словарями пакета. Порядок принятия решений при отсутствии или неоднозначности нормы - `project_standards.md`, раздел 07.06.
+Allowlist of human-facing texts: preferred constructions, phrases, and schemes that replace stop words and AI text markers. This document supplements `human_text_standards.md` and applies together with the other package dictionaries. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 
-Сокращения стилей - `human_text_standards.md`, раздел 03.09: РЛ - разговорный легкий, РС - разговорный строгий, ДЛ - деловой легкий, ДС - деловой строгий, ТЛ - технический легкий, ТС - технический строгий.
-
----
-
-## Оглавление
-
-**01. Назначение и порядок применения**
-
-**02. Общие предпочтения**
-
-**03. Предпочтения по стилям**
-
-**04. Пополнение словаря**
-
-**05. Связь и версионирование:** 05.01 Связь с другими документами - 05.02 Версионирование
+Style abbreviations - `human_text_standards.md`, 03.09: РЛ - conversational light, РС - conversational strict, ДЛ - business light, ДС - business strict, ТЛ - technical light, ТС - technical strict.
 
 ---
 
-## 01. Назначение и порядок применения
+## Table of Contents
 
-*Обязательно.*
+**01. Purpose and Application Order**
 
-Стоп-листы запрещают, канон-лексика предлагает: пара «всегда - никогда» дает модели точный целевой образ, а не только границы. Словарь применяется:
+**02. General Preferences**
 
-1. При перестроении предложения, когда замены в denylist-таблицах нет
-2. При написании - как ориентир формы для выбранного стиля
-3. При правке слабого текста: слабая конструкция - сильная из таблицы
+**03. Preferences by Style**
 
-Пара таблиц не должна дублировать denylist: здесь - что писать, там - что не писать. Разделитель в таблицах - стрелка из дефиса и знака «больше» (тире запрещены, 04.03).
+**04. Dictionary Enrichment**
+
+**05. Relations and Versioning:** 05.01 Related Documents - 05.02 Versioning
 
 ---
 
-## 02. Общие предпочтения
+## 01. Purpose and Application Order
 
-*Обязательно.*
+*Mandatory.*
 
-Действуют во всех шести стилях.
+Stop lists prohibit, the canon lexicon proposes: the "always - never" pair gives the model an exact target image, not just boundaries. The dictionary is applied:
 
-| Принцип | Слабо | Сильно |
+1. When rebuilding a sentence and the denylist tables have no replacement
+2. When writing - as a form reference for the chosen style
+3. When editing weak text: a weak construction - the strong one from the table
+
+The pair of tables must not duplicate the denylist: here - what to write, there - what not to write. The separator in tables is an arrow made of a hyphen and a greater-than sign (dashes are banned, 04.03).
+
+---
+
+## 02. General Preferences
+
+*Mandatory.*
+
+Apply in all six styles.
+
+| Principle | Weak | Strong |
 |----------|--------|---------|
 | Активный залог: назван тот, кто делает | Наблюдалась недоступность сервиса | Сервис был недоступен 40 минут |
 | Глагол вместо отглагольной конструкции | была произведена настройка | настроили |
@@ -53,17 +53,17 @@ Allowlist человеческих текстов: предпочтительн�
 | Сценарий вместо абстракции | повышает эффективность работы | бухгалтер тратил 3 дня на закрытие месяца; после внедрения - 4 часа |
 | Сравнение с привычным | экран 12.9 дюйма | экран чуть больше листа A4 |
 
-Замена длинного слова: «в настоящее время» -> «сейчас», «осуществляет подключение» -> «подключает», «имеет возможность» -> «может».
+Replacing a long word: «в настоящее время» -> «сейчас», «осуществляет подключение» -> «подключает», «имеет возможность» -> «может».
 
 ---
 
-## 03. Предпочтения по стилям
+## 03. Preferences by Style
 
-*Обязательно.*
+*Mandatory.*
 
-### 03.01. Разговорный легкий
+### 03.01. Conversational Light
 
-| Прием | Пример |
+| Technique | Example |
 |--------|--------|
 | Обращение «вы», глаголы действия | «Введите почту», «Нажмите кнопку» |
 | Заголовок-вопрос для раздела помощи | «Не приходит письмо?» |
@@ -71,45 +71,45 @@ Allowlist человеческих текстов: предпочтительн�
 | Ожидаемый результат в каждом шаге | «Появится сообщение о успешной смене пароля» |
 | Подсказка на частую ошибку | «Если письма нет - проверьте папку «Спам»» |
 
-### 03.02. Разговорный строгий
+### 03.02. Conversational Strict
 
-| Прием | Пример |
+| Technique | Example |
 |--------|--------|
 | Схема ответа: суть - детали - действие | «Проверили: сбой на нашей стороне.» |
 | Маркеры структуры внутри ответа | «Что произошло:», «Что делать:» |
 | Факт вместо извинения-ритуала | «Восстановлено в 14:40» вместо «приносим извинения за доставленные неудобства» |
 | Конкретный следующий шаг | «Выйдите из аккаунта и войдите заново» |
 
-### 03.03. Деловой легкий
+### 03.03. Business Light
 
-| Прием | Пример |
+| Technique | Example |
 |--------|--------|
 | Суть в первом абзаце | «Сдачу отчета переносим с 10 на 14 июня.» |
 | Прямое указание действия и срока | «Замечания - до 12 июня» |
 | Причина после сути | «Причина - правки методики от заказчика» |
 | Предложение решения вместо констатации проблемы | «Если перенос ломает планы - напишите, обсудим» |
 
-### 03.04. Деловой строгий
+### 03.04. Business Strict
 
-| Прием | Пример |
+| Technique | Example |
 |--------|--------|
 | Нумерованные пункты изменений | «1. Комиссия отменяется.» |
 | Однозначные даты и условия | «с 01.10.2026», «до 30.09.2026 применяются прежние условия» |
 | Формулы уведомлений как норма жанра | «Уведомляем об изменении условий» |
 | Ссылка на полную редакцию | «Полная редакция опубликована по адресу <url>» |
 
-### 03.05. Технический легкий
+### 03.05. Technical Light
 
-| Прием | Пример |
+| Technique | Example |
 |--------|--------|
 | Шаг = действие + команда + ожидаемый результат | «Запустите проверку: `python -m app.check_connection`. Ожидаемый результат: строка Connection OK» |
 | Команды и пути только в code-блоках | `config/config.ini` |
 | Разбор ошибки рядом с шагом | «Connection refused - сервер недоступен: проверьте адрес и порт» |
 | Версии и требования явно | «требуется Python 3.10 и выше» |
 
-### 03.06. Технический строгий
+### 03.06. Technical Strict
 
-| Прием | Пример |
+| Technique | Example |
 |--------|--------|
 | Идентификаторы требований с иерархией | `FR-001`, `FR-001.1`, `NFR-002` |
 | Фиксированная модальность | «должна», «допускается», «запрещено» |
@@ -119,26 +119,26 @@ Allowlist человеческих текстов: предпочтительн�
 
 ---
 
-## 04. Пополнение словаря
+## 04. Dictionary Enrichment
 
-*Обязательно.*
+*Mandatory.*
 
-Механизм пополнения - `human_text_standards.md`, раздел 05.04. Дополнение записи: прием или оборот - в общий раздел или раздел стиля; пример - короткий и реальный; при конфликте с denylist приоритет у denylist.
+The enrichment mechanism is in `human_text_standards.md`, 05.04. Adding an entry: a technique or phrase - into the general section or a style section; the example - short and real; on conflict with the denylist, the denylist takes priority.
 
 ---
 
-## 05.01. Связь с другими документами
+## 05.01. Related Documents
 
-| Документ | Связь |
+| Document | Relation |
 |----------|-------|
-| `human_text_standards.md` | Основной документ: жанры, стили, методика, механизм пополнения (05.04) |
-| `human_text_dict_standards.md` | Парный denylist: что запрещено; здесь - чем заменять |
-| `human_text_dict_ai_standards.md` | Парный denylist: маркеры ИИ-текста; раздел 14 запрещает замены не отсюда |
-| `project_standards.md` | Микро-уровень текста (04.03), правка пакета (07.05) |
-| `doc/specs/text_overrides.md` | Шаблон оверрайда: доменная канон-лексика поверх этого словаря |
+| `human_text_standards.md` | Main document: genres, styles, method, enrichment mechanism (05.04) |
+| `human_text_dict_standards.md` | Paired denylist: what is banned; here - what to replace it with |
+| `human_text_dict_ai_standards.md` | Paired denylist: AI text markers; Section 14 bans replacements not from here |
+| `project_standards.md` | Text micro level (04.03), package editing (07.05) |
+| `doc/specs/text_overrides.md` | Override template: domain canon lexicon on top of this dictionary |
 
 ---
 
-## 05.02. Версионирование
+## 05.02. Versioning
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя.
+Versioning of the standards package is unified for all package documents. The versioning policy, registry, and routing map are in `doc/standards/_index_standards.md`. A package version bump is performed only on explicit user request.

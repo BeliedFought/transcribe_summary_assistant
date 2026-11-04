@@ -1,58 +1,58 @@
-# Деплой Python-проекта на Windows (overlay). Версия 4.16.0
+# Windows Deploy Standards. Version 5.0.0
 
-OS-overlay к `deploy_standards.md` (общее ядро). Применяется вместе с ядром и `project_standards.md` для установки проекта как системного инструмента на Windows. Документ содержит только Windows-специфику; общие правила деплоя - в ядре.
+OS overlay for `deploy_standards.md` (shared core). Apply it together with the core and `project_standards.md` to install a project as a system tool on Windows. This document contains Windows specifics only; general deploy rules live in the core.
 
-Документ применим для Windows 10/11 и Windows Server 2016+. Версия Windows не имеет значения - все используемые механизмы (PowerShell 5.1+, pathlib, uv) работают идентично.
+The document applies to Windows 10/11 and Windows Server 2016+. The Windows version does not matter - every mechanism used (PowerShell 5.1+, pathlib, uv) behaves identically.
 
-**Принципиальное отличие от Linux-деплоя:** базовый режим настоящего стандарта - прямой доступ агента к Windows-машине отсутствует (агент готовит команды и архив, пользователь выполняет команды на машине). Отдельный сценарий - агент работает на Windows-хосте напрямую в сессии PowerShell: канон того режима - `deploy_hyperv_standards.md`; нормы двух документов применяются каждая в своем режиме доступа. Установка состоит из двух фаз:
+**Key difference from Linux deploy:** the base mode of this standard has no direct agent access to the Windows machine (the agent prepares commands and an archive, the user runs commands on the machine). A separate scenario - the agent works on a Windows host directly in a PowerShell session: the canon of that mode is `deploy_hyperv_standards.md`; the norms of both documents apply each in its own access mode. Installation has two phases:
 
-1. **Подготовка на Linux (машина агента)** - сборка wheel, создание установочного ZIP-архива с инструкциями, конфигами-шаблонами и установочным скриптом. Выполняется агентом с полным доступом к репозиторию.
-2. **Установка на Windows (целевая машина)** - пользователь (и администратор) распаковывают архив и выполняют инструкции. Роль агента - только подготовить пакет, максимально автоматизировать установку и снабдить пользователя понятными инструкциями.
+1. **Preparation on Linux (agent machine)** - build the wheel, create the installation ZIP archive with instructions, template configs and the install script. Performed by the agent with full repository access.
+2. **Installation on Windows (target machine)** - the user (and administrator) unpack the archive and follow the instructions. The agent's role is only to prepare the package, automate installation as far as possible and supply clear instructions.
 
-Цель - выполнить максимум подготовительных действий на Linux-машине, чтобы на Windows-стороне требовалось минимальное количество ручных шагов.
-
----
-
-## Оглавление
-
-**01. Окружение Windows:** 01.01 Разделение ответственности - 01.02 Обращение к администратору (01.02.01 Опционально: кодировка UTF-8) - 01.03 Действия пользователя - 01.04 Проверка готовности окружения - 01.05 Кодировка UTF-8
-
-**02. Поток и пути:** 02.01 Поток установки - 02.02 PROJECT_ROOT установленного режима
-
-**03. Подготовка пакета на Linux:** 03.01 Сборка wheel - 03.02 Структура архива - 03.03 Содержание README.txt - 03.04 Создание архива
-
-**04. Установочные скрипты:** 04.01 Скрипты run/deploy - 04.02 Блок диагностики для ИИ-агента - 04.03 package.py - 04.04 Платформенные подстановки скриптов - 04.05 Логика package.py - сборка архива (Linux)
-
-**05. Платформа:** 05.01 uv - 05.02 Shell completion - 05.03 Дополнения к .gitignore - 05.04 Итоговая структура после установки - 05.05 Синхронизация версии, конфига и .env при обновлении - 05.06 Чек-лист OS-специфичных пунктов (Windows)
-
-**06. Связь и версионирование:** 06.01 Связь с другими документами - 06.02 Версионирование
+Goal: perform as many preparatory actions as possible on the Linux machine so the Windows side needs minimal manual steps.
 
 ---
 
-## 01.01. Разделение ответственности
+## Table of Contents
 
-*Обязательно.*
+**01. Windows environment:** 01.01 Responsibility split - 01.02 Administrator request (01.02.01 Optional: UTF-8 encoding) - 01.03 User actions - 01.04 Environment readiness check - 01.05 UTF-8 encoding
 
-Инструкции из этого раздела включаются в архив как `README.txt` (см. раздел 03.03). Пользователь и администратор выполняют их на целевой Windows-машине.
+**02. Flow and paths:** 02.01 Install flow - 02.02 PROJECT_ROOT in installed mode
 
-Пользователь без административных прав может установить и использовать инструмент полностью самостоятельно. Администратор нужен только для установки базового ПО на машину.
+**03. Package preparation on Linux:** 03.01 Wheel build - 03.02 Archive structure - 03.03 README.txt content - 03.04 Archive creation
 
-| Компонент | Кто устанавливает | Почему |
-|-----------|-------------------|--------|
-| Python 3.12+ (минимальная тестированная версия проекта - 01.07 основного стандарта) | Администратор | Системный пакет, требует записи в Program Files и PATH |
-| uv | Пользователь | Устанавливается в профиль пользователя, админ не нужен |
-| Кодировка UTF-8 | Администратор (опционально) | Изменение реестра для системной кодировки |
-| Проект (tool-name) | Пользователь | Устанавливается из архива через `python install.py` |
+**04. Install scripts:** 04.01 run/deploy scripts - 04.02 Diagnostic block for AI agents - 04.03 package.py - 04.04 Platform substitutions for scripts - 04.05 package.py logic - archive build (Linux)
 
-Итого: пользователю нужно обратиться к администратору один раз - для установки Python на машину. Все остальное пользователь делает сам из установочного архива.
+**05. Platform:** 05.01 uv - 05.02 Shell completion - 05.03 .gitignore additions - 05.04 Final structure after installation - 05.05 Version, config and .env sync on update - 05.06 OS-specific checklist (Windows)
+
+**06. Relations and versioning:** 06.01 Related documents - 06.02 Versioning
 
 ---
 
-## 01.02. Обращение к администратору
+## 01.01. Responsibility split
 
-*Обязательно при отсутствии Python на машине.*
+*Mandatory.*
 
-Пользователь отправляет администратору следующий текст без изменений (заменить `TOOL-NAME` на имя проекта):
+Instructions from this section are included in the archive as `README.txt` (see 03.03). The user and administrator run them on the target Windows machine.
+
+A user without administrative rights can install and use the tool entirely independently. The administrator is needed only to install base software on the machine.
+
+| Component | Installed by | Why |
+|-----------|--------------|-----|
+| Python 3.12+ (minimum tested project version - core standard 01.07) | Administrator | System package, requires writing to Program Files and PATH |
+| uv | User | Installs into the user profile, no admin needed |
+| Encoding UTF-8 | Administrator (optional) | Registry change for system encoding |
+| Project (tool-name) | User | Installed from the archive via `python install.py` |
+
+Total: the user contacts the administrator once - to install Python on the machine. Everything else the user does from the installation archive.
+
+---
+
+## 01.02. Administrator request
+
+*Mandatory when Python is absent from the machine.*
+
+The user sends the administrator the following text unchanged (replace `TOOL-NAME` with the project name):
 
 ---
 
@@ -85,11 +85,11 @@ OS-overlay к `deploy_standards.md` (общее ядро). Применяетс�
 
 ---
 
-### 01.02.01. Опционально: кодировка UTF-8
+### 01.02.01. Optional: UTF-8 encoding
 
-*Опционально.*
+*Optional.*
 
-Если в выводе программ вместо русских букв появляются символы "??????" или искажения - попросить администратора включить UTF-8 системно (добавить в текст обращения из 01.02). На Windows 10/11 применяется штатная опция «Use Unicode UTF-8 for worldwide language support» в региональных параметрах (`intl.cpl`), требует перезагрузку; правка реестра ниже - эквивалент для Windows Server и сценариев автоматизации:
+If programs print `??????` or mojibake instead of Cyrillic, ask the administrator to enable UTF-8 system-wide (add to the request from 01.02). On Windows 10/11 use the standard "Use Unicode UTF-8 for worldwide language support" option in regional settings (`intl.cpl`); it requires a reboot. The registry change below is the equivalent for Windows Server and automation scenarios:
 
 > **Опционально: кодировка UTF-8**
 >
@@ -102,408 +102,378 @@ OS-overlay к `deploy_standards.md` (общее ядро). Применяетс�
 
 ---
 
-## 01.03. Действия пользователя
+## 01.03. User actions
 
-*Обязательно.*
+*Mandatory.*
 
-После подтверждения администратора пользователь устанавливает `uv`:
+After administrator confirmation the user installs `uv`:
 
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-Альтернативные способы (если PowerShell-скрипт не работает):
+Alternatives (if the PowerShell script fails):
 
-- **pip**: `pip install uv` (если Python установлен и доступен)
-- **winget**: `winget install astral-sh.uv` (Windows 10+, не работает на Server)
+- **pip**: `pip install uv` (when Python is installed and available)
+- **winget**: `winget install astral-sh.uv` (Windows 10+, does not work on Server)
 
-Проверить:
+Verify:
 
 ```powershell
 uv --version
 ```
 
-Если команда не найдена - перезапустить оболочку. `uv` устанавливается в профиль пользователя (`%USERPROFILE%\.local\bin\` или `%USERPROFILE%\.cargo\bin\`), административные права не требуются.
+If the command is not found, restart the shell. `uv` installs into the user profile (`%USERPROFILE%\.local\bin\` or `%USERPROFILE%\.cargo\bin\`); administrative rights are not required.
 
 ---
 
-## 01.04. Проверка готовности окружения
+## 01.04. Environment readiness check
 
-*Обязательно.*
+*Mandatory.*
 
-Пользователь выполняет:
+The user runs:
 
 ```powershell
 python --version
 uv --version
 ```
 
-Обе команды должны возвращать версию без ошибок. После этого можно устанавливать проект: распаковать архив и выполнить `python install.py`.
+Both commands must return a version without errors. The project can now be installed: unpack the archive and run `python install.py`.
 
 ---
 
-## 01.05. Кодировка UTF-8
+## 01.05. UTF-8 encoding
 
-*Обязательно.*
+*Mandatory.*
 
-Для корректной работы с кириллицей в логах и выводе:
+For correct Cyrillic in logs and output:
 
-- **Windows Terminal** - UTF-8 поддерживается нативно, дополнительных действий не требуется
-- **PowerShell** - в PowerShell 7+ UTF-8 по умолчанию. В PowerShell 5.1 при необходимости:
+- **Windows Terminal** - UTF-8 is native, no extra action needed
+- **PowerShell** - PowerShell 7+ is UTF-8 by default. In PowerShell 5.1, when needed:
   ```powershell
   [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
   $OutputEncoding = [System.Text.Encoding]::UTF8
   ```
-- **cmd** - выполнить `chcp 65001` для переключения на UTF-8
+- **cmd** - run `chcp 65001` to switch to UTF-8
 
-Рекомендуется использовать Windows Terminal как основную оболочку - в нем UTF-8 работает без дополнительных настроек.
-
----
-
-## 02.01. Поток установки
-
-*Обязательно.*
-
-Установка на Windows - двухфазная (см. введение). На Linux-машине агент собирает wheel и упаковывает установочный ZIP-архив (`python run/deploy/package.py`). На Windows-машине пользователь распаковывает архив и выполняет `python install.py` (или `python update.py` для обновления). Установка из wheel: `uv tool install <wheel>`.
+Prefer Windows Terminal as the primary shell - UTF-8 works there without extra configuration.
 
 ---
 
-## 02.02. PROJECT_ROOT установленного режима
+## 02.01. Install flow
 
-*Обязательно.*
+*Mandatory.*
 
-В установленном режиме `PROJECT_ROOT` указывает на каталог данных пользователя: `APPDATA / "tool-name"` (обычно `C:\Users\<user>\AppData\Roaming\tool-name\`).
-
-Полный пример `src/config.py` для установки на Windows:
-
-```python
-"""
-Общий модуль загрузки конфигурации проекта.
-
-Загружает config/config.ini и .env относительно PROJECT_ROOT.
-В режиме разработки PROJECT_ROOT - корень репозитория.
-В установленном режиме - %APPDATA%/tool-name/.
-"""
-
-import configparser
-import os
-from pathlib import Path
-
-from dotenv import load_dotenv
-
-_repo_root = Path(__file__).resolve().parents[1]
-
-if (_repo_root / ".git").exists():
-    PROJECT_ROOT: Path = _repo_root
-else:
-    PROJECT_ROOT = Path(
-        os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming")
-    ) / "tool-name"
-
-_env_file = PROJECT_ROOT / ".env"
-if _env_file.exists():
-    load_dotenv(_env_file, override=False)
-
-config = configparser.ConfigParser()
-_config_file = PROJECT_ROOT / "config" / "config.ini"
-if _config_file.exists():
-    config.read(_config_file, encoding="utf-8")
-
-APP_NAME: str = config.get("app", "name", fallback="tool-name")
-APP_VERSION: str = config.get("app", "version", fallback="dev")
-```
-
-Заменить `tool-name` на фактическое имя инструмента.
+Windows installation is two-phase (see the introduction). On the Linux machine the agent builds the wheel and packs the installation ZIP archive (`python run/deploy/package.py`). On the Windows machine the user unpacks the archive and runs `python install.py` (or `python update.py` to update). Installation from wheel: `uv tool install <wheel>`.
 
 ---
 
-## 03.01. Сборка wheel
+## 02.02. PROJECT_ROOT in installed mode
 
-*Обязательно.*
+*Mandatory.*
 
-Из корня репозитория (на Linux-машине):
+In installed mode `PROJECT_ROOT` points to the user data directory: `APPDATA / "tool-name"` (usually `C:\Users\<user>\AppData\Roaming\tool-name\`).
+
+Template: `doc/standards/templates/config.py`. Copy it to `src/config.py` and uncomment the Windows deploy block.
+
+**Contract:**
+
+- Development mode: `PROJECT_ROOT = Path(__file__).resolve().parents[1]` when `.git/` exists next to `src/`
+- Installed mode: `Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming")) / "tool-name"`
+- The rest of the template (`ENV_PATH`, `CONFIG_PATH`, `config`, `APP_NAME`, `APP_VERSION`) stays unchanged
+
+Replace `tool-name` with the actual tool name.
+
+---
+
+## 03.01. Wheel build
+
+*Mandatory.*
+
+From the repository root (on the Linux machine):
 
 ```bash
 uv build
 ```
 
-Команда создает wheel-файл в `dist/` (например `dist/tool_name-1.0.0-py3-none-any.whl`). Wheel содержит весь код проекта и metadata из `pyproject.toml`.
+The command creates a wheel file in `dist/` (for example `dist/tool_name-1.0.0-py3-none-any.whl`). The wheel contains all project code and metadata from `pyproject.toml`.
 
 ---
 
-## 03.02. Структура архива
+## 03.02. Archive structure
 
-*Обязательно.*
+*Mandatory.*
 
-Архив именуется `tool-name-1.0.0-install.zip`. Внутри - каталог с плоской структурой:
+The archive is named `tool-name-1.0.0-install.zip`. Inside is a directory with a flat structure:
 
 ```
 tool-name-1.0.0-install/
-├── install.py               # Установка (эталон - deploy_standards.md, раздел 03.03)
-├── update.py                # Обновление (эталон - deploy_standards.md, раздел 03.04)
+├── install.py               # Installation (reference - deploy_standards.md, 03.03)
+├── update.py                # Update (reference - deploy_standards.md, 03.04)
 ├── dist/
 │   └── tool_name-1.0.0-py3-none-any.whl
 ├── config/
 │   ├── config.ini.example
 │   └── translations.json
 ├── .env.example
-└── README.txt               # Инструкции (раздел 1)
+└── README.txt               # Instructions (section 1)
 ```
 
-| Файл | Источник в репозитории | Назначение |
-|------|----------------------|------------|
-| `install.py` | `run/deploy/install.py` | Установка из архива (Windows) |
-| `update.py` | `run/deploy/update.py` | Обновление из архива (Windows) |
-| `dist/*.whl` | Собирается `uv build` | Готовый пакет |
-| `config/config.ini.example` | `config/config.ini.example` | Шаблон конфигурации |
-| `config/translations.json` | `config/translations.json` | Локализация (копируется в prod при install/update) |
-| `.env.example` | `.env.example` | Шаблон секретов |
-| `README.txt` | Генерируется скриптом | Инструкции для администратора и пользователя |
+| File | Repository source | Purpose |
+|------|-------------------|---------|
+| `install.py` | `run/deploy/install.py` | Installation from archive (Windows) |
+| `update.py` | `run/deploy/update.py` | Update from archive (Windows) |
+| `dist/*.whl` | Built by `uv build` | Ready package |
+| `config/config.ini.example` | `config/config.ini.example` | Configuration template |
+| `config/translations.json` | `config/translations.json` | Localization (copied to prod on install/update) |
+| `.env.example` | `.env.example` | Secrets template |
+| `README.txt` | Generated by the script | Instructions for administrator and user |
 
 ---
 
-## 03.03. Содержание README.txt
+## 03.03. README.txt content
 
-*Обязательно.*
+*Mandatory.*
 
-Файл `README.txt` генерируется скриптом `package.py` при сборке архива. Содержит:
+`README.txt` is generated by `package.py` during archive build. It contains:
 
-1. **Обращение к администратору** - текст из раздела 01.02 (установка Python, опционально UTF-8)
-2. **Действия пользователя** - установка uv (раздел 01.03), распаковка архива, запуск `python install.py`
-3. **Проверка установки** - `tool-name --help`
+1. **Administrator request** - text from 01.02 (Python installation, optional UTF-8)
+2. **User actions** - uv installation (01.03), archive unpacking, `python install.py`
+3. **Installation check** - `tool-name --help`
 
-Текст README генерируется из шаблона в коде `package.py`. Это гарантирует, что инструкции всегда соответствуют текущей версии проекта.
+The README text is generated from a template in the `package.py` code. This guarantees the instructions always match the current project version.
 
 ---
 
-## 03.04. Создание архива
+## 03.04. Archive creation
 
-*Обязательно.*
+*Mandatory.*
 
-Сборка архива выполняется командой из корня репозитория:
+Build the archive from the repository root:
 
 ```bash
 python run/deploy/package.py
 ```
 
-Скрипт:
+The script:
 
-1. Проверяет наличие `pyproject.toml` и `uv`
-2. Выполняет `uv build` для сборки wheel
-3. Создает временную директорию с содержимым архива
-4. Копирует: wheel из `dist/`, `config/config.ini.example`, `config/translations.json`, `.env.example`, `install.py`, `update.py`
-5. Генерирует `README.txt` на основе шаблона (с подстановкой имени и версии проекта)
-6. Упаковывает в ZIP-архив: `tool-name-1.0.0-install.zip`
-7. Вычисляет SHA256 архива и записывает рядом файл `<archive>.sha256`; значение выводится в консоль (проверка целостности на Windows: `certutil -hashfile <archive> SHA256`)
-8. Размещает архив в корне проекта
+1. Checks for `pyproject.toml` and `uv`
+2. Runs `uv build` to build the wheel
+3. Creates a temporary directory with the archive contents
+4. Copies: the wheel from `dist/`, `config/config.ini.example`, `config/translations.json`, `.env.example`, `install.py`, `update.py`
+5. Generates `README.txt` from the template (substituting project name and version)
+6. Packs the ZIP archive: `tool-name-1.0.0-install.zip`
+7. Computes the archive SHA256 and writes a `<archive>.sha256` file next to it; prints the value to the console (integrity check on Windows: `certutil -hashfile <archive> SHA256`)
+8. Places the archive in the project root
 
-Архив готов к передаче на Windows-машину. Исходный репозиторий не нужен на Windows.
-
----
-
-## 04.01. Скрипты run/deploy
-
-*Обязательно.*
-
-| Скрипт | Где выполняется | Назначение |
-|--------|----------------|------------|
-| `run/deploy/package.py` | Linux (из репозитория) | Сборка wheel и создание ZIP-архива |
-| `run/deploy/install.py` | Windows (из архива) | Первая установка из wheel |
-| `run/deploy/update.py` | Windows (из архива) | Обновление из нового wheel |
-
-Каждый скрипт выполняет только одну задачу, без аргументов командной строки и подкоманд. Скрипты `install.py` и `update.py` копируются в корень архива без изменений.
+The archive is ready for transfer to the Windows machine. The source repository is not needed on Windows.
 
 ---
 
-## 04.02. Блок диагностики для ИИ-агента
+## 04.01. run/deploy scripts
 
-*Обязательно.*
+*Mandatory.*
 
-Каждый скрипт начинается с блока комментариев-инструкций (правила - `deploy_standards.md`, раздел 03.02).
+| Script | Runs on | Purpose |
+|--------|---------|---------|
+| `run/deploy/package.py` | Linux (from the repository) | Build the wheel and create the ZIP archive |
+| `run/deploy/install.py` | Windows (from the archive) | First installation from the wheel |
+| `run/deploy/update.py` | Windows (from the archive) | Update from a new wheel |
 
-**Шаблон блока для package.py** (заменить `tool-name`):
+Each script performs exactly one task, with no command-line arguments or subcommands. `install.py` and `update.py` are copied into the archive root unchanged.
+
+---
+
+## 04.02. Diagnostic block for AI agents
+
+*Mandatory.*
+
+Each script starts with a comment block of instructions (rules - `deploy_standards.md`, 03.02).
+
+**Block template for package.py** (replace `tool-name`):
 
 ```python
 #!/usr/bin/env python3
-# ИИ-агент:
-# Если пользователь указывает @package.py без дополнительных пояснений -
-# подготовить установочный ZIP-архив для Windows:
+# AI agent:
+# If the user references @package.py without further explanation -
+# prepare the Windows installation ZIP archive:
 #
-# 1. Проверить что запуск выполнен из репозитория (рядом есть pyproject.toml и .git/).
-#    Проверить что pyproject.toml содержит [build-system] и версии зависимостей с ==.
+# 1. Verify the run is from the repository (pyproject.toml and .git/ are present).
+#    Verify pyproject.toml contains [build-system] and dependency versions pinned with ==.
 #
-# 2. Собрать архив:
+# 2. Build the archive:
 # python run/deploy/package.py
 #
-# 3. Сообщить пользователю путь к созданному ZIP-архиву.
-#    Архив передается на Windows-машину любым способом (флешка, сеть, почта).
+# 3. Report the path to the created ZIP archive.
+#    Transfer the archive to the Windows machine by any means (USB drive, network, email).
 ```
 
-**Шаблон блока для install.py** (заменить `tool-name` и список файлов; агент не имеет прямого доступа к Windows):
+**Block template for install.py** (replace `tool-name` and the file list; the agent has no direct Windows access):
 
 ```python
 #!/usr/bin/env python3
-# ИИ-агент:
-# Если пользователь указывает @install.py без дополнительных пояснений:
+# AI agent:
+# If the user references @install.py without further explanation:
 #
-# 1. Если запуск из репозитория Linux (рядом есть pyproject.toml и .git/):
-#    - Проверить состояние установки на Linux: uv tool list (наличие tool-name в выводе)
-#    - Если не установлен: python run/deploy/install.py
-#    - Если установлен: сообщить, предложить @run/deploy/update.py
+# 1. If run from the Linux repository (pyproject.toml and .git/ are present):
+#    - Check install state on Linux: uv tool list (tool-name present in the output)
+#    - If not installed: python run/deploy/install.py
+#    - If installed: report and offer @run/deploy/update.py
 #
-# 2. Если пользователь сообщает о проблемах на Windows-машине:
-#    Установлен ли пакет (на Windows, выполняет пользователь):
+# 2. If the user reports problems on the Windows machine:
+#    Check whether the package is installed (on Windows, the user runs):
 # where.exe tool-name
 #
-# 3. Если пакет не установлен на Windows:
-#    - Пересобрать архив: python run/deploy/package.py
-#    - Передать архив на Windows, пользователь распаковывает и выполняет:
+# 3. If the package is not installed on Windows:
+#    - Rebuild the archive: python run/deploy/package.py
+#    - Transfer the archive to Windows; the user unpacks it and runs:
 # python install.py
 #
-# 4. Если пакет установлен и исходники совпадают:
-#    - Сообщить пользователю: пакет установлен и актуален
+# 4. If the package is installed and sources match:
+#    - Report: the package is installed and current
 ```
 
-**Шаблон блока для update.py** (заменить `tool-name` и список файлов):
+**Block template for update.py** (replace `tool-name` and the file list):
 
 ```python
 #!/usr/bin/env python3
-# ИИ-агент:
-# Если пользователь указывает @update.py без дополнительных пояснений:
+# AI agent:
+# If the user references @update.py without further explanation:
 #
-# 1. Если запуск из репозитория Linux (рядом есть pyproject.toml и .git/):
-#    - Проверить что пакет установлен: uv tool list (наличие tool-name в выводе)
-#    - Если не установлен: сообщить, предложить @run/deploy/install.py
-#    - Сравнить исходники в uv-venv с репозиторием:
+# 1. If run from the Linux repository (pyproject.toml and .git/ are present):
+#    - Verify the package is installed: uv tool list (tool-name present in the output)
+#    - If not installed: report and offer @run/deploy/install.py
+#    - Compare sources in the uv venv with the repository:
 #      diff <file> ~/.local/share/uv/tools/tool-name/lib/python*/site-packages/<file>
-#      Проверить как минимум: main.py, src/config.py, src/logger.py и все
-#      ключевые модули из src/ и run/
-#    - Если отличаются: python run/deploy/update.py
-#    - Если совпадают: сообщить об актуальности
+#      Check at minimum: main.py, src/config.py, src/logger.py and all
+#      key modules from src/ and run/
+#    - If they differ: python run/deploy/update.py
+#    - If they match: report that everything is current
 #
-# 2. Если пользователь сообщает о проблемах на Windows-машине:
-#    Сравнить исходники в uv-venv с репозиторием (выполняет пользователь).
-#    Каталог site-packages в venv инструмента; в venv на Windows нет уровня
-#    pythonX.Y, как на Linux:
+# 2. If the user reports problems on the Windows machine:
+#    Compare sources in the uv venv with the repository (the user runs this).
+#    The site-packages directory in the tool venv; the Windows venv has no
+#    pythonX.Y level, unlike Linux:
 # $(uv tool dir)\tool-name\Lib\site-packages
-#    Затем сравнить файлы по конкретному пути:
+#    Then compare files by exact path:
 # fc <file> "$(uv tool dir)\tool-name\Lib\site-packages\<file>"
-#    Проверить как минимум: main.py, src/config.py, src/logger.py и все
-#    ключевые модули из src/ и run/
+#    Check at minimum: main.py, src/config.py, src/logger.py and all
+#    key modules from src/ and run/
 #
-# 3. Если исходники отличаются:
-#    - Пересобрать архив: python run/deploy/package.py
-#    - Передать архив на Windows, пользователь распаковывает и выполняет:
+# 3. If sources differ:
+#    - Rebuild the archive: python run/deploy/package.py
+#    - Transfer the archive to Windows; the user unpacks it and runs:
 # python update.py
-#    После обновления сообщить о синхронизации name/version
-#    и факте миграции config.ini / .env (если была).
+#    After the update report name/version synchronization
+#    and whether config.ini / .env migration occurred.
 #
-# 4. Если пакет установлен и исходники совпадают:
-#    - Сообщить пользователю: пакет установлен и актуален
+# 4. If the package is installed and sources match:
+#    - Report: the package is installed and current
 #
-# Миграция конфига/.env при отличии структуры от example в архиве -
-# алгоритм: `deploy_standards.md` (раздел 04.01)
+# Config/.env migration when the structure differs from the archive example -
+# algorithm: `deploy_standards.md` (04.01)
 ```
 
 ---
 
 ## 04.03. package.py
 
-*Обязательно.*
+*Mandatory.*
 
-Файл `run/deploy/package.py`. Запускается на Linux из репозитория. В начале файла - блок диагностики из раздела 04.02.
+File `run/deploy/package.py`. Runs on Linux from the repository. The diagnostic block from 04.02 goes at the top of the file.
 
-**Контракт:**
+**Contract:**
 
-- Вход: репозиторий проекта (`pyproject.toml` в корне), установленный `uv`
-- Выход: архив `<tool-name>-<version>-install.zip` в корне репозитория (структура - раздел 03.02); в консоль - путь к архиву
-- Коды завершения: 0 - архив создан; 1 - не найден `uv` или `pyproject.toml`, ошибка `uv build`
-- Скрипт изолирован (`deploy_standards.md`, раздел 03.01): без импортов из `src/`, вывод через `print()`
-- Константы: `TOOL_NAME`, `TOOL_VERSION` (синхронизированы с проектом), `REPO_ROOT = Path(__file__).resolve().parents[2]`
+- Input: project repository (`pyproject.toml` in the root), installed `uv`
+- Output: archive `<tool-name>-<version>-install.zip` in the repository root (structure - 03.02); the archive path is printed to the console
+- Exit codes: 0 - archive created; 1 - `uv` or `pyproject.toml` missing, `uv build` failed
+- The script is isolated (`deploy_standards.md`, 03.01): no imports from `src/`, output through `print()`
+- Constants: `TOOL_NAME`, `TOOL_VERSION` (synchronized with the project), `REPO_ROOT = Path(__file__).resolve().parents[2]`
 
-**Псевдокод:**
+**Pseudocode:**
 
 ```
 main():
-    проверить pyproject.toml и uv (иначе сообщение и exit 1)
-    uv build                                  # wheel в dist/
-    создать временную директорию <tool>-<version>-install/
-    скопировать: install.py, update.py, dist/*.whl,
-                 config/config.ini.example, config/translations.json, .env.example
-    сгенерировать README.txt                  # текст - разделы 01.02, 01.03, 03.03
-    упаковать в zip (все файлы, пути относительно корня репозитория)
-    удалить временную директорию
-    вывести путь к архиву
+    check pyproject.toml and uv (otherwise print a message and exit 1)
+    uv build                                  # wheel into dist/
+    create temporary directory <tool>-<version>-install/
+    copy: install.py, update.py, dist/*.whl,
+          config/config.ini.example, config/translations.json, .env.example
+    generate README.txt                       # text - 01.02, 01.03, 03.03
+    pack into zip (all files, paths relative to the repository root)
+    remove the temporary directory
+    print the archive path
 ```
 
-Пошаговая логика - раздел 04.05. Состав `README.txt`: обращение к администратору (раздел 01.02, дословно), установка uv и запуск (разделы 01.03, 03.03), с подстановкой имени и версии проекта.
+Step-by-step logic - 04.05. `README.txt` content: administrator request (01.02, verbatim), uv installation and launch (01.03, 03.03), with project name and version substituted.
 
 ---
 
-## 04.04. Платформенные подстановки скриптов
+## 04.04. Platform substitutions for scripts
 
-*Обязательно.*
+*Mandatory.*
 
-Эталон кода - `deploy_standards.md`, разделы 03.03 и 03.04; настоящий раздел задает только платформенные значения. Скрипты `install.py` и `update.py` в корне архива используют общий код ядра; ниже - значения констант и шагов для Windows. Источник шаблонов (`config/config.ini.example`, `.env.example`, `config/translations.json`) - каталог распакованного архива, не репозиторий.
+Reference code - `deploy_standards.md`, 03.03 and 03.04; this section defines platform values only. `install.py` and `update.py` in the archive root use the shared core code; below are Windows constant and step values. The template source (`config/config.ini.example`, `.env.example`, `config/translations.json`) is the unpacked archive directory, not the repository.
 
-| Константа / шаг | Значение Windows |
-|-----------------|------------------|
+| Constant / step | Windows value |
+|-----------------|---------------|
+| `PROJECT_ROOT` | `SCRIPT_DIR` (archive root, instead of the repository `parents[2]`) |
 | `APP_DIR` | `%APPDATA%\tool-name` |
-| Установка | `uv tool install <wheel>` из `dist/` архива |
-| Путь команды | шим `uv` в `%USERPROFILE%\.local\bin` |
-| Каталог uv-venv | `$(uv tool dir)\tool-name` |
-| Права `.env` | `0600` |
-| Подсказка PATH | перезапуск PowerShell |
-| Подсказка установки `uv` | `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
+| Installation | `uv tool install <wheel>` from the archive `dist/` |
+| Command path | `uv` shim in `%USERPROFILE%\.local\bin` |
+| uv venv directory | `$(uv tool dir)\tool-name` |
+| `.env` mode | `0600` |
+| PATH hint | restart PowerShell |
+| `uv` install hint | `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
 
-Запуск скриптов - `python install.py` (первая установка) и `python update.py` (обновление) из корня распакованного архива. Этап синхронизации версии репозитория (раздел 04.01, этап 0) отсутствует: архив собран на Linux, версия пакета зафиксирована в wheel.
+Run scripts as `python install.py` (first installation) and `python update.py` (update) from the unpacked archive root. The repository version sync stage (04.01, stage 0) is absent: the archive is built on Linux, the package version is fixed in the wheel.
 
 ---
 
-## 04.05. Логика package.py - сборка архива (Linux)
+## 04.05. package.py logic - archive build (Linux)
 
-*Обязательно.*
+*Mandatory.*
 
-1. Проверить наличие `pyproject.toml` и `uv`.
-2. Выполнить `uv build` - собрать wheel в `dist/`.
-3. Создать временную директорию `tool-name-1.0.0-install/`.
-4. Скопировать в нее: `install.py`, `update.py`, wheel из `dist/`, `config/config.ini.example`, `config/translations.json`, `.env.example`.
-5. Сгенерировать `README.txt` с инструкциями (текст из раздела 1).
-6. Упаковать в ZIP-архив `tool-name-1.0.0-install.zip`.
-7. Удалить временную директорию.
-8. Архив размещается в корне репозитория.
+1. Check for `pyproject.toml` and `uv`.
+2. Run `uv build` - build the wheel into `dist/`.
+3. Create a temporary directory `tool-name-1.0.0-install/`.
+4. Copy into it: `install.py`, `update.py`, the wheel from `dist/`, `config/config.ini.example`, `config/translations.json`, `.env.example`.
+5. Generate `README.txt` with instructions (text from section 1).
+6. Pack into the ZIP archive `tool-name-1.0.0-install.zip`.
+7. Remove the temporary directory.
+8. Place the archive in the repository root.
 
 ## 05.01. uv
 
-*Обязательно.*
+*Mandatory.*
 
-`uv` - единственный инструмент для установки. На Linux используется для сборки wheel (`uv build`). На Windows - для установки из wheel-файла: `uv tool install <wheel>`. Флаг `--force` применяется только при обновлении.
+`uv` is the only installation tool. On Linux it builds the wheel (`uv build`). On Windows it installs from the wheel file: `uv tool install <wheel>`. The `--force` flag applies only on update.
 
-**Установка uv на Windows:**
+**Installing uv on Windows:**
 
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-Установочные скрипты проверяют наличие `uv` до начала работы и завершаются с сообщением об установке, если `uv` не найден.
+Install scripts check for `uv` before starting and exit with an installation message when `uv` is missing.
 
 ---
 
 ## 05.02. Shell completion
 
-*Опционально - для CLI с большим количеством команд и аргументов.*
+*Optional - for CLIs with many commands and arguments.*
 
-**PowerShell** - автодополнение argparse-инструментов не канонизируется: argcomplete не поддерживает PowerShell нативно. `Register-ArgumentCompleter` применяется только по явному запросу пользователя и с реальной логикой завершений; регистрация заглушки без логики не производится.
+**PowerShell** - argparse tool completion is not canonicalized: argcomplete does not support PowerShell natively. `Register-ArgumentCompleter` applies only on explicit user request and with real completion logic; a stub registration without logic is not produced.
 
-**cmd** - автодополнение через `argcomplete` не поддерживается нативно.
+**cmd** - completion via `argcomplete` is not supported natively.
 
 ---
 
-## 05.03. Дополнения к .gitignore
+## 05.03. .gitignore additions
 
-*Обязательно.*
+*Mandatory.*
 
-При подготовке проекта к деплою добавить в `.gitignore`:
+When preparing the project for deploy, add to `.gitignore`:
 
 ```
 *.egg-info/
@@ -512,62 +482,62 @@ build/
 *-install.zip
 ```
 
-Артефакты сборки (setuptools) и готовые установочные архивы не должны попадать в репозиторий.
+Build artifacts (setuptools) and ready installation archives must not enter the repository.
 
 ---
 
-## 05.04. Итоговая структура после установки
+## 05.04. Final structure after installation
 
 ```
-Код:        $(uv tool dir)\tool-name\Lib\site-packages\ (импорт-пакет src\ и модуль main.py)
-Команда:    tool-name (шим uv в `%USERPROFILE%\.local\bin\`, каталог в PATH)
-Конфиг:     $env:APPDATA\tool-name\config\config.ini
-Секреты:    $env:APPDATA\tool-name\.env
-Логи:       $env:APPDATA\tool-name\log\
+Code:        $(uv tool dir)\tool-name\Lib\site-packages\ (src\ import package and main.py module)
+Command:     tool-name (uv shim in `%USERPROFILE%\.local\bin\`, directory on PATH)
+Config:      $env:APPDATA\tool-name\config\config.ini
+Secrets:     $env:APPDATA\tool-name\.env
+Logs:        $env:APPDATA\tool-name\log\
 ```
 
-Исходный репозиторий и установочный архив не нужны для работы инструмента после установки.
+The source repository and installation archive are not needed for the tool to work after installation.
 
 ---
 
-## 05.05. Синхронизация версии, конфига и .env при обновлении
+## 05.05. Version, config and .env sync on update
 
-*Обязательно.*
+*Mandatory.*
 
-Канон алгоритма миграции (сравнение структур, резервные копии, перенос значений, правила) - ядро `deploy_standards.md`, раздел 04.01; здесь только платформенная специфика Windows:
+The migration algorithm canon (structure comparison, backups, value transfer, rules) - core `deploy_standards.md`, 04.01; here only Windows platform specifics:
 
-- Скрипт - `update.py` в корне архива (эталон кода - `deploy_standards.md`, раздел 03.04; подстановки - раздел 04.04)
-- Этап 0 (синхронизация версии репозитория) отсутствует: архив собран на Linux, версия пакета зафиксирована в wheel
-- Источник структуры example - архив (`SCRIPT_DIR`): `config/config.ini.example`, `.env.example`; `app.name` / `app.version` - из архива
-- Prod-файлы - `$env:APPDATA\tool-name\`: `config\config.ini`, `.env`
-- Резервные копии и перезапись - по канону ядра (`deploy_standards.md`, раздел 04.01)
-
----
-
-## 05.06. Чек-лист OS-специфичных пунктов (Windows)
-
-*Обязательно.*
-
-К общему чек-листу (ядро - `deploy_standards.md`, раздел 05.04) добавить:
-
-1. Установочные скрипты (`run/deploy/install.py`, `run/deploy/update.py`, `run/deploy/package.py`) используют корректное `TOOL_NAME` и версию (`TOOL_VERSION` для `package.py`).
-2. `.gitignore` содержит `*.egg-info/`, `dist/`, `build/`, `*-install.zip`.
-3. Тестовая сборка архива (`python run/deploy/package.py`) выполнена успешно.
-4. Тестовая установка из архива на целевой Windows-машине прошла успешно.
-5. Подмена `PROJECT_ROOT` использует корректное имя инструмента и APPDATA-путь.
+- Script - `update.py` in the archive root (reference code - `deploy_standards.md`, 03.04; substitutions - 04.04)
+- Stage 0 (repository version sync) is absent: the archive is built on Linux, the package version is fixed in the wheel
+- Example structure source - the archive (`SCRIPT_DIR`): `config/config.ini.example`, `.env.example`; `app.name` / `app.version` - from the archive
+- Prod files - `$env:APPDATA\tool-name\`: `config\config.ini`, `.env`
+- Backups and rewriting - core canon (`deploy_standards.md`, 04.01)
 
 ---
 
-## 06.01. Связь с другими документами
+## 05.06. OS-specific checklist (Windows)
 
-| Документ | Связь |
-|----------|-------|
-| `deploy_standards.md` | Общее ядро деплоя; настоящий документ - OS-overlay, применяется вместе с ним |
-| `deploy_lin_standards.md` | Парный OS-overlay для Linux (фаза подготовки архива выполняется на Linux-машине) |
-| `doc/standards/project_standards.md` | Основной стандарт |
+*Mandatory.*
+
+Add to the common checklist (core - `deploy_standards.md`, 05.04):
+
+1. Install scripts (`run/deploy/install.py`, `run/deploy/update.py`, `run/deploy/package.py`) use the correct `TOOL_NAME` and version (`TOOL_VERSION` for `package.py`).
+2. `.gitignore` contains `*.egg-info/`, `dist/`, `build/`, `*-install.zip`.
+3. A test archive build (`python run/deploy/package.py`) succeeded.
+4. A test installation from the archive on the target Windows machine succeeded.
+5. The `PROJECT_ROOT` swap uses the correct tool name and the APPDATA path.
 
 ---
 
-## 06.02. Версионирование
+## 06.01. Related documents
 
-Версионирование пакета стандартов - единое для всех документов пакета. Политика версионирования, реестр и карта маршрутизации - в `doc/standards/_index_standards.md`. Bump версии пакета - только по явному запросу пользователя (см. _index_standards.md).
+| Document | Relation |
+|----------|----------|
+| `deploy_standards.md` | Shared deploy core; this document is an OS overlay applied together with it |
+| `deploy_lin_standards.md` | Paired OS overlay for Linux (the archive preparation phase runs on the Linux machine) |
+| `doc/standards/project_standards.md` | Core standard |
+
+---
+
+## 06.02. Versioning
+
+Standards package versioning is unified for all package documents. The versioning policy, registry and routing map live in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see _index_standards.md).
