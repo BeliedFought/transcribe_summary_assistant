@@ -1,97 +1,43 @@
 <!-- START static -->
 # AGENTS.md
 
-Соответствует стандарту: 4.16.0
+Standard version: 5.0.0
 
-Этот файл содержит инструкции для AI-агентов при работе с данным проектом.
+This file contains instructions for AI agents working with this project.
 
-## Обзор проекта
+## Session Entry Points
 
-Сведения о проекте - в разделе «Специфика репозитория».
+- `@doc/standards/_index_standards.md` - standards package index (registry, routing map, package version); read it first
+- `@doc/skills/_index_skills_repo.md` - repository skills index
+- `@doc/specs/_index_specs.md` - specifications index
+- `data/memory/memory.md`, `data/memory/decisions.md`, `data/memory/env.md` - agent memory minimum when `data/memory/` exists; update it after significant decisions
+- Ignore `.backup/`, `.trash/`, `.arch/`, `.opencode/`, `.kilo/` unless the user explicitly asks
+- Tagging an `@_index_*.md` file without a task runs its index auto-update procedure
 
-- Точки входа сессии (читать первыми):
-  - @doc/standards/_index_standards.md - индекс пакета стандартов (реестр, карта маршрутизации, версия пакета)
-  - индекс навыков репозитория: doc/skills/_index_skills_repo.md
-  - @doc/specs/_index_specs.md - индекс спецификаций
-- Память агентов: в начале сессии читать минимум - `data/memory/memory.md`, `decisions.md`, `env.md`; `preferences.md` - по реестру при релевантности (при наличии каталога; канон - doc/standards/memory_standards.md); значимые решения, факты окружения и предпочтения пользователя дописывать в память по завершении шага
-- Тег `@doc/standards/_index_standards.md` без конкретной задачи - команда автоактуализации индекса, а не команда ознакомления (процедура - в самом индексе, раздел «Автоактуализация индекса»)
+## Language & Typography Matrix
 
-## Выполнение задач
+| Contour | Artifacts | Language |
+| --- | --- | --- |
+| Human | Chat responses, `README.md`, user guides, `doc/specs/`, implementation plans, `doc/change_requests/`, UI and console text through `t()` | Russian |
+| Agent and code | `AGENTS.md`, `CLAUDE.md`, standards, indexes, skills, code, comments, docstrings, technical logs (`logger.*`), commit messages, subagent communication | English |
 
-- Точечные изолированные задачи (поиск в репозитории, анализ и чтение файлов, аудит, проверки, подготовка отчетов) выполнять через субагентов, а не в контексте основной сессии
-- Основной агент: уточнение требований, декомпозиция, постановка задач субагентам, сводка результатов, коммуникация с пользователем
-- Делегирование избыточно: одиночное чтение файла, прямой ответ на вопрос, задачи, требующие диалога с пользователем
-- Служебное общение с субагентами (постановки задач, ответы субагентов, промежуточные отчеты) - на английском для экономии токенов; русский в брифе и ответе субагента - только дословные цитаты из файлов репозитория; сводка пользователю - на русском, пишет ее основной агент; язык содержимого для репозитория (код, комментарии, документация) - по разделу «Стиль кода» независимо от языка промпта
-- Скриншот пользователя: когда пользователь упоминает скриншот и не называет файл - искать самый свежий в стандартных папках скриншотов машины, не переспрашивая пользователя; содержимое читать по факту, неясное - вопрос пользователю; полный порядок - `doc/standards/project_standards.md` (07.02, блок «Скриншоты пользователя»)
+Typography applies to both contours: hyphen-minus `-` only (no em dash or en dash), letter `е` without diaeresis, no ellipsis, no emoji, no exclamation marks, no non-breaking or narrow spaces. User-facing text follows `doc/standards/human_text_standards.md`; the machine override is `~/.config/opencode/AGENTS.md`; the core rule is `project_standards.md` (04.03).
 
-## Принятие решений
+## Development Process
 
-Канон - `project_standards.md`, раздел 07.06. Не выдумывать - проверять:
+- Use the superpowers skills: `brainstorming` (design exploration and task classification), `writing-plans` (specs and implementation plans), `test-driven-development`, `systematic-debugging`, `subagent-driven-development` or `executing-plans`, `verification-before-completion`, `writing-skills`.
+- Classify work as Spike, Bounded, or Architectural before implementation; ratchet up when hidden complexity appears.
+- Write specifications and plans in Russian; keep them in `doc/specs/` (`init/` before MVP, `spec_<module>.md` after).
+- Delegate isolated search, audit, and verification work to subagents; briefs and answers are English, the user summary is Russian.
+- Fact-checking cascade: local code and standards -> `context7` MCP -> `github` MCP -> web search for exact error text -> ask the user when unverifiable.
 
-- Триггеры обязательной проверки: незнакомый API, сигнатура, параметры библиотеки; любое сомнение в поведении, версии или совместимости библиотеки, фреймворка, SDK; новая зависимость или версия; выбор паттерна или подхода; ошибка, не объяснимая локальным кодом
-- Каскад проверки: локальный контекст (код, зависимости, стандарты) -> внешние источники по классу запроса: факт об API - документация библиотеки (context7), практика или аналог - GitHub MCP (код реальных проектов, issues, обсуждения) -> поиск по тексту ошибки
-- Контекст-сервер документации (context7): при любом сомнении в API, сигнатуре, версии или поведении библиотеки - обращаться к нему сразу; запрос не требует отдельного обоснования
-- GitHub MCP: первичный источник для лучших практик, паттернов и аналогов (код реальных проектов, issues, обсуждения); задача такого класса - достаточное основание для обращения сразу
-- Ключевое решение (библиотека, паттерн, подход, версия) - с ссылкой на источник; проверить нельзя (в том числе сеть недоступна) - вопрос пользователю вместо гипотезы
-- Дополнение или изменение каскада на уровне репозитория - только проектным оверрайдом (`doc/specs/overrides.md`)
-- Иерархия источников: диалог -> оверрайды -> индексы (пакет стандартов) -> прецедент репозитория -> интернет -> практики -> собственное решение
+## Safety, Git & Boundaries
 
-## Настройка окружения
-
-Окружение описано в разделе «Специфика репозитория» (блок «Сгенерированные команды»).
-
-## Стиль кода
-
-- Общение, комментарии в коде, документация, сообщения лога: русский; ё/Ё заменять на е/Е
-- Технический нейминг (имена в коде, файлы, ключи конфигов) - английский, транслит запрещен
-- Без эмодзи, без восклицательных знаков, без em/en-тире (использовать -), без многоточия
-- Типографика навыков редактуры (например, ru-text) не применяется: правила выше и раздел 04.03 project_standards.md сильнее; канон текста - doc/standards/human_text_standards.md; машинный оверрайд OpenCode со ссылкой на 04.03 - ~/.config/opencode/AGENTS.md
-- В конце сообщений лога/консоли точка не ставится
-
-## Инструкции по тестированию
-
-Проверки описаны в разделе «Специфика репозитория» (блок «Сгенерированные команды»).
-
-## Git и коммиты
-
-- Одна ветка `master`; Conventional Commits: `<type>(<scope>): ...` или `<type>: ...` (scope опционален), инфинитив, с маленькой буквы, без точки в конце
-- Типы: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `style`
-- В сообщениях коммитов и комментариях к коду не указывать, что изменения выполнены AI-агентом
-- Авторство коммита - от хоста, не хардкодить: значения вычислять из `whoami`/`hostname` и хранить в локальном конфиге репозитория, перед каждым коммитом сверять и обновлять при несовпадении (канон - раздел 06.01)
-- Перед коммитом правок `doc/standards/` - ревизия диффа: реестр и карта `_index_standards.md`, единая версия, перекрестные ссылки NN.NN, зеркало CLAUDE.md; контроль - ворота коммита (канон - раздел 06.01, хук `.githooks/pre-commit`)
-
-## Политика AGENTS.md и CLAUDE.md
-
-- Инструкции для агентов ведет только `AGENTS.md`; `CLAUDE.md` опционален и по умолчанию не ведется
-- По умолчанию `CLAUDE.md` удаляется при синхронизации; ценное содержание перенести в `AGENTS.md` до удаления
-- Если `CLAUDE.md` присутствует в репозитории - убедиться, что действует репо оверрайд (явный запрос пользователя): файл ведется зеркалом `AGENTS.md`, эталон зеркала - `CLAUDE.md` хаба
-- Исключение - хаб `project_standards`: `CLAUDE.md` ведется здесь постоянно как эталон зеркала (без записи в `doc/specs/overrides.md`); в производных репозиториях действует общий порядок
-- Язык `AGENTS.md` - русский; английский - по явному запросу пользователя
-
-## Навыки: общие соглашения
-
-- Типы навыков (слаг `type`): хаб-навык `hub_loc` (префикс `hub-`; в производные репо не распространяется), общий `hub_glob` (префикс `glob-`; распространяется во все репо), проектный `pr_glob` (префикс `pg-` / `pg_`), локальный `pr_loc` (префикс `pl-` / `pl_` опционален; только в `data/skills/`, вне синхронизации)
-- Именование по формату: плоские файлы - префикс с подчеркиванием (`hub_`, `glob_`, `pg_`, `pl_`), каталоги формата Anthropic - с дефисом (`hub-`, `glob-`, `pg-`, `pl-`)
-- Форматы: плоские `*.md` (plain-формат, `doc/standards/skill_plain_standards.md`) и каталоги `doc/skills/<name>/SKILL.md` (формат Anthropic, `doc/standards/skill_anthropic_standards.md`); тип фиксируется в frontmatter - `type` (plain) или `metadata.type` (Anthropic)
-- Индексы навыков: `_index_skills_repo.md` (порепозиторный, ведет `glob-update-indexes`) и `data/skills/_index_skills_pl.md` (локальные навыки репо, ведет `glob-update-indexes`; при наличии каталога)
-- Капитализация знаний: при прогонах проектных и локальных навыков (делаются чисто под проект; принадлежность определяется по типу в frontmatter - `pr_glob` или `pr_loc`, не по префиксу имени) ценное для капитализации знание, найденное агентом или субагентом, предлагать пользователю внести в навык (обновление существующего или новый навык); самовольно навыки не править
-- Универсальность: при капитализации навык остается методикой для любой машины - без путей, имен хостов, секретов и иных машинозависимых деталей (канон переносимости - `skill_anthropic_standards.md`, раздел 03.03)
-
-Список навыков репозитория - в разделе «Специфика репозитория».
-
-## Безопасность
-
-- Не хардкодить секреты и ключи в код и конфигурацию
-- Повышение прав - только по уровням раздела 05.04 `project_standards.md` (pty с вводом пароля пользователем, GUI-askpass, узкое правило sudoers, файловый askpass); вне их `sudo` / `su` / `pkexec` не использовать, а дать пользователю точную команду
-- Любое удаление файлов и папок в репозитории агентом - перенос в `.trash/<slug>_<YYYYMMDDHHMM>/` (карантин, `project_standards.md` 01.01.06), а не удаление; чистить `.trash/` только по явному запросу пользователя
-- Исключения из карантина: содержимое `tmp/` и `.trash/`, git-нативные удаления при синхронизации зеркал (`reset --hard`, `checkout`, `pull`); `git clean` под исключение не подпадает
-
-## Границы
-
-- Серьезные правки - только после триггера пользователя `ДЕЛАЙ` или `GO`; триггер действует на одну задачу (раздел 07.02)
-- Спросить сначала: крупные рефакторинги, новые зависимости, деструктивные операции (перезапись данных, миграции БД)
-- Никогда: коммитить секреты, править генерируемые файлы руками при наличии генератора, деструктивный git без явного запроса
-- Не бампить версию пакета стандартов без явного запроса пользователя
+- Mutate code or the system only after the execution trigger `ДЕЛАЙ` or `GO`; design-stage approvals inside `brainstorming` do not replace it.
+- Delete repository files only by moving them to `.trash/<slug>_<YYYYMMDDHHMM>/` with `MANIFEST.md`; exceptions: `tmp/` contents, git-native mirror/package synchronization, and `.trash/` purged only on explicit request.
+- Run `sudo`, `su`, and `pkexec` only per the privilege levels in `project_standards.md` (05.04); never hardcode secrets.
+- Git: one `master` branch; English Conventional Commits `<type>(<scope>): <imperative summary>`; authorship from `whoami` and `hostname`; no AI mention; never bump the package version without an explicit request.
+- `CLAUDE.md` mirror: maintained permanently in the hub; deleted by default in derived repositories unless a repo override exists.
 <!-- END static -->
 
 <!-- START repo-specific -->
