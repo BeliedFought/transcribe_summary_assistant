@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""Общие константы и помощники чекеров навыков (check_all_skills.py, check_package.py).
+"""Shared constants and helpers for skill checkers (check_all_skills.py, check_package.py).
 
-Единая точка правды для таксономии типов, префиксов имени, справочника
-категорий и разбора frontmatter. Дублирование этих правил между чекерами -
-источник расхождения проверок, поэтому они вынесены в общий модуль. Модуль
-только предоставляет константы и чистые функции, сам проверок не выполняет.
+A single source of truth for the type taxonomy, name prefixes, category
+reference, and frontmatter parsing. Duplicating these rules between checkers is
+a source of check drift, so they are moved into a shared module. The module
+only provides constants and pure functions; it performs no checks itself.
 """
 
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
+
+sys.dont_write_bytecode = True
 
 EXIT_OK = 0
 EXIT_FAIL = 1
@@ -31,10 +34,22 @@ CATEGORY_NAMES = {
     "ssh": "Настройки SSH",
     "mine": "Добыча знаний",
 }
+CATEGORY_NAMES_EN = {
+    "sync": "Sync",
+    "update": "Update",
+    "audit": "Audit",
+    "skill": "Skills",
+    "cfg": "Configuration",
+    "rules": "Agent Rules",
+    "shell": "Terminal Settings",
+    "git": "Git Settings",
+    "ssh": "SSH Settings",
+    "mine": "Knowledge Mining",
+}
 
 
 def stamp() -> str:
-    """Метка времени в формате строгого режима логгера (04.04.01)."""
+    """Timestamp in the logger strict-mode format (04.04.01)."""
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -47,7 +62,7 @@ def info(message: str) -> None:
 
 
 def file_text(path: Path) -> str:
-    """Прочитать файл; при ошибке чтения вернуть пустую строку."""
+    """Read the file; return an empty string on a read error."""
     try:
         return path.read_text(encoding="utf-8", errors="replace")
     except OSError:
@@ -55,11 +70,11 @@ def file_text(path: Path) -> str:
 
 
 def _frontmatter_bounds(text: str) -> tuple[int, int] | None:
-    """Индексы строк-разделителей frontmatter (открывающий, закрывающий) или None.
+    """Indices of frontmatter separator lines (opening, closing) or None.
 
-    Разделитель - отдельная строка из трех дефисов; открывающий ищется только
-    в начале файла. Дефисы внутри строк (таблицы, ASCII-разделители, вложенные
-    блоки) разделителями не считаются.
+    A separator is a standalone line of three hyphens; the opening one is looked
+    for only at the start of the file. Hyphens inside lines (tables, ASCII
+    separators, nested blocks) do not count as separators.
     """
     lines = text.splitlines()
     if not lines or lines[0].strip().lstrip("\ufeff") != "---":
@@ -71,7 +86,7 @@ def _frontmatter_bounds(text: str) -> tuple[int, int] | None:
 
 
 def frontmatter_block(text: str) -> str:
-    """Вернуть текст frontmatter (между строками-разделителями ---) или пустую строку."""
+    """Return the frontmatter text (between --- separator lines) or an empty string."""
     bounds = _frontmatter_bounds(text)
     if bounds is None:
         return ""
@@ -79,7 +94,7 @@ def frontmatter_block(text: str) -> str:
 
 
 def body_text(text: str) -> str:
-    """Вернуть тело документа (текст после frontmatter) или весь текст, если его нет."""
+    """Return the document body (text after frontmatter) or the whole text when absent."""
     bounds = _frontmatter_bounds(text)
     if bounds is None:
         return text
@@ -101,15 +116,15 @@ def has_top_level_type(fm: str) -> bool:
 
 
 def name_category(name: str, prefix: str) -> str:
-    """Второй сегмент имени после типового префикса (без расширения)."""
+    """Second name segment after the type prefix (without extension)."""
     return re.split(r"[_\-]", name[len(prefix):], maxsplit=1)[0]
 
 
 def is_index_name(name: str) -> bool:
-    """Индексный файл каталога навыков (навыком не является, в проверку не входит)."""
+    """Skills directory index file (not a skill, excluded from the check)."""
     return name.startswith("_index")
 
 
 def is_prefix_optional(mtype: str) -> bool:
-    """Для локального навыка (pr_loc) типовой префикс имени опционален."""
+    """For a local skill (pr_loc) the type name prefix is optional."""
     return mtype == LOCAL_SLUG

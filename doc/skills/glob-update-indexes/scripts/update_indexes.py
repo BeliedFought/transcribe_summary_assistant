@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
-"""Пересборка локальных индексов репозитория: doc/skills/_index_skills_repo.md,
-doc/specs/_index_specs.md и data/skills/_index_skills_pl.md
-по канону index_nav_standards.md (скелет индекса).
+"""Rebuild local repository indexes: doc/skills/_index_skills_repo.md,
+doc/specs/_index_specs.md, and data/skills/_index_skills_pl.md
+per index_nav_standards.md.
 
-Использование (запуск из корня репозитория):
-    update_indexes.py
-
-Скрипт формирует полный канонический скелет: интро с указателем на 07.06,
-обязательность применения, реестры, карту маршрутизации (первичное заполнение)
-и раздел автоактуализации. Индекс локальных навыков собирается при наличии
-data/skills/ в любом репозитории, включая хаб: в хабе project_standards два
-прочих индекса не трогаются (причина выводится в лог).
+Usage (run from repository root):
+    update_indexes.py [--skills] [--specs] [--local-skills]
 """
 
+import argparse
 import re
 import sys
 from datetime import datetime
 from pathlib import Path
+
+sys.dont_write_bytecode = True
 
 SKILLS_DIR = Path("doc/skills")
 SKILLS_INDEX = SKILLS_DIR / "_index_skills_repo.md"
@@ -25,70 +22,70 @@ SPECS_INDEX = SPECS_DIR / "_index_specs.md"
 INIT_DIR = SPECS_DIR / "init"
 LOCAL_SKILLS_DIR = Path("data/skills")
 LOCAL_SKILLS_INDEX = LOCAL_SKILLS_DIR / "_index_skills_pl.md"
+STD_INDEX = Path("doc/standards/_index_standards.md")
 
 EXIT_OK = 0
 
-SKILLS_APPLY = """## Обязательность применения
+SKILLS_APPLY = """## Mandatory Application
 
-Тегание этого файла означает обязательное применение релевантных навыков, а не просто ознакомление. Агент:
+Tagging this file requires applying relevant skills, not merely reading the index:
 
-1. Определяет релевантные навыки по карте маршрутизации
-2. Загружает указанные файлы навыков и выполняет их инструкции
-3. Применяет правила навыков при наличии соответствующей задачи, независимо от явного тегирования"""
+1. Identify relevant skills via the routing map
+2. Open the matched skill files and follow their instructions
+3. Apply relevant skills whenever a matching task arises, even without explicit tagging"""
 
-SKILLS_MAP_NOTE = """Карта связывает тип задачи с навыком. Агент открывает указанный навык и выполняет инструкцию. Темы - первичные, из описаний навыков: доработать формулировки по канону `index_nav_standards.md` (раздел 04) - от лица задачи пользователя, с синонимами-триггерами.
+SKILLS_MAP_NOTE = """Maps task topics to skills (`index_nav_standards.md`, Section 04).
 
-| Тема задачи | Навык |
-|-------------|-------|"""
+| Task Topic | Skill |
+|------------|-------|"""
 
-SKILLS_AUTO = """## Автоактуализация индекса
+SKILLS_AUTO = """## Index Auto-Update
 
-При любом изменении состава `doc/skills/` (добавление, удаление, переименование, изменение frontmatter навыка) пересобрать индекс навыком `glob-update-indexes`; заполнить назначения и доработать карту маршрутизации по канону `index_nav_standards.md` (разделы 03.03, 04). Вывести отчет: что добавлено, изменено, удалено.
+On any change to `doc/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes`, refine purposes and routing map topics per `index_nav_standards.md` (Sections 03.03, 04), and report added, updated, and removed entries.
 """
 
-SPECS_APPLY = """## Обязательность применения
+SPECS_APPLY = """## Mandatory Application
 
-Тегание этого файла означает обязательное использование индекса при работе со спецификациями. Агент:
+Tagging this file requires using the index when working with specifications:
 
-1. Определяет релевантные файлы по реестру и карте маршрутизации
-2. Открывает только релевантные файлы, а не каталог целиком
-3. При любом изменении состава `doc/specs/` обновляет этот индекс
-
-Индекс применяется при любой работе со спецификациями независимо от явного тегирования."""
+1. Identify relevant files via the registry and routing map
+2. Open only relevant files rather than the entire directory
+3. Update this index on any change to `doc/specs/`"""
 
 SPECS_MAP_TOPICS = {
-    "init_base.txt": "Исходные требования проекта, свободная форма (стартовые)",
-    "init_final.md": "Итоговая спецификация инициализации (стартовые)",
-    "spec_ui.html": "Спецификация вывода: карта меню, кадры, клавиши, макет лога",
-    "overrides.md": "Проектные оверрайды стандарта",
+    "init_base.txt": "Initial project requirements, free-form (bootstrap)",
+    "init_final.md": "Finalized initialization specification (bootstrap)",
+    "spec_ui.html": "Output/UI specification: menu map, frames, keys, log layout",
+    "overrides.md": "Project standard overrides",
+    "text_overrides.md": "Text overrides: domain terms, forbidden words, canonical vocabulary",
 }
 
-SPECS_MAP_NOTE = """Карта связывает тип задачи с файлом спецификаций. Агент находит в индексе нужный файл и читает его.
+SPECS_MAP_NOTE = """Maps task topics to specification files.
 
-| Тема задачи | Файл |
-|-------------|------|"""
+| Task Topic | File |
+|------------|------|"""
 
-SPECS_AUTO = """## Автоактуализация индекса
+SPECS_AUTO = """## Index Auto-Update
 
-При любом изменении состава `doc/specs/` (добавление, удаление, переименование, изменение назначения файла) пересобрать индекс навыком `glob-update-indexes`; заполнить назначения (для `spec_ui.html` указать SemVer макета) и дополнить карту маршрутизации по канону `index_nav_standards.md` (разделы 03.03, 04). Вывести отчет: что добавлено, изменено, удалено.
+On any change to `doc/specs/` (adding, removing, renaming, or changing file purpose), rebuild this index with `glob-update-indexes`, fill in purposes (include layout SemVer for `spec_ui.html`), update the routing map per `index_nav_standards.md` (Sections 03.03, 04), and report added, updated, and removed entries.
 """
 
-PL_APPLY = """## Обязательность применения
+PL_APPLY = """## Mandatory Application
 
-Тегание этого файла означает обязательное применение релевантных локальных навыков, а не просто ознакомление. Агент:
+Tagging this file requires applying relevant local skills, not merely reading the index:
 
-1. Определяет релевантные навыки по карте маршрутизации
-2. Загружает указанные файлы навыков и выполняет их инструкции
-3. Применяет правила навыков при наличии соответствующей задачи, независимо от явного тегирования"""
+1. Identify relevant skills via the routing map
+2. Open the matched skill files and follow their instructions
+3. Apply relevant skills whenever a matching task arises, even without explicit tagging"""
 
-PL_AUTO = """## Автоактуализация индекса
+PL_AUTO = """## Index Auto-Update
 
-При любом изменении состава `data/skills/` (добавление, удаление, переименование, изменение frontmatter навыка) пересобрать индекс навыком `glob-update-indexes`; заполнить назначения и доработать карту маршрутизации по канону `index_nav_standards.md` (разделы 03.03, 04). Вывести отчет: что добавлено, изменено, удалено.
+On any change to `data/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes`, refine purposes and routing map topics per `index_nav_standards.md` (Sections 03.03, 04), and report added, updated, and removed entries.
 """
 
 
 def now() -> str:
-    """Метка времени в формате строгого режима логгера (04.04.01)."""
+    """Timestamp in strict logger format (04.04.01)."""
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -101,15 +98,19 @@ def warn(message: str) -> None:
 
 
 def first_clause(description: str) -> str:
-    """Первое предложение описания - первичная тема строки карты маршрутизации."""
-    return (description or "").split(". ")[0]
+    """First sentence of description (capped at 180 chars) for compact index tables."""
+    sent = (description or "").split(". ")[0].rstrip(".")
+    if len(sent) > 180:
+        cut = sent[:180].rsplit(" ", 1)[0]
+        sent = (cut or sent[:180]).rstrip(" ,;:-")
+    return sent
 
 
 TYPE_CLASS = {
-    "hub_glob": "общий",
-    "pr_glob": "проектный",
-    "hub_loc": "хаб",
-    "pr_loc": "локальный",
+    "hub_glob": "global",
+    "pr_glob": "project",
+    "hub_loc": "hub",
+    "pr_loc": "local",
 }
 
 PREFIX_TYPE = {
@@ -121,7 +122,7 @@ PREFIX_TYPE = {
 
 
 def type_slug(name: str, declared: str | None) -> str | None:
-    """Слаг типа навыка: из frontmatter, иначе по префиксу имени."""
+    """Skill type slug: from frontmatter, or fallback by name prefix."""
     if declared:
         return declared
     parts = re.split(r"[_\-]", name)
@@ -129,15 +130,27 @@ def type_slug(name: str, declared: str | None) -> str | None:
 
 
 def class_of(name: str, declared: str | None) -> str:
-    """Класс навыка по слагу типа."""
-    return TYPE_CLASS.get(type_slug(name, declared) or "", "проектный")
+    """Skill class label by type slug."""
+    return TYPE_CLASS.get(type_slug(name, declared) or "", "project")
 
 
 def area_value(category: str | None, category_name: str | None) -> str:
-    """Значение колонки области применения: название (слаг) или прочерк."""
+    """Scope column value: category_name (`category`) or dash."""
     if category and category_name:
         return f"{category_name} (`{category}`)"
     return "-"
+
+
+def get_index_version(index_path: Path) -> str:
+    """Extract SemVer from existing index H1 or _index_standards.md, fallback 1.0.0."""
+    for p in (index_path, STD_INDEX):
+        if p.exists():
+            lines = p.read_text(encoding="utf-8").splitlines()
+            if lines:
+                m = re.search(r"(?:Version|Версия)\s+(\d+\.\d+\.\d+)", lines[0])
+                if m:
+                    return m.group(1)
+    return "1.0.0"
 
 
 def frontmatter(path: Path) -> dict:
@@ -158,28 +171,62 @@ def frontmatter(path: Path) -> dict:
 
 def spec_type(name: str) -> str:
     known = {
-        "init_base.txt": "Требования",
-        "init_final.md": "Итоговая спецификация",
-        "spec_ui.html": "Спецификация вывода",
-        "overrides.md": "Оверрайды",
+        "init_base.txt": "Requirements",
+        "init_final.md": "Final init spec",
+        "spec_ui.html": "UI spec",
+        "overrides.md": "Overrides",
+        "text_overrides.md": "Text overrides",
     }
     if name in known:
         return known[name]
     if re.fullmatch(r"spec_.+\.md", name):
-        return "Спецификация задачи или модуля"
-    return "Прочее"
+        return "Module/task spec"
+    return "Other"
 
 
-def old_purposes(path: Path) -> dict:
-    purposes = {}
+def old_purposes(path: Path) -> dict[str, str]:
+    purposes: dict[str, str] = {}
     if not path.exists():
         return purposes
+    in_map = False
     for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith(("## Routing Map", "## Карта маршрутизации")):
+            in_map = True
+            continue
+        if in_map and line.startswith("## "):
+            in_map = False
+        if in_map:
+            continue
         m = re.match(r"^\|\s*`([^`]+)`\s*\|", line)
         if m:
             cells = [c.strip() for c in line.split("|")[1:-1]]
-            purposes[m.group(1)] = cells[-1] if len(cells) >= 2 else "-"
+            if len(cells) >= 2 and cells[-1] and cells[-1] != "-":
+                purposes[m.group(1)] = cells[-1]
     return purposes
+
+
+def old_spec_map_rows(path: Path) -> list[tuple[str, str]]:
+    """Extract existing (topic, target) rows from Routing Map section of _index_specs.md."""
+    rows: list[tuple[str, str]] = []
+    if not path.exists():
+        return rows
+    in_map = False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith(("## Routing Map", "## Карта маршрутизации")):
+            in_map = True
+            continue
+        if in_map and (line.startswith("## ") or line.startswith("---")):
+            in_map = False
+            continue
+        if not in_map:
+            continue
+        m = re.match(r"^\|\s*([^|]+?)\s*\|\s*`([^`]+)`\s*\|$", line.strip())
+        if m:
+            topic, target = m.group(1).strip(), m.group(2).strip()
+            if "<" in target or ">" in target:
+                continue
+            rows.append((topic, target))
+    return rows
 
 
 def anthropic_meta(path: Path) -> dict:
@@ -204,6 +251,8 @@ def rebuild_skills_index(root: Path) -> None:
     if not SKILLS_DIR.exists():
         warn(f"Пропуск индекса навыков: не найдена папка {SKILLS_DIR}")
         return
+    ver = get_index_version(SKILLS_INDEX)
+    purposes = old_purposes(SKILLS_INDEX)
     skills = [p for p in sorted(SKILLS_DIR.glob("*.md")) if not p.name.startswith("_index")]
     sub_skills = []
     for d in sorted(SKILLS_DIR.iterdir()):
@@ -211,9 +260,9 @@ def rebuild_skills_index(root: Path) -> None:
                 and not (d / "SKILL.md").is_file()):
             sub_skills.extend(sorted(d.glob("pg_*.md")))
     lines = [
-        f"# Индекс навыков репозитория {root.name}",
+        f"# Repository Skills Index. Version {ver}",
         "",
-        "Локальный индекс навыков этого репозитория. Точка входа в каталог `doc/skills/`: перечисляет общие (`glob-*`, `glob_*`) и проектные (`pg-*` в корне, `pg_*.md` в подпапке `<repo-name>/`) навыки обоих форматов. Агент загружает индекс, а не каталог целиком, и по карте маршрутизации находит нужные навыки. Формируется автоматически навыком `glob-update-indexes`. Порядок принятия решений агентом при отсутствии нормы - `project_standards.md`, раздел 07.06.",
+        f"Entry point for `doc/skills/` in `{root.name}`: lists global (`glob-*`, `glob_*`) and project (`pg-*`, `pg_*`) skills. Load this index rather than the full directory and use the routing map to open relevant skills. Decision order when norms are absent - `project_standards.md`, Section 07.06.",
         "",
         "---",
         "",
@@ -221,10 +270,10 @@ def rebuild_skills_index(root: Path) -> None:
         "",
         "---",
         "",
-        "## Реестр навыков",
+        "## Skill Registry",
         "",
-        "| Навык | Класс | Область | Автоприменение | Версия | Назначение |",
-        "|-------|-------|---------|----------------|--------|-----------|",
+        "| Skill | Class | Scope | Auto-Apply | Version | Purpose |",
+        "|-------|-------|-------|------------|---------|---------|",
     ]
     map_rows = []
     for p in skills + sub_skills:
@@ -232,8 +281,9 @@ def rebuild_skills_index(root: Path) -> None:
         cls = class_of(p.stem, m["type"])
         ident = m["id"] or p.stem
         desc = m["description"] or ""
-        lines.append(f"| `{ident}` | {cls} | {area_value(m['category'], m['category_name'])} | {m['auto_apply'] or '-'} | {m['version'] or '-'} | {first_clause(desc)} |")
-        map_rows.append(f"| {first_clause(desc)} | `{ident}` |")
+        purpose = first_clause(desc) if desc else purposes.get(ident, "-")
+        lines.append(f"| `{ident}` | {cls} | {area_value(m['category'], m['category_name'])} | {m['auto_apply'] or '-'} | {m['version'] or '-'} | {purpose} |")
+        map_rows.append(f"| {purpose} | `{ident}` |")
     lines.append("")
     anthropic = [
         d
@@ -242,22 +292,23 @@ def rebuild_skills_index(root: Path) -> None:
     ]
     if anthropic:
         lines += [
-            "## Навыки формата Anthropic Agent Skills (SKILL.md)",
+            "## Anthropic Agent Skills (SKILL.md)",
             "",
-            "| Навык (каталог) | Класс | Область | Версия | Назначение |",
-            "|-----------------|-------|---------|--------|-----------|",
+            "| Skill (dir) | Class | Scope | Version | Purpose |",
+            "|-------------|-------|-------|---------|---------|",
         ]
         for d in anthropic:
             m = anthropic_meta(d)
             name = d.parent.relative_to(SKILLS_DIR).as_posix()
             cls = class_of(name, m["type"])
-            lines.append(f"| `{name}` | {cls} | {area_value(m['category'], m['category_name'])} | {m['version'] or '-'} | {first_clause(m['description'])} |")
-            map_rows.append(f"| {first_clause(m['description'])} | `{name}` |")
+            purpose = first_clause(m["description"]) or purposes.get(name, "-")
+            lines.append(f"| `{name}` | {cls} | {area_value(m['category'], m['category_name'])} | {m['version'] or '-'} | {purpose} |")
+            map_rows.append(f"| {purpose} | `{name}` |")
         lines.append("")
     lines += [
         "---",
         "",
-        "## Карта маршрутизации",
+        "## Routing Map",
         "",
         SKILLS_MAP_NOTE,
         *map_rows,
@@ -281,9 +332,9 @@ def rebuild_local_skills_index(root: Path) -> None:
     dirs = [d for d in sorted(LOCAL_SKILLS_DIR.iterdir())
             if d.is_dir() and not d.name.startswith(".") and (d / "SKILL.md").is_file()]
     lines = [
-        f"# Индекс локальных навыков репозитория {root.name}",
+        "# Local Repository Skills Index",
         "",
-        "Точка входа в каталог `data/skills/`: перечисляет локальные навыки (слаг `pr_loc`) - плоские файлы и каталоги формата Anthropic. Локальные навыки в сводные индексы `_index_skills_hub.md` и `_index_skills_repo.md` не входят - они отражены здесь. Агент загружает индекс, а не каталог целиком, и по карте маршрутизации находит нужные навыки. Формируется автоматически навыком `glob-update-indexes`. Порядок принятия решений агентом при отсутствии нормы - `project_standards.md`, раздел 07.06.",
+        f"Entry point for `data/skills/` in `{root.name}`: lists local skills (`pr_loc`) excluded from shared indexes. Load this index rather than the full directory and use the routing map to open relevant skills. Decision order when norms are absent - `project_standards.md`, Section 07.06.",
         "",
         "---",
         "",
@@ -291,10 +342,10 @@ def rebuild_local_skills_index(root: Path) -> None:
         "",
         "---",
         "",
-        "## Реестр навыков",
+        "## Skill Registry",
         "",
-        "| Навык | Класс | Область | Автоприменение | Версия | Назначение |",
-        "|-------|-------|---------|----------------|--------|-----------|",
+        "| Skill | Class | Scope | Auto-Apply | Version | Purpose |",
+        "|-------|-------|-------|------------|---------|---------|",
     ]
     map_rows = []
     for p in flat:
@@ -302,26 +353,26 @@ def rebuild_local_skills_index(root: Path) -> None:
         ident = m["id"] or p.stem
         desc = m["description"] or ""
         purpose = first_clause(desc) if desc else purposes.get(ident, "-")
-        lines.append(f"| `{ident}` | локальный | {area_value(m['category'], m['category_name'])} | {m['auto_apply'] or '-'} | {m['version'] or '-'} | {purpose} |")
+        lines.append(f"| `{ident}` | local | {area_value(m['category'], m['category_name'])} | {m['auto_apply'] or '-'} | {m['version'] or '-'} | {purpose} |")
         map_rows.append(f"| {purpose} | `{ident}` |")
     lines.append("")
     if dirs:
         lines += [
-            "## Навыки формата Anthropic Agent Skills (SKILL.md)",
+            "## Anthropic Agent Skills (SKILL.md)",
             "",
-            "| Навык (каталог) | Класс | Область | Версия | Назначение |",
-            "|-----------------|-------|---------|--------|-----------|",
+            "| Skill (dir) | Class | Scope | Version | Purpose |",
+            "|-------------|-------|-------|---------|---------|",
         ]
         for d in dirs:
             m = anthropic_meta(d / "SKILL.md")
             purpose = first_clause(m["description"]) or purposes.get(d.name, "-")
-            lines.append(f"| `{d.name}` | локальный | {area_value(m['category'], m['category_name'])} | {m['version'] or '-'} | {purpose} |")
+            lines.append(f"| `{d.name}` | local | {area_value(m['category'], m['category_name'])} | {m['version'] or '-'} | {purpose} |")
             map_rows.append(f"| {purpose} | `{d.name}` |")
         lines.append("")
     lines += [
         "---",
         "",
-        "## Карта маршрутизации",
+        "## Routing Map",
         "",
         SKILLS_MAP_NOTE,
         *map_rows,
@@ -342,7 +393,7 @@ def spec_map_row(key: str, name: str) -> str | None:
     if name in SPECS_MAP_TOPICS:
         return f"| {SPECS_MAP_TOPICS[name]} | `{key}` |"
     if re.fullmatch(r"spec_.+\.md", name):
-        return f"| Спецификация задачи или модуля `{name}` | `{key}` |"
+        return f"| Module or task specification `{name}` | `{key}` |"
     return None
 
 
@@ -351,6 +402,7 @@ def rebuild_specs_index(root: Path) -> None:
         warn(f"Пропуск индекса спецификаций: не найдена папка {SPECS_DIR}")
         return
     purposes = old_purposes(SPECS_INDEX)
+    existing_map = old_spec_map_rows(SPECS_INDEX)
     root_files = sorted(
         p for p in SPECS_DIR.iterdir()
         if p.is_file() and p.name not in ("_index_specs.md", ".gitkeep")
@@ -362,9 +414,9 @@ def rebuild_specs_index(root: Path) -> None:
     subdirs = sorted(d for d in SPECS_DIR.iterdir()
                      if d.is_dir() and d.name != "init" and not d.name.startswith("."))
     lines = [
-        f"# Индекс спецификаций репозитория {root.name}",
+        "# Specifications Index",
         "",
-        "Точка входа в каталог спецификаций этого репозитория. Агент загружает индекс, а не каталог целиком, и по реестру и карте маршрутизации открывает только релевантные файлы. Формируется автоматически навыком `glob-update-indexes` из состава `doc/specs/`: реестр корневых файлов, раздел стартовых `init/` и сводка подпапок проектов. Порядок принятия решений агентом при отсутствии нормы - `project_standards.md`, раздел 07.06.",
+        f"Entry point for `doc/specs/` in `{root.name}`. Load this index rather than the full directory and open only relevant files via the registry and routing map. Decision order when norms are absent - `project_standards.md`, Section 07.06.",
         "",
         "---",
         "",
@@ -372,20 +424,20 @@ def rebuild_specs_index(root: Path) -> None:
         "",
         "---",
         "",
-        "## Реестр корневых файлов",
+        "## Root Files Registry",
         "",
-        "| Файл | Тип | Назначение |",
-        "|------|-----|-----------|",
+        "| File | Type | Purpose |",
+        "|------|------|---------|",
     ]
     for p in root_files:
         lines.append(f"| `{p.name}` | {spec_type(p.name)} | {purposes.get(p.name, '-')} |")
     lines.append("")
     if init_files:
         lines += [
-            "## Стартовые спецификации (`init/`)",
+            "## Bootstrap Specifications (`init/`)",
             "",
-            "| Файл | Тип | Назначение |",
-            "|------|-----|-----------|",
+            "| File | Type | Purpose |",
+            "|------|------|---------|",
         ]
         for p in init_files:
             key = f"init/{p.name}"
@@ -393,22 +445,38 @@ def rebuild_specs_index(root: Path) -> None:
         lines.append("")
     if subdirs:
         lines += [
-            "## Подпапки проектов",
+            "## Project Subfolders",
             "",
-            "| Папка | Файлы | Назначение |",
-            "|-------|-------|-----------|",
+            "| Folder | Files | Purpose |",
+            "|--------|-------|---------|",
         ]
         for d in subdirs:
             names = [f.name for f in sorted(d.iterdir()) if f.is_file()]
             key = f"{d.name}/"
             lines.append(f"| `{key}` | {', '.join(names) or '-'} | {purposes.get(key, '-')} |")
         lines.append("")
-    map_rows = [row for row in (spec_map_row(p.name, p.name) for p in root_files) if row]
-    map_rows += [row for row in (spec_map_row(f"init/{p.name}", p.name) for p in init_files) if row]
+    map_rows: list[str] = []
+    covered_targets: set[str] = set()
+    for topic, target in existing_map:
+        target_path = SPECS_DIR / target.rstrip("/")
+        if target_path.exists():
+            map_rows.append(f"| {topic} | `{target}` |")
+            covered_targets.add(target)
+    for p in root_files:
+        if p.name not in covered_targets:
+            row = spec_map_row(p.name, p.name)
+            if row:
+                map_rows.append(row)
+    for p in init_files:
+        key = f"init/{p.name}"
+        if key not in covered_targets and p.name not in covered_targets:
+            row = spec_map_row(key, p.name)
+            if row:
+                map_rows.append(row)
     lines += [
         "---",
         "",
-        "## Карта маршрутизации",
+        "## Routing Map",
         "",
         SPECS_MAP_NOTE,
         *map_rows,
@@ -429,15 +497,37 @@ def rebuild_specs_index(root: Path) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Rebuild local repository indexes (_index_skills_repo.md, _index_specs.md, _index_skills_pl.md)"
+    )
+    parser.add_argument("--skills", action="store_true", help="rebuild only doc/skills/_index_skills_repo.md")
+    parser.add_argument("--specs", action="store_true", help="rebuild only doc/specs/_index_specs.md")
+    parser.add_argument("--local-skills", action="store_true", help="rebuild only data/skills/_index_skills_pl.md")
+    args = parser.parse_args()
+
+    any_flag = args.skills or args.specs or args.local_skills
     root = Path.cwd().resolve()
+
     if root.name == "project_standards":
-        warn("Хаб project_standards: сводный индекс _index_skills_hub.md ведет hub-sync-indexes, "
-             "doc/specs/_index_specs.md - эталонный шаблон; пересобирается только "
-             "data/skills/_index_skills_pl.md")
-    else:
+        if not any_flag or args.skills or args.specs:
+            warn("Хаб project_standards: сводный индекс _index_skills_hub.md ведет hub-sync-indexes, "
+                 "doc/specs/_index_specs.md - эталонный шаблон; пересобирается только "
+                 "data/skills/_index_skills_pl.md")
+        if not any_flag or args.local_skills:
+            rebuild_local_skills_index(root)
+        return EXIT_OK
+
+    if not any_flag:
         rebuild_skills_index(root)
         rebuild_specs_index(root)
-    rebuild_local_skills_index(root)
+        rebuild_local_skills_index(root)
+    else:
+        if args.skills:
+            rebuild_skills_index(root)
+        if args.specs:
+            rebuild_specs_index(root)
+        if args.local_skills:
+            rebuild_local_skills_index(root)
     return EXIT_OK
 
 

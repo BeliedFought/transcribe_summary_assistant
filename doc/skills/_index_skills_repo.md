@@ -1,52 +1,52 @@
-# Индекс навыков репозитория transcribe_summary_assistant
+# Repository Skills Index. Version 5.0.0
 
-Локальный индекс навыков этого репозитория. Точка входа в каталог `doc/skills/`: перечисляет общие (`glob-*`, `glob_*`) и проектные (`pg-*` в корне, `pg_*.md` в подпапке `<repo-name>/`) навыки обоих форматов. Агент загружает индекс, а не каталог целиком, и по карте маршрутизации находит нужные навыки. Формируется автоматически навыком `glob-update-indexes`. Порядок принятия решений агентом при отсутствии нормы - `project_standards.md`, раздел 07.06.
-
----
-
-## Обязательность применения
-
-Тегание этого файла означает обязательное применение релевантных навыков, а не просто ознакомление. Агент:
-
-1. Определяет релевантные навыки по карте маршрутизации
-2. Загружает указанные файлы навыков и выполняет их инструкции
-3. Применяет правила навыков при наличии соответствующей задачи, независимо от явного тегирования
+Entry point for `doc/skills/` in `transcribe_summary_assistant`: lists global (`glob-*`, `glob_*`) and project (`pg-*`, `pg_*`) skills. Load this index rather than the full directory and use the routing map to open relevant skills. Decision order when norms are absent - `project_standards.md`, Section 07.06.
 
 ---
 
-## Реестр навыков
+## Mandatory Application
 
-| Навык | Класс | Область | Автоприменение | Версия | Назначение |
-|-------|-------|---------|----------------|--------|-----------|
+Tagging this file requires applying relevant skills, not merely reading the index:
 
-## Навыки формата Anthropic Agent Skills (SKILL.md)
-
-| Навык (каталог) | Класс | Область | Версия | Назначение |
-|-----------------|-------|---------|--------|-----------|
-| `glob-audit-repository` | общий | Аудит (`audit`) | 2.6.1 | Двухуровневый аудит и исправление репозитория на соответствие стандарту с учетом зафиксированных оверрайдов проекта: субагент проверяет кодовую базу, агент классифицирует отклонения, выполняет реверс doc/specs/spec_ui.html, согласовывает правки с пользователем, вносит их и обновляет документацию |
-| `glob-cfg-pip` | общий | Конфигурация (`cfg`) | 1.2.0 | Подбирает рабочее зеркало PyPI, измеряет время отклика кандидатов и записывает выбранное зеркало в pip.conf при недоступности pypi.org |
-| `glob-mine-lesson` | общий | Добыча знаний (`mine`) | 1.0.1 | Фиксирует урок в журнал уроков data/lessons.md - переносимый опыт работы над проектом: прием, ловушка библиотеки или среды, неочевидное решение и его причину |
-| `glob-skill-deploy` | общий | Навыки (`skill`) | 1.3.0 | Деплоит навык формата Anthropic Agent Skills из doc/skills/<name>/ в боевые каталоги инструментов - opencode, Kilo Code, Cursor (проектные или персональные), копированием или симлинком (--link) |
-| `glob-skill-migrate-anthropic` | общий | Навыки (`skill`) | 1.9.3 | Переносит навык внутреннего формата (doc/skills/<name>.md) в самодостаточный пакет Anthropic Agent Skills - каталог <name>/SKILL.md, весь код и внешние скрипты навыка в <name>/scripts/, исходники (навык и скрипты проекта) в <name>/templates/ через git mv; приводит существующий пакет SKILL.md в соответствие стандарту; проверяет полноту - все навыки репозитория обоих форматов на соответствие требованиям (тип, категория области применения, префикс, расположение, поля frontmatter) |
-| `glob-update-indexes` | общий | Актуализация (`update`) | 1.5.1 | Актуализирует локальные индексы репозитория по канону index_nav_standards.md - индекс навыков _index_skills_repo.md, индекс спецификаций doc/specs/_index_specs.md и индекс локальных навыков data/skills/_index_skills_pl.md (при наличии каталога) |
+1. Identify relevant skills via the routing map
+2. Open the matched skill files and follow their instructions
+3. Apply relevant skills whenever a matching task arises, even without explicit tagging
 
 ---
 
-## Карта маршрутизации
+## Skill Registry
 
-Карта связывает тип задачи с навыком. Агент открывает указанный навык и выполняет инструкцию. Темы - первичные, из описаний навыков: доработать формулировки по канону `index_nav_standards.md` (раздел 04) - от лица задачи пользователя, с синонимами-триггерами.
+| Skill | Class | Scope | Auto-Apply | Version | Purpose |
+|-------|-------|-------|------------|---------|---------|
 
-| Тема задачи | Навык |
-|-------------|-------|
-| Двухуровневый аудит и исправление репозитория на соответствие стандарту с учетом зафиксированных оверрайдов проекта: субагент проверяет кодовую базу, агент классифицирует отклонения, выполняет реверс doc/specs/spec_ui.html, согласовывает правки с пользователем, вносит их и обновляет документацию | `glob-audit-repository` |
-| Подбирает рабочее зеркало PyPI, измеряет время отклика кандидатов и записывает выбранное зеркало в pip.conf при недоступности pypi.org | `glob-cfg-pip` |
-| Фиксирует урок в журнал уроков data/lessons.md - переносимый опыт работы над проектом: прием, ловушка библиотеки или среды, неочевидное решение и его причину | `glob-mine-lesson` |
-| Деплоит навык формата Anthropic Agent Skills из doc/skills/<name>/ в боевые каталоги инструментов - opencode, Kilo Code, Cursor (проектные или персональные), копированием или симлинком (--link) | `glob-skill-deploy` |
-| Переносит навык внутреннего формата (doc/skills/<name>.md) в самодостаточный пакет Anthropic Agent Skills - каталог <name>/SKILL.md, весь код и внешние скрипты навыка в <name>/scripts/, исходники (навык и скрипты проекта) в <name>/templates/ через git mv; приводит существующий пакет SKILL.md в соответствие стандарту; проверяет полноту - все навыки репозитория обоих форматов на соответствие требованиям (тип, категория области применения, префикс, расположение, поля frontmatter) | `glob-skill-migrate-anthropic` |
-| Актуализирует локальные индексы репозитория по канону index_nav_standards.md - индекс навыков _index_skills_repo.md, индекс спецификаций doc/specs/_index_specs.md и индекс локальных навыков data/skills/_index_skills_pl.md (при наличии каталога) | `glob-update-indexes` |
+## Anthropic Agent Skills (SKILL.md)
+
+| Skill (dir) | Class | Scope | Version | Purpose |
+|-------------|-------|-------|---------|---------|
+| `glob-audit-repository` | global | Audit (`audit`) | 2.6.1 | Performs a two-level audit and repair of a repository against the standard, honoring recorded project overrides - a subagent checks the codebase, the agent classifies deviations |
+| `glob-cfg-pip` | global | Configuration (`cfg`) | 1.2.0 | Finds a working PyPI mirror, measures candidate response times, and writes the selected mirror to pip.conf when pypi.org is unreachable |
+| `glob-mine-lesson` | global | Knowledge Mining (`mine`) | 1.0.1 | Records a lesson in the lesson journal data/lessons.md - transferable experience from project work: a technique, a library or environment trap, a non-obvious solution and its |
+| `glob-skill-deploy` | global | Skills (`skill`) | 1.3.0 | Deploys an Anthropic Agent Skills skill from doc/skills/<name>/ to live tool directories - opencode, Kilo Code, Cursor (project or personal), by copy or symlink (--link) |
+| `glob-skill-migrate-anthropic` | global | Skills (`skill`) | 1.9.3 | Validates and repairs Anthropic Agent Skills packages (a <name>/SKILL.md directory with scripts and data templates), converts legacy plain skills found in sibling repositories |
+| `glob-update-indexes` | global | Update (`update`) | 1.6.0 | Rebuilds the repository local indexes by the index_nav_standards.md canon - the skills index _index_skills_repo.md, the specifications index doc/specs/_index_specs.md, and the |
 
 ---
 
-## Автоактуализация индекса
+## Routing Map
 
-При любом изменении состава `doc/skills/` (добавление, удаление, переименование, изменение frontmatter навыка) пересобрать индекс навыком `glob-update-indexes`; заполнить назначения и доработать карту маршрутизации по канону `index_nav_standards.md` (разделы 03.03, 04). Вывести отчет: что добавлено, изменено, удалено.
+Maps task topics to skills (`index_nav_standards.md`, Section 04).
+
+| Task Topic | Skill |
+|------------|-------|
+| Performs a two-level audit and repair of a repository against the standard, honoring recorded project overrides - a subagent checks the codebase, the agent classifies deviations | `glob-audit-repository` |
+| Finds a working PyPI mirror, measures candidate response times, and writes the selected mirror to pip.conf when pypi.org is unreachable | `glob-cfg-pip` |
+| Records a lesson in the lesson journal data/lessons.md - transferable experience from project work: a technique, a library or environment trap, a non-obvious solution and its | `glob-mine-lesson` |
+| Deploys an Anthropic Agent Skills skill from doc/skills/<name>/ to live tool directories - opencode, Kilo Code, Cursor (project or personal), by copy or symlink (--link) | `glob-skill-deploy` |
+| Validates and repairs Anthropic Agent Skills packages (a <name>/SKILL.md directory with scripts and data templates), converts legacy plain skills found in sibling repositories | `glob-skill-migrate-anthropic` |
+| Rebuilds the repository local indexes by the index_nav_standards.md canon - the skills index _index_skills_repo.md, the specifications index doc/specs/_index_specs.md, and the | `glob-update-indexes` |
+
+---
+
+## Index Auto-Update
+
+On any change to `doc/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes`, refine purposes and routing map topics per `index_nav_standards.md` (Sections 03.03, 04), and report added, updated, and removed entries.

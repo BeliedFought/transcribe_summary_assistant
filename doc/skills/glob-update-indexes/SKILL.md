@@ -1,84 +1,85 @@
 ---
 name: glob-update-indexes
-description: Актуализирует локальные индексы репозитория по канону index_nav_standards.md - индекс навыков _index_skills_repo.md, индекс спецификаций doc/specs/_index_specs.md и индекс локальных навыков data/skills/_index_skills_pl.md (при наличии каталога). Пересобирает полный канонический скелет (интро, обязательность применения, реестры, карта маршрутизации, автоактуализация) и проверяет структуру индексов по чек-листу канона. Применять при запросах обновить локальные индексы, актуализировать список навыков или спецификаций, после изменения состава doc/skills/, doc/specs/ или data/skills/
+description: Rebuilds the repository local indexes by the index_nav_standards.md canon - the skills index _index_skills_repo.md, the specifications index doc/specs/_index_specs.md, and the local skills index data/skills/_index_skills_pl.md (when the directory exists). Regenerates the full canonical skeleton (intro, mandatory application, registries, routing map, auto-update) and checks index structure against the canon checklist; supports targeted rebuilds with --skills, --specs, and --local-skills. Use when asked to update local indexes, refresh the skill or specification list, or after changes in doc/skills/, doc/specs/, or data/skills/
 metadata:
-  version: 1.5.1
+  version: 1.6.0
   status: stable
   type: hub_glob
   category: update
-  category_name: Актуализация
+  category_name: Update
 ---
 
-# Актуализация локальных индексов репозитория
+# Rebuild Repository Local Indexes
 
-Глобальный навык (префикс `glob-`), раздается во все репозитории. Работает только по локальному репозиторию, кросс-репо ничего не знает. В хабе `project_standards` сводный индекс навыков `_index_skills_hub.md` ведет `hub-sync-indexes`, а `doc/specs/_index_specs.md` хаба - эталонный шаблон; в хабе навык пересобирает только `data/skills/_index_skills_pl.md` (при наличии каталога).
+Global skill (prefix `glob-`), distributed to every repository. Works only on the local repository and knows nothing about cross-repo state. In the `project_standards` hub the summary skills index `_index_skills_hub.md` is maintained by `hub-sync-indexes`, and the hub `doc/specs/_index_specs.md` is a reference template; in the hub this skill rebuilds only `data/skills/_index_skills_pl.md` (when the directory exists).
 
-Навык пересобирает три индекса репозитория по канону навигационных документов `index_nav_standards.md`: `doc/skills/_index_skills_repo.md` - точку входа в каталог навыков, `doc/specs/_index_specs.md` - реестр спецификаций со сводкой подпапок и `data/skills/_index_skills_pl.md` - индекс локальных навыков (слаг `pr_loc`; собирается при наличии каталога `data/skills/`, в том числе в хабе). Скрипт генерирует полный канонический скелет: интро с указателем на 07.06, обязательность применения, реестры, карту маршрутизации (первичное заполнение по описаниям) и раздел автоактуализации. После пересборки навык проверяет структуру собранных индексов по чек-листу канона и дорабатывает назначения и карту. Навык правит только эти индексы и не трогает сами навыки, спецификации, стандарты и их индексы.
+The skill rebuilds three repository indexes by the navigation canon `index_nav_standards.md`: `doc/skills/_index_skills_repo.md` - the skills directory entry point, `doc/specs/_index_specs.md` - the specification registry with a subfolder summary, and `data/skills/_index_skills_pl.md` - the local skills index (slug `pr_loc`; built when `data/skills/` exists, including in the hub). The script generates the full canonical skeleton: an intro pointing to 07.06, mandatory application, registries, a routing map (initial fill from descriptions), and an auto-update section. After rebuilding, the skill checks the generated index structure against the canon checklist and refines purposes and the routing map. The skill edits only these indexes and never the skills, specifications, standards, or their indexes.
 
-## Когда использовать
+## When to Use
 
-- Пользователь просит обновить/актуализировать локальные индексы репозитория (навыков, спецификаций или локальных навыков)
-- Добавлен, удален или переименован навык в корне `doc/skills/`, файл в `doc/specs/` либо навык в `data/skills/`
-- Изменен frontmatter навыка (`id`, `description`, `auto_apply`, `version`, `type`, `category`, `category_name` для plain; `name`, `description`, `metadata.type`, `metadata.category`, `metadata.category_name`, `metadata.version` для Anthropic) - в `doc/skills/` или `data/skills/`
-- Пользователь тегнул `@doc/skills/_index_skills_repo.md`, `@doc/specs/_index_specs.md` или `@data/skills/_index_skills_pl.md` без конкретной задачи
+- The user asks to update or refresh repository local indexes (skills, specifications, or local skills)
+- A skill in the root `doc/skills/`, a file in `doc/specs/`, or a skill in `data/skills/` was added, removed, or renamed
+- A skill frontmatter changed (`name`, `description`, `metadata.type`, `metadata.category`, `metadata.category_name`, `metadata.version` for Anthropic; `id`, `description`, `auto_apply`, `version`, `type`, `category`, `category_name` for legacy plain) - in `doc/skills/` or `data/skills/`
+- The user tagged `@doc/skills/_index_skills_repo.md`, `@doc/specs/_index_specs.md`, or `@data/skills/_index_skills_pl.md` without a concrete task
 
-## Инструкция
+## Instructions
 
-### Предусловия
+### Preconditions
 
-- Запуск из корня репозитория
-- Существует хотя бы одна из папок: `doc/skills/`, `doc/specs/`, `data/skills/`; в хабе `project_standards` пересобирается только `data/skills/`
+- Run from the repository root
+- At least one of the folders exists: `doc/skills/`, `doc/specs/`, `data/skills/`; in the `project_standards` hub only `data/skills/` is rebuilt
 
-### Порядок работы
+### Procedure
 
-1. Запустить скрипт пакета из корня репозитория:
+1. Run the package script from the repository root:
 
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/scripts/update_indexes.py
 ```
 
-2. Скрипт пересобирает индексы в каноническом скелете:
-   - `doc/skills/_index_skills_repo.md`: интро, обязательность применения, реестр навыков (класс, область применения, автоприменение, версия, назначение), раздел каталогов SKILL.md, карта маршрутизации (первичные темы - из описаний навыков), автоактуализация;
-   - `doc/specs/_index_specs.md`: интро, обязательность применения, реестр корневых файлов с типами, раздел стартовых `init/`, сводка подпапок `doc/specs/<project>/`, карта маршрутизации (по известным типам файлов), автоактуализация;
-   - `data/skills/_index_skills_pl.md` (при наличии каталога, в любом репозитории включая хаб): интро, обязательность применения, реестр плоских навыков и каталогов SKILL.md (класс - локальный, область применения - из `category` / `metadata.category`), карта маршрутизации, автоактуализация.
-3. Скрипт сохраняет ранее заполненные значения колонки «Назначение» индекса спецификаций и индекса локальных навыков (при отсутствии описания во frontmatter); новым файлам и подпапкам ставится `-`. После запуска заполнить назначения вручную (для `spec_ui.html` указать SemVer макета по `console_ui_standards.md`).
-4. Проверить структуру собранных индексов по чек-листу канона `index_nav_standards.md`:
-   - скелет полный (раздел 03.01): интро с указателем на 07.06, обязательность применения, реестр, карта маршрутизации, автоактуализация;
-   - реестр (раздел 03.03): каждая строка - существующий файл; каждый объект каталога присутствует; назначение - по факту, без оценок и историй;
-   - карта (раздел 4): темы от лица задачи пользователя, без расплывчатых формулировок («прочее», «разное»), каждый объект реестра покрыт хотя бы одной строкой, ссылки ведут на существующие объекты;
-   - указатель на `project_standards.md` 07.06 присутствует.
-   Найденные отклонения исправить в индексах; то, что исправить нельзя, - в отчет.
-5. Доработать первичные темы карты маршрутизации: сформулировать от лица задачи пользователя, добавить синонимы-триггеры (канон - `index_nav_standards.md`, раздел 04).
-6. В хабе `project_standards` скрипт пропускает `_index_skills_repo.md` и `_index_specs.md` (причина - в логе) и пересобирает только `data/skills/_index_skills_pl.md`.
-7. Вывод передать пользователю: что попало в каждый индекс, результаты проверки структуры, пути к обновленным файлам.
+   To rebuild only selected indexes, pass one or more flags: `--skills`, `--specs`, `--local-skills`. With no flags the script rebuilds all applicable indexes (in the hub - only the local skills index).
 
-## Критерии завершения
+2. The script rebuilds indexes in the canonical skeleton:
+   - `doc/skills/_index_skills_repo.md`: intro, mandatory application, skill registry (class, scope, version, purpose, when to apply), a SKILL.md directories section, a routing map (initial topics from skill descriptions), auto-update; legacy flat `*.md` skills are listed until migration;
+   - `doc/specs/_index_specs.md`: intro, mandatory application, root file registry with types, the `init/` section, a `doc/specs/<project>/` subfolder summary, a routing map (by known file types), auto-update;
+   - `data/skills/_index_skills_pl.md` (when the directory exists, in any repository including the hub): intro, mandatory application, a registry of flat skills and SKILL.md directories (class - local, scope from `category` / `metadata.category`), a routing map, auto-update.
+3. The script preserves previously filled `Purpose` values in the specifications index and the local skills index (when frontmatter has no description); new files and subfolders get `-`. After the run, fill purposes manually (for `spec_ui.html` state the mockup SemVer per `console_ui_standards.md`). Existing custom routing-map rows for live files are preserved.
+4. Check the generated index structure against the `index_nav_standards.md` canon checklist:
+   - full skeleton (Section 03.01): intro pointing to 07.06, mandatory application, registry, routing map, auto-update;
+   - registry (Section 03.03): every row is an existing file; every directory object is present; purposes are factual, without evaluations or history;
+   - map (Section 04): topics phrased as user tasks, no vague wording ("other", "misc"), every registry object covered by at least one row, links point to existing objects;
+   - the pointer to `project_standards.md` 07.06 is present.
+   Fix deviations in the indexes; report anything that cannot be fixed.
+5. Refine initial routing-map topics: phrase them as user tasks and add trigger synonyms (canon - `index_nav_standards.md`, Section 04).
+6. In the `project_standards` hub the script skips `_index_skills_repo.md` and `_index_specs.md` (reason in the log) and rebuilds only `data/skills/_index_skills_pl.md`.
+7. Report to the user: what went into each index, structure check results, and paths to updated files.
 
-- Собранные индексы соответствуют скелету канона `index_nav_standards.md` (раздел 03.01): интро, обязательность применения, реестр, карта маршрутизации, автоактуализация
-- `doc/skills/_index_skills_repo.md` соответствует фактическому составу корневых навыков, проектных `pg_*` в подпапке `<repo-name>/` и каталогов SKILL.md; индексные файлы (`_index_*.md`) в перечень не включены
-- `doc/specs/_index_specs.md` соответствует фактическому составу `doc/specs/`: корневые файлы с типами, раздел стартовых `init/` и сводка подпапок
-- `data/skills/_index_skills_pl.md` (при наличии каталога) соответствует фактическому составу `data/skills/`: плоские навыки и каталоги SKILL.md
-- Проверка структуры по разделу 4 канона выполнена: темы карты от лица задач, покрытие объектов полное, расплывчатых формулировок нет
-- Назначения новых файлов и подпапок спецификаций и локальных навыков заполнены вручную после пересборки
-- В хабе навык пересобирает только `data/skills/_index_skills_pl.md` и сообщает о пропуске прочих индексов
-- Пользователю выдан отчет по каждому собранному индексу с результатами проверки структуры
+## Completion Criteria
 
-## Примеры
+- Generated indexes match the `index_nav_standards.md` canon skeleton (Section 03.01): intro, mandatory application, registry, routing map, auto-update
+- `doc/skills/_index_skills_repo.md` matches the actual root skills, project `pg-*` skills in subfolders, and SKILL.md directories; index files (`_index_*.md`) are not listed
+- `doc/specs/_index_specs.md` matches the actual `doc/specs/` composition: root files with types, the `init/` section, and a subfolder summary
+- `data/skills/_index_skills_pl.md` (when the directory exists) matches the actual `data/skills/` composition: flat skills and SKILL.md directories
+- The Section 04 structure check is complete: topics phrased as tasks, full object coverage, no vague wording
+- Purposes of new specification files and subfolders, and of local skills, are filled manually after the rebuild
+- In the hub the skill rebuilds only `data/skills/_index_skills_pl.md` and reports the skipped indexes
+- The user receives a report for each generated index with structure check results
 
-1. Пользователь: «обнови индексы» -> агент запускает скрипт, пересобирает индексы, проверяет структуру, выдает отчет.
-2. В `doc/specs/` добавлена спецификация `spec_export.md` -> агент перегенерирует индекс, в реестре и карте появляется строка с типом «Спецификация задачи или модуля», назначение заполняется вручную.
-3. В `data/skills/` добавлен каталог `pl-report/SKILL.md` -> скрипт включает его в `_index_skills_pl.md` (в любом репозитории, включая хаб); назначения и карта дорабатываются вручную.
+## Examples
 
-## Ограничения
+1. User: "update the indexes" -> the agent runs the script, rebuilds the indexes, checks the structure, and reports.
+2. A specification `spec_export.md` was added to `doc/specs/` -> the agent regenerates the index; a row with type "Task or module specification" appears in the registry and map; the purpose is filled manually.
+3. A directory `pl-report/SKILL.md` was added to `data/skills/` -> the script includes it in `_index_skills_pl.md` (in any repository, including the hub); purposes and the map are refined manually.
 
-- Удаление файлов и папок репозитория - перенос в `.trash/<slug>_<YYYYMMDDHHMM>/` (карантин, `project_standards.md` 01.01.06), а не удаление; чистить `.trash/` только по явному запросу пользователя
-- В хабе `project_standards` сводный индекс навыков ведет `hub-sync-indexes`, а `doc/specs/_index_specs.md` - эталонный шаблон; в хабе пересобирается только `data/skills/_index_skills_pl.md`
-- Редактировать только `doc/skills/_index_skills_repo.md`, `doc/specs/_index_specs.md` и `data/skills/_index_skills_pl.md`; не менять сами навыки, спецификации, стандарты и их индексы
-- Кросс-репо синхронизации не выполняет - только локальный репозиторий
+## Restrictions
 
-## Ссылки
+- Deleting repository files and folders - move to `.trash/<slug>_<YYYYMMDDHHMM>/` (quarantine, `project_standards.md` 01.01.06), never delete; purge `.trash/` only on explicit user request
+- In the `project_standards` hub the summary skills index is maintained by `hub-sync-indexes`, and `doc/specs/_index_specs.md` is a reference template; only `data/skills/_index_skills_pl.md` is rebuilt in the hub
+- Edit only `doc/skills/_index_skills_repo.md`, `doc/specs/_index_specs.md`, and `data/skills/_index_skills_pl.md`; never change skills, specifications, standards, or their indexes
+- No cross-repo synchronization - local repository only
 
-- `templates/glob_update_indexes.md` - исходник навыка (внутренний формат); правки вносить только в него, затем повторная миграция
-- `scripts/update_indexes.py` - пересборка индексов в каноническом скелете; запускать из корня репозитория
-- `doc/standards/index_nav_standards.md` - канон навигационных документов: скелет индексов и правила карт маршрутизации (индексы навыков - раздел 06.02)
-- `doc/standards/project_standards.md` (раздел 07.06) - порядок принятия решений агентом при отсутствии нормы
+## References
+
+- `scripts/update_indexes.py` - index rebuild in the canonical skeleton; run from the repository root
+- `doc/standards/index_nav_standards.md` - navigation document canon: index skeleton and routing-map rules (skills indexes - Section 06.02)
+- `doc/standards/project_standards.md` (Section 07.06) - agent decision order when a rule is missing

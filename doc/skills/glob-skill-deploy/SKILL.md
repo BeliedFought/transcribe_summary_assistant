@@ -1,104 +1,105 @@
 ---
 name: glob-skill-deploy
-description: Деплоит навык формата Anthropic Agent Skills из doc/skills/<name>/ в боевые каталоги инструментов - opencode, Kilo Code, Cursor (проектные или персональные), копированием или симлинком (--link). Применять при запросах задеплоить, развернуть или установить навык в opencode / Kilo / Cursor, сделать навык доступным агенту
+description: Deploys an Anthropic Agent Skills skill from doc/skills/<name>/ to live tool directories - opencode, Kilo Code, Cursor (project or personal), by copy or symlink (--link). Use when the user asks to deploy, install, or make a skill available to an agent in opencode / Kilo / Cursor (задеплоить, развернуть или установить навык в opencode / Kilo / Cursor, сделать навык доступным агенту)
 allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/deploy.sh *)
 metadata:
   version: 1.3.0
   status: stable
   type: hub_glob
   category: skill
-  category_name: Навыки
+  category_name: Skills
 ---
 
-# Деплой навыка в инструменты
+# Deploy a skill to tools
 
-Разворачивает каталог навыка из источника репозитория (`doc/skills/<name>/`) в боевые каталоги целевых инструментов: opencode, Kilo Code, Cursor. Два режима: копирование каталога целиком (SKILL.md, скрипты, шаблоны и ресурсы; развернутая копия работает без репозитория-источника) и симлинк (`--link`; боевой каталог указывает на источник, навык всегда актуален без повторного деплоя). Источник и репозиторий не изменяются; деплой - отдельный процесс от создания и миграции навыка.
+Deploys a skill directory from the repository source (`doc/skills/<name>/`) to live directories of target tools: opencode, Kilo Code, Cursor. Two modes: copying the directory as a whole (SKILL.md, scripts, templates, and resources; the deployed copy works without the source repository) and symlink (`--link`; the live directory points to the source, and the skill is always current without redeploy). The source and the repository are not changed; deploy is a separate process from skill authoring and migration.
 
-## Когда использовать
+## When to use
 
-- Пользователь просит задеплоить, развернуть или установить навык в opencode / Kilo Code / Cursor
-- Пользователь просит сделать навык доступным агенту инструмента
-- Навык изменен в источнике - требуется повторный деплой
+- The user asks to deploy, install, or set up a skill in opencode / Kilo Code / Cursor
+- The user asks to make a skill available to the tool agent
+- The skill was changed in the source - redeploy is required
 
-## Инструкция
+## Instructions
 
-### 0. Предусловия
+### 0. Prerequisites
 
-- Исходный навык указан пользователем: имя или путь. Каталог `doc/skills/<name>/` с `SKILL.md` существует. При отсутствии - спросить, не подбирать самостоятельно.
-- Уточнить у пользователя: целевые инструменты (opencode, Kilo Code, Cursor, все) и скоуп - проектный (по умолчанию) или персональный. Не указано - спросить.
+- The source skill is named by the user: name or path. The directory `doc/skills/<name>/` with `SKILL.md` exists. If not, ask; do not guess.
+- Clarify with the user: target tools (opencode, Kilo Code, Cursor, all) and scope - project (default) or personal. If not stated, ask.
 
-### 1. Проверить пакет
+### 1. Validate the package
 
-- `SKILL.md` (заглавными буквами) лежит в корне каталога навыка.
-- Frontmatter: `name` совпадает с именем каталога (жестко проверяется в Kilo Code и Cursor), `description` заполнен.
-- Поля `allowed-tools` / `disable-model-invocation` не блокируют деплой: opencode их игнорирует, Cursor читает `disable-model-invocation`.
+- `SKILL.md` (uppercase) is at the root of the skill directory.
+- Frontmatter: `name` matches the directory name (strictly checked in Kilo Code and Cursor), `description` is filled.
+- The `allowed-tools` / `disable-model-invocation` fields do not block deploy: opencode ignores them, Cursor reads `disable-model-invocation`.
 
-### 2. Выбрать точки деплоя
+### 2. Choose deploy targets
 
-| Инструмент | Проектный | Персональный |
-| ---------- | --------- | ------------ |
+| Tool | Project | Personal |
+| ---- | ------- | -------- |
 | opencode | `.opencode/skills/` | `~/.config/opencode/skills/` |
 | Kilo Code | `.kilo/skills/` | `~/.kilo/skills/` |
 | Cursor (>= 2.4) | `.cursor/skills/` | `~/.cursor/skills/` |
 
-Дополнительные точки совместимости: `.claude/skills/` читают opencode (всегда), Cursor (всегда), Kilo Code (при включенной Claude Code Compatibility) - использовать только по явному запросу.
+Additional compatibility targets: `.claude/skills/` is read by opencode (always), Cursor (always), and Kilo Code (with Claude Code Compatibility enabled) - use only on an explicit request.
 
-**Выбор режима:** персональный деплой на машине хаба - `--link` (симлинк на `doc/skills/<name>/`, правки источника подхватываются без повторного деплоя; подтверждено для opencode, для Kilo Code и Cursor проверить подхватывание симлинков и при отказе - копия). Проектный деплой, деплой на других машинах и копии для переносимости - копирование.
+**Mode choice:** personal deploy on the hub machine - `--link` (symlink to `doc/skills/<name>/`, source edits are picked up without redeploy; confirmed for opencode, for Kilo Code and Cursor verify symlink pickup and fall back to a copy if it fails). Project deploy, deploy on other machines, and portability copies - copying.
 
-**Git:** боевые каталоги - не источник; перед деплоем проверить `.gitignore` репозитория: целевые каталоги (`.opencode/`, `.kilo/`, `.cursor/`) не должны попадать в коммит; отсутствующие исключения добавить по согласованию с пользователем.
+**Git:** live directories are not the source; before deploy, check the repository `.gitignore`: target directories (`.opencode/`, `.kilo/`, `.cursor/`) must not get into a commit; add missing exclusions with user agreement.
 
-### 3. Выполнить деплой
+### 3. Deploy
 
-1. Для каждой выбранной точки вызвать скрипт деплоя (создает целевой каталог при отсутствии, существующую копию или симлинк заменяет полностью - без смеси старых и новых файлов):
+1. For each selected target, call the deploy script (creates the target directory when missing, replaces an existing copy or symlink entirely - no mix of old and new files):
 
 ```bash
-# копирование
+# copy
 ${CLAUDE_SKILL_DIR}/scripts/deploy.sh doc/skills/<name> <target-dir>/<name>
-# симлинк (персональный деплой на машине хаба)
+# symlink (personal deploy on the hub machine)
 ${CLAUDE_SKILL_DIR}/scripts/deploy.sh --link doc/skills/<name> <target-dir>/<name>
 ```
 
-2. В репозитории ничего не менять (кроме строк `.gitignore` из шага 2, по согласованию).
+2. Change nothing in the repository (except `.gitignore` lines from step 2, by agreement).
 
-### 4. Обновление и проверка по инструментам
+### 4. Refresh and verification per tool
 
-| Инструмент | Подхватывание | Проверка |
-| ---------- | ------------- | -------- |
-| opencode | Перезапуск opencode (кэш навыков на инстанс; reload-команды нет) | `opencode debug skill` - навык в JSON-списке |
-| Kilo Code | `/reload` в текущей сессии или новая сессия | Вопрос агенту «Do you have access to skill X?» |
-| Cursor | Перезапуск Cursor | Customize -> Skills; вызов `/имя-навыка` в чате агента |
+| Tool | Pickup | Check |
+| ---- | ------ | ----- |
+| opencode | Restart opencode (the skill cache is per instance; there is no reload command) | `opencode debug skill` - the skill is in the JSON list |
+| Kilo Code | `/reload` in the current session or a new session | Ask the agent "Do you have access to skill X?" |
+| Cursor | Restart Cursor | Customize -> Skills; invoke `/skill-name` in the agent chat |
 
-Особенности:
+Details:
 
-- Режим `--link`: повторный деплой после правок источника не требуется, боевая копия всегда актуальна; кэш навыков на инстанс инструмента сохраняется (opencode - перезапуск), правки SKILL.md подхватываются в новой сессии
-- Kilo Code: шелл-команды `` !`command` `` в теле навыка исполняются только в персональных (доверенных) каталогах; проектные `.kilo/skills/` их не исполняют. Навыку со скриптами в теле - персональный деплой.
-- opencode: при необходимости разрешение в `opencode.json` - `"permission": { "skill": { "<name>": "allow" } }`.
-- Cursor: персональные навыки не переносятся на Cloud Agents / remote SSH - там только проектные из репо.
-- Cursor ниже версии 2.4 формат SKILL.md не поддерживает.
+- `--link` mode: no redeploy after source edits, the live copy is always current; the skill cache per tool instance remains (opencode - restart), SKILL.md edits are picked up in a new session
+- Kilo Code: shell commands `` !`command` `` in the skill body run only in personal (trusted) directories; project `.kilo/skills/` does not execute them. A skill with scripts in the body needs a personal deploy.
+- opencode: if needed, grant permission in `opencode.json` - `"permission": { "skill": { "<name>": "allow" } }`.
+- Cursor: personal skills are not transferred to Cloud Agents / remote SSH - only project skills from the repo work there.
+- Cursor below version 2.4 does not support the SKILL.md format.
 
-### 5. Отчет пользователю
+### 5. Report to the user
 
-- Таблица: инструмент - путь деплоя - результат (скопировано / заменено / симлинк).
-- Как обновить и проверить в каждом инструменте (таблица шага 4).
-- Напоминание: источник - `doc/skills/<name>/`; при деплое копированием после правок источника повторить деплой вручную, при симлинке правки подхватываются сами.
+- Table: tool - deploy path - result (copied / replaced / symlink).
+- How to refresh and verify in each tool (step 4 table).
+- Reminder: the source is `doc/skills/<name>/`; after source edits with a copy deploy, repeat the deploy manually; with a symlink, edits are picked up automatically.
 
-## Примеры
+## Examples
 
-1. «задеплой glob-skill-migrate-anthropic в opencode» -> проверить пакет; `deploy.sh` в `.opencode/skills/glob-skill-migrate-anthropic`; предложить перезапуск и `opencode debug skill`; отчет.
-2. «установи parse-report во все инструменты» -> `deploy.sh` в `.opencode/skills/`, `.kilo/skills/`, `.cursor/skills/`; Kilo - `/reload`, opencode и Cursor - перезапуск; отчет с таблицей проверок.
-3. «разверни навык в kilo персонально» -> `deploy.sh` в `~/.kilo/skills/<name>/`; напомнить про доверенный статус (работают шелл-команды) и `/reload`.
-4. «задеплой все навыки хаба себе в opencode симлинками» -> для каждого каталога `doc/skills/glob-*/` и `doc/skills/hub-*/` вызвать `deploy.sh --link` в `~/.config/opencode/skills/<name>`; перезапуск opencode; отчет.
+1. «задеплой glob-skill-migrate-anthropic в opencode» -> validate the package; `deploy.sh` to `.opencode/skills/glob-skill-migrate-anthropic`; suggest a restart and `opencode debug skill`; report.
+2. «установи parse-report во все инструменты» -> `deploy.sh` to `.opencode/skills/`, `.kilo/skills/`, `.cursor/skills/`; Kilo - `/reload`, opencode and Cursor - restart; report with a verification table.
+3. «разверни навык в kilo персонально» -> `deploy.sh` to `~/.kilo/skills/<name>/`; remind about the trusted status (shell commands work) and `/reload`.
+4. «задеплой все навыки хаба себе в opencode симлинками» -> for every `doc/skills/glob-*/` and `doc/skills/hub-*/` directory call `deploy.sh --link` to `~/.config/opencode/skills/<name>`; restart opencode; report.
 
-## Ссылки
+## References
 
-- `doc/standards/skill_anthropic_standards.md` - формат пакета навыка, справочник целей деплоя
-- `scripts/deploy.sh` - копирование каталога навыка в боевой каталог с заменой существующей копии
-- Официальная документация: `opencode.ai/docs/skills`, `docs.kilocode.ai/docs/customize/skills`, `cursor.com/docs/skills`
+- `doc/standards/skill_anthropic_standards.md` - skill package format, deploy target reference
+- `scripts/deploy.sh` - copies the skill directory to a live directory, replacing an existing copy
+- Official documentation: `opencode.ai/docs/skills`, `docs.kilocode.ai/docs/customize/skills`, `cursor.com/docs/skills`
+- `superpowers:writing-skills` - skill authoring and review guidance
 
-## Ограничения
+## Restrictions
 
-- Удаление файлов и папок репозитория - перенос в `.trash/<slug>_<YYYYMMDDHHMM>/` (карантин, `project_standards.md` 01.01.06), а не удаление; чистить `.trash/` только по явному запросу пользователя
-- Деплой не изменяет источник, индексы и стандарты; при копировании автоматической синхронизации с источником нет - повторный деплой вручную; при симлинке боевая копия и есть источник.
-- Один деплой - один навык; пакет навыков - повторять по каждому, указанному пользователю.
-- Симлинк создается абсолютным: перемещение репозитория-источника требует повторного деплоя.
-- Методика проверена по официальной документации opencode, Kilo Code и Cursor (версия 2.4+); при изменении поведения инструментов сверяться с их документацией.
+- Deleting repository files and folders means moving them to `.trash/<slug>_<YYYYMMDDHHMM>/` (quarantine, `project_standards.md` 01.01.06), never deletion; clean `.trash/` only on an explicit user request
+- Deploy does not change the source, indexes, or standards; with copying there is no automatic sync with the source - redeploy manually; with a symlink the live copy is the source
+- One deploy - one skill; for a skill package, repeat for each one named by the user
+- The symlink is created absolute: moving the source repository requires redeploy
+- The procedure is verified against the official documentation of opencode, Kilo Code, and Cursor (version 2.4+); when tool behavior changes, consult their documentation

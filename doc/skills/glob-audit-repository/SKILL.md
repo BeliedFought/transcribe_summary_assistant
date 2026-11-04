@@ -1,125 +1,125 @@
 ---
 name: glob-audit-repository
-description: Двухуровневый аудит и исправление репозитория на соответствие стандарту с учетом зафиксированных оверрайдов проекта: субагент проверяет кодовую базу, агент классифицирует отклонения, выполняет реверс doc/specs/spec_ui.html, согласовывает правки с пользователем, вносит их и обновляет документацию. Основной фокус - тексты, вывод, логи, безопасность, откровенные ошибки, синхронизация версий пакета, актуальность спецификаций. Применять при запросах проверить репо, провести аудит, найти расхождения со стандартом, проверить соответствие, реверс spec_ui, актуальность спецификаций, исправить код, обновить документацию, аудит перед релизом
+description: Performs a two-level audit and repair of a repository against the standard, honoring recorded project overrides - a subagent checks the codebase, the agent classifies deviations, runs the reverse check of doc/specs/spec_ui.html, agrees changes with the user, applies them, and updates documentation. Focus - texts, output, logs, security, obvious errors, package version sync, specification freshness. Use when the user asks to check a repo, run an audit, find gaps against the standard, verify compliance, reverse spec_ui, check specification freshness, fix code, update documentation, audit before release (проверить репо, провести аудит, найти расхождения со стандартом, проверить соответствие, реверс spec_ui, актуальность спецификаций, исправить код, обновить документацию, аудит перед релизом)
 metadata:
   version: 2.6.1
   status: stable
   type: hub_glob
   category: audit
-  category_name: Аудит
+  category_name: Audit
 ---
 
-# Двухуровневый аудит и исправление репозитория
+# Two-level repository audit and repair
 
-Двухуровневый процесс аудита и исправления произвольного репозитория, построенного по стандарту `project_standards.md` (UI-контракт - `console_ui_standards.md`):
+A two-level process for auditing and repairing any repository built on `project_standards.md` (UI contract - `console_ui_standards.md`):
 
-1. **Субагент** - проверяет строго кодовую базу (без документации), выдает сырой список отклонений
-2. **Агент** - получает отчет субагента, классифицирует отклонения на 3 группы, выполняет обязательный реверс `doc/specs/spec_ui.html` ↔ код по `console_ui_standards.md`, согласовывает с пользователем, вносит правки, обновляет документацию
+1. **Subagent** - checks the codebase only (no documentation), returns a raw list of deviations
+2. **Agent** - takes the subagent report, classifies deviations into 3 groups, runs the mandatory reverse check of `doc/specs/spec_ui.html` against the code per `console_ui_standards.md`, agrees the changes with the user, applies them, updates documentation
 
-**Основной фокус аудита:** тексты (04.03), вывод и кадр (`console_ui_standards.md`, 04.04), логи (04.04.01, 04.06), безопасность (05), откровенные ошибки и баги логики, синхронизация версий пакета стандартов (AGENTS/CLAUDE/README vs _index_standards.md), актуальность спецификаций (`doc/specs/` проекта и активных сессий). Не придираться к мелочам, не покрытым фокусом.
+**Audit focus:** texts (04.03), output and frame (`console_ui_standards.md`, 04.04), logs (04.04.01, 04.06), security (05), obvious errors and logic bugs, standards package version sync (AGENTS/CLAUDE/README vs _index_standards.md), specification freshness (`doc/specs/` of the project and active sessions). Do not nitpick details outside the focus.
 
-**Оверрайды - не нарушения.** Проект может содержать множество согласованных отступлений от стандарта (оверрайдов). Отступление, явно зафиксированное как оверрайд по правилам стандарта, не считается несоответствием и не flagged как нарушение. Оверрайды учитываются до проверки и исключаются из шума; при необходимости проверяется только их оформление (см. этап 1, шаг 2).
+**Overrides are not violations.** A project may contain many agreed deviations from the standard (overrides). A deviation explicitly recorded as an override under the standard rules is not a non-compliance and is not flagged as a violation. Overrides are collected before the check and excluded from the noise; only their registration is checked when needed (stage 1, step 2).
 
-## Когда использовать
+## When to use
 
-- Пользователь просит проверить репозиторий на соответствие стандарту, провести аудит, ревью соответствия
-- Пользователь просит найти расхождения между кодом и стандартом
-- Пользователь запрашивает аудит перед релизом, рефакторингом или обновлением стандарта
-- Пользователь указывает на навык явно через `@doc/skills/glob-audit-repository/SKILL.md` или по имени `glob-audit-repository`
+- The user asks to check a repository against the standard, run an audit, or review compliance
+- The user asks to find gaps between the code and the standard
+- The user requests an audit before a release, refactoring, or a standard update
+- The user points to the skill explicitly via `@doc/skills/glob-audit-repository/SKILL.md` or by the name `glob-audit-repository`
 
-## Инструкция
+## Instructions
 
-### Предусловия
+### Prerequisites
 
-- Рабочая директория - корень проверяемого проекта (открывается агентом автоматически)
-- В проекте присутствует `doc/standards/project_standards.md` - источник истины
-- Доступ на чтение и запись ко всем файлам репозитория
+- Working directory - the root of the audited project (opened by the agent automatically)
+- `doc/standards/project_standards.md` is present - the source of truth
+- Read and write access to all repository files
 
-### Этап 1. Субагент: Проверка кодовой базы
+### Stage 1. Subagent: codebase check
 
-Агент запускает субагента с инструкцией проверить только кодовую базу (без документации и git-инфраструктуры).
+The agent starts a subagent instructed to check the codebase only (no documentation or git infrastructure).
 
-**Задача субагента:**
+**Subagent task:**
 
-0. До начала основной работы прочитать `doc/standards/_index_standards.md` и применять найденные стандарты во всей своей работе.
-1. Прочитать все файлы из `doc/standards/` целиком. Определить версию пакета стандартов из `doc/standards/_index_standards.md`.
-2. **Собрать реестр оверрайдов проекта** - согласованных отступлений от стандарта, явно зафиксированных. Источники:
-   - блок «Оверрайды стандарта» в `SESSION.md` (для сессионных структур - раздел 01.01.01);
-   - `doc/specs/overrides.md` (реестр проектных оверрайдов - раздел 01.01.02);
-   - секция методики и временные исключения в `doc/specs/spec_ui.html` (временные исключения цифр, доменные правила, статусы, единицы - `console_ui_standards.md` (02.03, 02.04, 02.05, 04.04));
-   - явные пометки «временно» / «исключение» / «оверрайд» / «согласовано» в коде и конфигах с обоснованием.
-   Признак оформленного оверрайда: ссылка на раздел стандарта + текст отклонения + обоснование + пометка о согласовании с пользователем. Реестр включить в начало сырого отчета.
-3. Изучить все разделы `project_standards.md` и других стандартов в `doc/standards/`. Определить какие разделы и стандарты релевантны данному проекту (по характеру проекта: наличие БД, API, AI, email и т.д.). Нерелевантные стандарты в отчете не проверять.
-4. Составить полный список файлов кодовой базы (все файлы, не исключенные `.gitignore`, включая `.env.example`, `.python-version`, `pyproject.toml`, `config.ini`, `config.ini.example`). Папки сессий (в корне папки лежит `SESSION.md`) и `.arch/` в список не включать: код и артефакты сессий субагент не проверяет.
-5. Проверить каждый файл на соответствие применимым требованиям стандарта. **Основной фокус:** тексты (04.03), вывод и кадр (`console_ui_standards.md`, 04.04), логи (04.04.01, 04.06), безопасность (05), откровенные ошибки и баги логики, **синхронизация версий пакета** (`AGENTS.md`, `README.md`, `CLAUDE.md` если есть - строка `Соответствует стандарту:` должна совпадать с _index_standards.md). Требования брать из текста стандартов, а не из хардкоженного списка. Для каждого найденного отклонения указывать конкретный раздел стандарта, из которого взято требование. **Отклонение, покрытое зафиксированным оверрайдом из реестра (шаг 2), не считать нарушением и не выводить как отклонение**; если оверрайд оформлен неполно (нет обоснования / ссылки / пометки о согласовании) - вынести отдельным пунктом «оверрайд требует оформления», а не как нарушение стандарта. **Текстовые отклонения в неконсольных контекстах** (веб, rich, кастомный UI) помечать как «C: текстовый оверрайд - <context>» в сыром отчете - они классифицируются в группу C агентом, а не в группу A.
+0. Before the main work, read `doc/standards/_index_standards.md` and apply the standards found there throughout the work.
+1. Read all files in `doc/standards/` in full. Determine the standards package version from `doc/standards/_index_standards.md`.
+2. **Collect the project override registry** - agreed deviations from the standard recorded explicitly. Sources:
+   - the "Standard overrides" block in `SESSION.md` (for session structures - section 01.01.01);
+   - `doc/specs/overrides.md` (project override registry - section 01.01.02);
+   - the methodology section and temporary exceptions in `doc/specs/spec_ui.html` (temporary digit exceptions, domain rules, statuses, units - `console_ui_standards.md` (02.03, 02.04, 02.05, 04.04));
+   - explicit marks "temporarily" / "exception" / "override" / "agreed" in code and configs with a rationale.
+   A registered override contains: a reference to the standard section, the deviation text, a rationale, and a note that the user agreed. Put the registry at the start of the raw report.
+3. Study all sections of `project_standards.md` and other standards in `doc/standards/`. Determine which sections and standards are relevant to the project (by project nature: DB, API, AI, email, and so on). Do not check irrelevant standards in the report.
+4. Build a complete list of codebase files (all files not excluded by `.gitignore`, including `.env.example`, `.python-version`, `pyproject.toml`, `config.ini`, `config.ini.example`). Exclude session folders (with `SESSION.md` at the root) and `.arch/`: the subagent does not check session code or artifacts.
+5. Check every file against the applicable standard requirements. **Main focus:** texts (04.03), output and frame (`console_ui_standards.md`, 04.04), logs (04.04.01, 04.06), security (05), obvious errors and logic bugs, **package version sync** (`AGENTS.md`, `README.md`, `CLAUDE.md` if present - the `Standard version:` or `Соответствует стандарту:` line must match _index_standards.md). Take requirements from the standard text, not from a hardcoded list. For each deviation, state the exact standard section the requirement comes from. **A deviation covered by a registered override from step 2 is not a violation and is not reported as a deviation**; if the override is incomplete (no rationale, reference, or agreement note), report it separately as "override needs registration", not as a standard violation. **Text deviations in non-console contexts** (web, rich, custom UI) mark as "C: text override - <context>" in the raw report - the agent classifies them into group C, not group A.
 
-6. Записать сырой отчет в файл `doc/agent_questions/audit_raw_{STANDARD_VERSION}.md` со списком всех найденных отклонений в формате:
-   - Файл:путь:строка
-   - Раздел стандарта: 0X.0Y
-   - Описание проблемы
-   - Рекомендация
+6. Write the raw report to `doc/agent_questions/audit_raw_{STANDARD_VERSION}.md` listing every deviation in the format:
+   - File:path:line
+   - Standard section: 0X.0Y
+   - Problem description
+   - Recommendation
 
-**Субагент не проверяет:**
-- Документацию (README.md, AGENTS.md, CLAUDE.md)
-- Git-инфраструктуру (.gitignore, .venv/)
-- Версионность стандартов в документации
+**The subagent does not check:**
+- Documentation (README.md, AGENTS.md, CLAUDE.md)
+- Git infrastructure (.gitignore, .venv/)
+- Standard versioning in documentation
 
-### Этап 2. Агент: Классификация отклонений и реверс UI-макета
+### Stage 2. Agent: classify deviations and reverse the UI mockup
 
-Агент читает сырой отчет субагента и определяет базовую версию стандарта проекта:
-- Прочитать `AGENTS.md`, `CLAUDE.md` или `README.md` (строка `Соответствует стандарту:`) - это базовая версия, под которую проект был построен
-- Сравнить базовую версию с актуальной версией из `doc/standards/_index_standards.md`
-- Если версии отличаются - определить какие требования появились в актуальной версии по сравнению с базовой (для этого прочитать стандарты и выделить новые/измененные требования)
-- Совпадение версий пакета **не отменяет** реверс UI-макета и проверку применимых норм вывода
+The agent reads the subagent raw report and determines the project baseline standard version:
+- Read `AGENTS.md`, `CLAUDE.md`, or `README.md` (the `Standard version:` or `Соответствует стандарту:` line) - this is the baseline the project was built for
+- Compare the baseline with the current version from `doc/standards/_index_standards.md`
+- If versions differ, determine which requirements appeared in the current version compared with the baseline (read the standards and extract new or changed requirements)
+- Matching package versions **do not cancel** the UI mockup reverse check and the applicable output rule check
 
-**Обязательный реверс `doc/specs/spec_ui.html` (независимо от diff версии пакета и версии приложения):**
+**Mandatory reverse check of `doc/specs/spec_ui.html` (regardless of the package version diff and the application version):**
 
-Нормы реверса - `doc/standards/console_ui_standards.md` (плюс якоря в `project_standards.md` 01.01 / 04 / 07).
+Reverse-check rules - `doc/standards/console_ui_standards.md` (plus anchors in `project_standards.md` 01.01 / 04 / 07).
 
-1. Файл существует; указана собственная SemVer макета (`Версия макета`)
-2. Полнота: TOC; карта навигации или карта точек вывода; кадры консоли/экранов; кадры лога; методика проекта; **футер с полным абсолютным путем** (`xdg-open` / `file://`)
-3. Сверка с кодом по `console_ui_standards.md`: порядок кадра (breadcrumb → пункты → тело → пустая → `[>]` внизу; полный `clear_screen` без хвоста прошлого body; **отсутствие** ANSI cursor tricks CUP/CSI s/u/DECSTBM; clear сразу после `input()`; тело из перечитанного состояния); клавиши (цифры только для строк таблицы; ряд `Z X C V B N M`; временные исключения цифр - только если явно в `spec_ui`); breadcrumb без `---`; роли оформления; смысловой лог действий; списки/сводки/таблицы (в логе plain приоритетнее tabulate)
-4. Устаревший макет относительно кода или правка макета без bump его SemVer - отклонение (группа A или B по влиянию)
-5. Отсутствие `spec_ui.html` или футера с абсолютным путем - отклонение группы B (обязательный артефакт стандарта). Исключение - хаб-шаблон `project_standards`: его футер содержит плейсхолдер `/home/<user>/<repo>/` и отклонением не считается
+1. The file exists and declares its own mockup SemVer (`Версия макета`)
+2. Completeness: TOC; navigation map or output point map; console/screen frames; log frames; project methodology; **footer with the full absolute path** (`xdg-open` / `file://`)
+3. Check against the code per `console_ui_standards.md`: frame order (breadcrumb -> items -> body -> empty -> `[>]` at the bottom; full `clear_screen` without the previous body tail; **no** ANSI cursor tricks CUP/CSI s/u/DECSTBM; clear right after `input()`; body from re-read state); keys (digits only for table rows; the `Z X C V B N M` row; temporary digit exceptions only if explicit in `spec_ui`); breadcrumb without `---`; styling roles; semantic action log; lists/summaries/tables (plain output takes priority over tabulate in the log)
+4. A mockup outdated against the code, or a mockup edit without a SemVer bump - a deviation (group A or B by impact)
+5. A missing `spec_ui.html` or a footer without the absolute path - a group B deviation (mandatory standard artifact). Exception - the `project_standards` hub template: its footer contains the placeholder `/home/<user>/<repo>/` and is not a deviation
 
-**Актуальность спецификаций (после реверса макета):**
+**Specification freshness (after the mockup reverse check):**
 
-Область проверки: `doc/specs/*.md` корня проекта, `doc/specs/init/*.md` (стартовые спеки) и `doc/specs/*.md` активных сессий (статус «активна» в `SESSION.md` сессии). `spec_ui.html` покрыт реверсом выше, `overrides.md` - реестром оверрайдов. Сессии со статусом, отличным от «активна», и `.arch/` - вне проверки; в отчете - одной строкой «пропущено: сессия неактивна».
+Scope: `doc/specs/*.md` at the project root, `doc/specs/init/*.md` (start specifications), and `doc/specs/*.md` of active sessions (status "active" in the session `SESSION.md`). `spec_ui.html` is covered by the reverse check above, `overrides.md` - by the override registry. Sessions with a status other than "active" and `.arch/` are out of scope; the report has one line "skipped: session inactive".
 
-Для каждой спецификации сверить с текущим кодом и структурой:
-- упомянутые в спецификации файлы, модули и папки существуют
-- описанное поведение соответствует фактическому поведению кода
-- выполненные пункты и решения отражены как выполненные
+For each specification, check against the current code and structure:
+- files, modules, and folders mentioned in the specification exist
+- the described behavior matches the actual code behavior
+- completed items and decisions are marked as done
 
-Устаревшая или противоречащая коду спецификация - отклонение группы A с указанием, что именно разошлось (07.01 п.3: документация отражает актуальное состояние).
+An outdated specification or one that contradicts the code - a group A deviation stating what diverged (07.01 item 3: documentation reflects the current state).
 
-Затем агент классифицирует каждое отклонение (из отчета субагента и из реверса макета) на одну из трех групп:
+Then the agent classifies each deviation (from the subagent report and the mockup reverse check) into one of three groups:
 
-**Оверрайды не классифицируются как нарушения.** Отступления, покрытые зафиксированными оверрайдами из реестра (этап 1, шаг 2), в группы A/B/C не попадают. Отдельным блоком отчета «Оверрайды» выводятся только те из них, оформление которых неполно (нет ссылки на раздел стандарта / обоснования / пометки о согласовании) - это проблема оформления оверрайда, а не нарушение стандарта. Корректно оформленные оверрайды в отчете не фигурируют (или одной строкой: «N оверрайдов зафиксировано, оформление проверено»).
+**Overrides are not classified as violations.** Deviations covered by registered overrides from the registry (stage 1, step 2) do not fall into groups A/B/C. Only overrides with incomplete registration (no standard section reference, rationale, or agreement note) appear in a separate "Overrides" report block - that is an override registration problem, not a standard violation. Correctly registered overrides do not appear in the report (or appear as one line: "N overrides registered, registration checked").
 
-**Группа A: Текстовые проблемы** (некритично для логики, важно для эстетики)
-- Нарушения требований стандарта к форматированию текста вывода в консоли и логах (символы, пунктуация, регистр)
-- Нарушения требований к маркерам и оформлению вывода
-- Нарушения, которые не влияют на работу программы, но нарушают единообразие вывода
-- Устаревшие спецификации `doc/specs/` (документация не отражает актуальное состояние - 07.01 п.3)
+**Group A: Text problems** (non-critical for logic, important for aesthetics)
+- Violations of standard formatting requirements for console output and log text (characters, punctuation, case)
+- Violations of marker and output styling requirements
+- Violations that do not affect program operation but break output uniformity
+- Outdated specifications in `doc/specs/` (documentation does not reflect the current state - 07.01 item 3)
 
-**Текстовые оверрайды в неконсольных контекстах** (веб-интерфейсы, rich-меню, кастомные UI, графические элементы) не считаются нарушениями группы A. Текстовые отклонения в таких контекстах часто являются сознательными дизайн-решениями и выносятся в группу C как низкоприоритетные пометки - без жесткого требования исправления. Субагент при обнаружении текстовых отклонений в неконсольном контексте помечает их как «C: текстовый оверрайд - <context>».
+**Text overrides in non-console contexts** (web interfaces, rich menus, custom UI, graphic elements) are not group A violations. Text deviations in such contexts are often deliberate design decisions and go to group C as low-priority notes - without a hard fix requirement. When the subagent finds a text deviation in a non-console context, it marks it as "C: text override - <context>".
 
-**Группа B: Кодовые критические проблемы** (влияют на безопасность, корректность, надежность)
-- Нарушения безопасности (секреты, инъекции, отсутствие валидации)
-- Нарушения обработки ошибок и корректного завершения
-- Нарушения структуры, конфигурации и синхронизации файлов
-- Расхождения версий пакета между **присутствующими** локациями (AGENTS, README, CLAUDE если есть - не совпадают с _index_standards.md)
-- Нарушения, которые могут привести к сбоям, утечкам данных или некорректной работе
+**Group B: Critical code problems** (affect security, correctness, reliability)
+- Security violations (secrets, injections, missing validation)
+- Violations of error handling and correct termination
+- Violations of structure, configuration, and file sync
+- Package version mismatches between **present** locations (AGENTS, README, CLAUDE if present - do not match _index_standards.md)
+- Violations that may cause failures, data leaks, or incorrect operation
 
-**Группа C: Возможные доработки под новые стандарты** (опционально, только по согласованию)
-- Требования стандарта, которые появились в новой версии и которых раньше не было в проекте
-- Улучшения, которые не являются нарушениями, но рекомендуются новым стандартом
-- Новые паттерны и подходы, введенные в актуальной версии стандарта
-- Нарушения i18n (вывод в обход системы переводов)
-- Текстовые оверрайды в неконсольных контекстах (веб, rich-меню, кастомный UI) - низкоприоритетные, часто сознательные дизайн-решения
+**Group C: Possible improvements for new standards** (optional, only by agreement)
+- Standard requirements that appeared in a new version and were absent from the project before
+- Improvements that are not violations but are recommended by the new standard
+- New patterns and approaches introduced in the current standard version
+- i18n violations (output bypassing the translation system)
+- Text overrides in non-console contexts (web, rich menus, custom UI) - low priority, often deliberate design decisions
 
-Агент формирует классифицированный отчет и представляет его пользователю в чате в виде нумерованных групп с чекбоксами для удобного выбора:
+The agent builds a classified report and presents it to the user in chat as numbered groups with checkboxes for easy selection:
 
 ```
 ## Результаты аудита кодовой базы
@@ -147,113 +147,114 @@ metadata:
   4. Все группы (A + B + C)
   5. Только выбранные пункты (укажите номера)
 ```
-Агент использует `question`-инструмент чтобы предложить пользователю выбрать вариант, если в чате доступен множественный выбор.
+The agent uses the `question` tool to offer the user a choice when multi-select is available in chat.
 
-### Этап 3. Согласование с пользователем
+### Stage 3. Agreement with the user
 
-Агент показывает пользователю классифицированный отчет (формат выше) и через `question`-инструмент предлагает выбрать группы или конкретные пункты:
+The agent shows the classified report (format above) and uses the `question` tool to offer groups or specific items:
 
-- Группа A (текстовые) - быстро и безопасно, рекомендуется к исправлению
-- Группа B (критические) - обязательно к рассмотрению, включает безопасность, ошибки, расхождения версий пакета
-- Группа C (доработки) - опционально, каждое обсуждается отдельно
-- Все группы сразу (A + B + C)
-- Конкретные пункты по номерам
+- Group A (text) - fast and safe, recommended for fixing
+- Group B (critical) - mandatory to consider, includes security, errors, package version mismatches
+- Group C (improvements) - optional, each discussed separately
+- All groups at once (A + B + C)
+- Specific items by number
 
-Пользователь может выбрать любой вариант. Агент не вносит правки без явного выбора пользователя.
+The user may choose any option. The agent applies no changes without an explicit user choice.
 
-### Этап 4. Внесение правок
+### Stage 4. Applying changes
 
-Агент вносит согласованные правки в кодовую базу:
-- Для каждой проблемы из согласованного списка - применить рекомендацию из отчета субагента
-- После внесения правок - запустить линтер/типизацию если доступны
-- Зафиксировать список измененных файлов
+The agent applies the agreed changes to the codebase:
+- For each problem in the agreed list, apply the recommendation from the subagent report
+- After the changes, run the linter and type checker if available
+- Record the list of changed files
 
-### Этап 5. Обновление документации и синхронизация версий
+### Stage 5. Documentation update and version sync
 
-После внесения правок в код агент обновляет документацию:
+After the code changes, the agent updates documentation:
 
 1. **README.md:**
-   - Обновить список файлов проекта если добавились новые файлы
-   - Обновить описание команд если изменилось поведение
-   - Обновить версию приложения если она изменилась
-   - Убедиться что все упомянутые файлы реально существуют
-   - Проверить явную ссылку на `doc/specs/spec_ui.html` как источник карты меню (`repo_info_doc_standards.md`, 02.03; карта меню в README не дублируется)
+   - Update the project file list if new files appeared
+   - Update command descriptions if behavior changed
+   - Update the application version if it changed
+   - Make sure every mentioned file actually exists
+   - Check the explicit reference to `doc/specs/spec_ui.html` as the menu map source (`repo_info_doc_standards.md`, 02.03; the menu map is not duplicated in README)
 
-2. **Спецификации (`doc/specs/*.md`, включая сессионные в активных сессиях):**
-   - Актуализировать устаревшие спецификации из согласованного списка группы A: привести в соответствие с кодом и структурой
-   - Выполненные пункты и решения пометить выполненными
-   - Спецификации неактивных сессий не трогать
+2. **Specifications (`doc/specs/*.md`, including session specifications in active sessions):**
+   - Refresh outdated specifications from the agreed group A list: bring them in line with the code and structure
+   - Mark completed items and decisions as done
+   - Do not touch specifications of inactive sessions
 
 3. **`doc/specs/spec_ui.html`:**
-   - Синхронизировать с актуальным кодом вывода по `console_ui_standards.md`
-   - При изменении кадров/карты/лога/методики - bump SemVer макета
-   - Футер с полным абсолютным путем к файлу обязателен
+   - Sync with the current output code per `console_ui_standards.md`
+   - On changes to frames/map/log/methodology, bump the mockup SemVer
+   - The footer with the full absolute file path is mandatory
 
-4. **AGENTS.md и CLAUDE.md (если есть):**
-   - Отсутствие `CLAUDE.md` при наличии только `AGENTS.md` - **не отклонение**; не рекомендовать создать `CLAUDE.md` (политика - `index_nav_standards.md`, 07.03)
-   - Если оба файла есть - синхронизировать между собой (кроме H1 и блока назначения)
-   - Обновить реестр навыков если добавились новые навыки
-   - Версия стандарта в AGENTS (и CLAUDE если есть) должна совпадать с `_index_standards.md` (bump пакета - только если пользователь явно просил)
+4. **AGENTS.md and CLAUDE.md (if present):**
+   - A missing `CLAUDE.md` when only `AGENTS.md` exists is **not a deviation**; do not recommend creating `CLAUDE.md` (policy - `index_nav_standards.md`, 07.03)
+   - If both files exist, sync them with each other (except H1 and the purpose block)
+   - Update the skill registry if new skills appeared
+   - The standard version in AGENTS (and CLAUDE if present) must match `_index_standards.md` (package bump - only on an explicit user request)
 
-5. **Синхронизация версий пакета:**
-    - Расхождения версий пакета исправляются в составе группы B (см. этап 2)
-    - На этом этапе проверить что версия в `doc/standards/_index_standards.md` совпадает с AGENTS, README и CLAUDE (если есть) после всех правок
-    - Номер пакета не поднимать без явного запроса пользователя
+5. **Package version sync:**
+   - Package version mismatches are fixed as part of group B (see stage 2)
+   - At this stage, verify that the version in `doc/standards/_index_standards.md` matches AGENTS, README, and CLAUDE (if present) after all changes
+   - Do not bump the package number without an explicit user request
 
-6. **Финальный отчет:**
-   - Записать итоговый отчет в `doc/agent_questions/audit_{STANDARD_VERSION}_final.md`:
-     - Список исправленных проблем по группам (включая реверс spec_ui)
-     - Список измененных файлов
-     - Версия макета `spec_ui.html`
-     - Статус синхронизации версий пакета
+6. **Final report:**
+   - Write the final report to `doc/agent_questions/audit_{STANDARD_VERSION}_final.md`:
+     - List of fixed problems by group (including the spec_ui reverse check)
+     - List of changed files
+     - `spec_ui.html` mockup version
+     - Package version sync status
 
-## Критерии завершения
+## Completion criteria
 
-- Субагент проверил кодовую базу и создал `audit_raw_{VERSION}.md`
-- Агент выполнил реверс `spec_ui.html` ↔ код и классифицировал отклонения на 3 группы
-- Актуальность спецификаций проверена: `doc/specs/` корня и активных сессий; неактивные сессии отмечены пропуском
-- Пользователь согласовал список исправлений
-- Согласованные правки внесены в кодовую базу
-- Документация (README, AGENTS, CLAUDE если есть, spec_ui, устаревшие спецификации) обновлена под актуальное состояние кода
-- Версии пакета стандартов согласованы между локациями (без самовольного bump)
-- Создан финальный отчет `audit_{VERSION}_final.md`
-- В чат выдана краткая сводка: что исправлено, какие файлы изменены, статус макета и версий
+- The subagent checked the codebase and created `audit_raw_{VERSION}.md`
+- The agent ran the `spec_ui.html` reverse check against the code and classified deviations into 3 groups
+- Specification freshness is checked: `doc/specs/` of the root and active sessions; inactive sessions are marked as skipped
+- The user agreed the fix list
+- The agreed changes are applied to the codebase
+- Documentation (README, AGENTS, CLAUDE if present, spec_ui, outdated specifications) is updated to the current code state
+- Standards package versions are aligned across locations (no unauthorized bump)
+- The final report `audit_{VERSION}_final.md` is created
+- A short summary is posted to chat: what was fixed, which files changed, mockup and version status
 
-## Принципы аудита
+## Audit principles
 
-- **Дотошность в рамках фокуса:** цель - найти реальные расхождения по текстам, выводам, логам, безопасности и откровенным ошибкам, а не подтверждать соответствие и не придираться к мелочам вне фокуса
-- **Оверрайды - не нарушения:** явное согласованное отступление, зафиксированное как оверрайд по правилам стандарта, не считается несоответствием; не шуметь на каждый оверрайд, проверять только его оформление
-- **Текстовые оверрайды вне консоли - группа C:** текстовые отклонения в веб-интерфейсах, rich-меню и кастомных UI - низкий приоритет, не группа A
-- **Сомнение = вопрос:** если неоднозначно трактуется - отметить как вопрос, не как нарушение
-- **Двухуровневость:** субагент проверяет код, агент классифицирует и согласовывает
-- **Согласование:** никакие правки не вносятся без явного согласия пользователя
-- **Конкретика:** рекомендация должна быть действием, а не констатацией
-- **Полнота:** после правок документация и `spec_ui.html` должны отражать актуальное состояние кода
-- **Реверс макета:** наличие и актуальность `spec_ui.html` проверяются всегда, не только при расхождении версий пакета стандартов
-- **Актуальность спецификаций:** спецификации `doc/specs/` проекта и активных сессий сверяются с кодом и правятся в составе аудита
-- **Сессии - только спецификации:** код и артефакты сессий не аудируются; из активной сессии проверяется и правится только `doc/specs/`; неактивные сессии и `.arch/` не трогаются
+- **Thoroughness within the focus:** the goal is to find real gaps in texts, output, logs, security, and obvious errors, not to confirm compliance or nitpick details outside the focus
+- **Overrides are not violations:** an explicitly agreed deviation registered as an override under the standard rules is not a non-compliance; do not raise noise for every override, check only its registration
+- **Text overrides outside the console are group C:** text deviations in web interfaces, rich menus, and custom UI are low priority, not group A
+- **Doubt means a question:** when the interpretation is ambiguous, mark it as a question, not a violation
+- **Two levels:** the subagent checks the code, the agent classifies and agrees
+- **Agreement:** no changes are applied without explicit user consent
+- **Specificity:** a recommendation must be an action, not a statement
+- **Completeness:** after the changes, documentation and `spec_ui.html` must reflect the current code state
+- **Mockup reverse check:** the presence and freshness of `spec_ui.html` are checked always, not only on a standards package version mismatch
+- **Specification freshness:** specifications in `doc/specs/` of the project and active sessions are checked against the code and fixed as part of the audit
+- **Sessions mean specifications only:** session code and artifacts are not audited; only `doc/specs/` of an active session is checked and fixed; inactive sessions and `.arch/` are not touched
 
-## Примеры
+## Examples
 
-1. Пользователь: «проверь репо на соответствие стандарту» -> агент запускает субагента для проверки кода, получает сырой отчет, классифицирует на 3 группы, показывает пользователю, согласовывает правки, вносит их, обновляет доки, синхронизирует версии.
-2. Пользователь: «проведи аудит перед релизом» -> субагент проверяет код, агент классифицирует, пользователь выбирает только группу B (критические), агент вносит критические правки, обновляет доки.
-3. Пользователь: «исправь все текстовые проблемы» -> субагент проверяет код, агент классифицирует, пользователь выбирает только группу A, агент вносит текстовые правки, обновляет доки.
+1. User: «проверь репо на соответствие стандарту» -> the agent starts a subagent to check the code, gets the raw report, classifies it into 3 groups, shows it to the user, agrees the changes, applies them, updates the docs, syncs versions.
+2. User: «проведи аудит перед релизом» -> the subagent checks the code, the agent classifies, the user selects only group B (critical), the agent applies the critical fixes and updates the docs.
+3. User: «исправь все текстовые проблемы» -> the subagent checks the code, the agent classifies, the user selects only group A, the agent applies the text fixes and updates the docs.
 
-## Ограничения
+## Restrictions
 
-- Удаление файлов и папок репозитория - перенос в `.trash/<slug>_<YYYYMMDDHHMM>/` (карантин, `project_standards.md` 01.01.06), а не удаление; чистить `.trash/` только по явному запросу пользователя
-- Не редактировать `doc/standards/project_standards.md` - он источник истины
-- Субагент проверяет только кодовую базу, не документацию
-- Папки сессий (наличие `SESSION.md`) и `.arch/` исключены из аудита кода; из активной сессии проверяется и правится только `doc/specs/`
-- Агент не вносит правки без согласования с пользователем
-- Группа C (доработки под новые стандарты) обсуждается отдельно по каждому пункту
-- Зафиксированные оверрайды не flagged как нарушения; проверяется только их оформление
-- Не нагружать отчет шумом по каждому оверрайду - корректно оформленные оверрайды не фигурируют в группах A/B/C
-- Если проект не содержит `doc/standards/project_standards.md` - сообщить пользователю, что навык применим только к проектам на базе данного стандарта, и остановиться
+- Deleting repository files and folders means moving them to `.trash/<slug>_<YYYYMMDDHHMM>/` (quarantine, `project_standards.md` 01.01.06), never deletion; clean `.trash/` only on an explicit user request
+- Do not edit `doc/standards/project_standards.md` - it is the source of truth
+- The subagent checks the codebase only, not documentation
+- Session folders (with `SESSION.md`) and `.arch/` are excluded from the code audit; only `doc/specs/` of an active session is checked and fixed
+- The agent applies no changes without user agreement
+- Group C (improvements for new standards) is discussed item by item
+- Registered overrides are not flagged as violations; only their registration is checked
+- Do not flood the report with noise for every override - correctly registered overrides do not appear in groups A/B/C
+- If the project has no `doc/standards/project_standards.md`, tell the user that the skill applies only to projects built on this standard and stop
 
-## Ссылки
+## References
 
-- `templates/glob_audit_repository.md` - исходник навыка (внутренний формат); правки вносить только в него, затем повторная миграция
-- `doc/standards/project_standards.md` - основной стандарт; проверяемые разделы указаны в тексте этапов
-- `doc/standards/console_ui_standards.md` - контракт UI, реверс `spec_ui.html`
-- `doc/standards/_index_standards.md` - реестр пакета стандартов и версия пакета
+- `doc/standards/project_standards.md` - core standard; audited sections are named in the stage text
+- `doc/standards/console_ui_standards.md` - UI contract, `spec_ui.html` reverse check
+- `doc/standards/_index_standards.md` - standards package registry and version
+- `doc/standards/skill_anthropic_standards.md` - skill package format and quality requirements
+- `superpowers:writing-skills` - skill authoring and review guidance

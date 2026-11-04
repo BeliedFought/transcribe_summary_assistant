@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Запись выбранного зеркала PyPI в pip.conf текущего пользователя.
-# Использование:
+# Write the selected PyPI mirror into the current user pip.conf.
+# Usage:
 #   set_pip_conf.sh <mirror_url>
-#   <mirror_url> - URL зеркала, например https://mirror.example.com/pypi/simple/
+#   <mirror_url> - mirror URL, e.g. https://mirror.example.com/pypi/simple/
 
 set -euo pipefail
 

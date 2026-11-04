@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Проверка пакета навыка формата Anthropic после сборки или миграции.
+"""Check an Anthropic-format skill package after assembly or migration.
 
-Проверяет структуру пакета, поле name в frontmatter, тип навыка
-(metadata.type - валидный слаг, соответствие префиксу имени), категорию
-(metadata.category / metadata.category_name - по закрытому справочнику,
-соответствие второму сегменту имени каталога, заполнение парой), исполнимость
-и shebang скриптов, компилирует scripts/*.py (артефакты __pycache__ удаляет)
-и предупреждает об исполняемых fenced-блоках в теле SKILL.md без вызова
-скриптов пакета. Кроме удаления __pycache__ ничего не меняет.
+Checks the package structure, the name field in frontmatter, the skill type
+(metadata.type - a valid slug, conformance to the name prefix), the category
+(metadata.category / metadata.category_name - against the closed reference,
+conformance to the second segment of the directory name, filled as a pair),
+script executability and shebang, compiles scripts/*.py (removes __pycache__
+artifacts), and warns about executable fenced blocks in the SKILL.md body
+without calls to package scripts. Changes nothing except removing __pycache__.
 
-Использование:
+Usage:
     check_package.py <skill-dir>
 """
 
@@ -19,10 +19,11 @@ import shutil
 import sys
 from pathlib import Path
 
-sys.dont_write_bytecode = True  # не создавать __pycache__ в пакете: проверка ничего не меняет
+sys.dont_write_bytecode = True  # do not create __pycache__ in the package: the check changes nothing
 
 from skill_common import (
     CATEGORY_NAMES,
+    CATEGORY_NAMES_EN,
     DIR_PREFIX_TO_SLUG,
     EXIT_FAIL,
     EXIT_OK,
@@ -43,7 +44,7 @@ FENCE_CLOSE_RE = re.compile(r"^\s*(`{3,}|~{3,})\s*$")
 
 
 def check_category(fm: str, skill_dir: Path) -> int:
-    """Проверить категорию: metadata.category / category_name по справочнику и имени каталога."""
+    """Check the category: metadata.category / category_name against the reference and directory name."""
     errors = 0
     category = metadata_value(fm, "category")
     category_name = metadata_value(fm, "category_name")
@@ -55,8 +56,11 @@ def check_category(fm: str, skill_dir: Path) -> int:
     if category not in CATEGORY_NAMES:
         fail(f"metadata.category ({category}) не из справочника - допустимы: {', '.join(CATEGORY_NAMES)}")
         errors += 1
-    elif CATEGORY_NAMES[category] != category_name:
-        fail(f"metadata.category_name ({category_name}) не соответствует справочнику для {category} ({CATEGORY_NAMES[category]})")
+    elif category_name not in (CATEGORY_NAMES[category], CATEGORY_NAMES_EN[category]):
+        fail(
+            f"metadata.category_name ({category_name}) не соответствует справочнику для {category} "
+            f"({CATEGORY_NAMES_EN[category]} / {CATEGORY_NAMES[category]})"
+        )
         errors += 1
     prefix = next((p for p in DIR_PREFIX_TO_SLUG if skill_dir.name.startswith(p)), "")
     if prefix:
@@ -68,7 +72,7 @@ def check_category(fm: str, skill_dir: Path) -> int:
 
 
 def check_type(fm: str, skill_dir: Path) -> int:
-    """Проверить тип навыка: metadata.type - валидный слаг, соответствует префиксу."""
+    """Check the skill type: metadata.type - a valid slug matching the prefix."""
     errors = 0
     if re.search(r"^type:\s*\S", fm, re.MULTILINE):
         fail("frontmatter: верхнеуровневое поле type недопустимо - тип в metadata.type")
@@ -87,7 +91,7 @@ def check_type(fm: str, skill_dir: Path) -> int:
         "",
     )
     if not prefix_slug:
-        if not is_prefix_optional(mtype):  # для локальных навыков (pr_loc) префикс опционален
+        if not is_prefix_optional(mtype):  # for local skills (pr_loc) the prefix is optional
             fail(f"имя каталога без типового префикса ({', '.join(DIR_PREFIX_TO_SLUG)})")
             errors += 1
     elif prefix_slug != mtype:
@@ -97,7 +101,7 @@ def check_type(fm: str, skill_dir: Path) -> int:
 
 
 def check_name(skill_dir: Path) -> tuple[int, str]:
-    """Проверить SKILL.md: name, тип; вернуть ошибки и текст."""
+    """Check SKILL.md: name, type; return errors and text."""
     errors = 0
     skill_md = skill_dir / "SKILL.md"
     if not skill_md.is_file():
@@ -118,12 +122,12 @@ def check_name(skill_dir: Path) -> tuple[int, str]:
 
 
 def check_fenced_blocks(text: str) -> int:
-    """Предупредить об исполняемых fenced-блоках в теле без вызова скриптов пакета.
+    """Warn about executable fenced blocks in the body without package script calls.
 
-    Тело берется после frontmatter; ограждение отслеживается построчно по литере
-    и длине (``` или ~~~), закрытием считается только строка из той же литеры
-    длиной не меньше открывающей. Дефисы в таблицах и ASCII-разделителях на
-    разбор не влияют.
+    The body is taken after frontmatter; the fence is tracked line by line by
+    character and length (``` or ~~~); only a line of the same character at
+    least as long as the opening one counts as a close. Hyphens in tables and
+    ASCII separators do not affect parsing.
     """
     warnings = 0
     fence = ""
@@ -154,7 +158,7 @@ def check_fenced_blocks(text: str) -> int:
 
 
 def check_scripts(skill_dir: Path) -> tuple[int, int]:
-    """Проверить scripts/: исполнимость, shebang, компиляция python; вернуть ошибки и предупреждения."""
+    """Check scripts/: executability, shebang, python compilation; return errors and warnings."""
     errors = 0
     scripts_dir = skill_dir / "scripts"
     if not scripts_dir.is_dir():

@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Проверка полноты: все навыки репозитория на соответствие требованиям стандартов.
+"""Completeness check: all repository skills against the standard requirements.
 
-Сверяет навыки обоих форматов во всех канонических местах хранения с
-требованиями skill_plain_standards.md и skill_anthropic_standards.md:
-обязательные поля frontmatter, валидный слаг типа, категория области
-применения (слаг и название из закрытого справочника, второй сегмент имени
-совпадает со слагом, поля - парой), соответствие префикса
-имени типу и расположению (для локальных навыков data/skills/ - оба формата,
-префикс опционален), запрет ссылок на конкретные навыки чужих
-репозиториев (пути ext/<repo-name>/ вместо плейсхолдеров), запрет
-кириллических плейсхолдеров в угловых и квадратных скобках.
-Ничего не меняет - только отчет.
+Compares skills of both formats in all canonical storage locations with the
+requirements of skill_anthropic_standards.md and skill_anthropic_standards.md:
+required frontmatter fields, a valid type slug, application area category
+(slug and name from the closed reference, the second name segment
+matches the slug, fields come as a pair), prefix conformance
+of the name to type and location (for local data/skills/ skills - both formats,
+the prefix is optional), no references to concrete skills of other
+repositories (ext/<repo-name>/ paths instead of placeholders), no
+Cyrillic placeholders in angle and square brackets.
+Changes nothing - report only.
 
-Использование:
+Usage:
     check_all_skills.py [repo-root]
 """
 
@@ -20,10 +20,11 @@ import re
 import sys
 from pathlib import Path
 
-sys.dont_write_bytecode = True  # не создавать __pycache__ в пакете: проверка ничего не меняет
+sys.dont_write_bytecode = True  # do not create __pycache__ in the package: the check changes nothing
 
 from skill_common import (
     CATEGORY_NAMES,
+    CATEGORY_NAMES_EN,
     DIR_PREFIX_TO_SLUG,
     EXIT_FAIL,
     EXIT_OK,
@@ -50,17 +51,17 @@ FLAT_SLUG_TO_LOCATION = {
 }
 CONCRETE_EXT_RE = re.compile(r"ext/(?!<)(?!\{)[A-Za-z0-9_][A-Za-z0-9_-]*")
 CYRILLIC_PLACEHOLDER_RE = re.compile(
-    r"<[^>]*[А-Яа-яЁё][^>]*>"  # угловые скобки: <repo-name>, <имя-каталога>
-    r"|\[[^\[\]]*[А-Яа-яЁё][^\[\]]*\](?!\s*[(:\[])"  # квадратные скобки: [marker], [маркер]; не markdown-ссылка
+    r"<[^>]*[А-Яа-яЁё][^>]*>"  # angle brackets: <repo-name>, <dir-name>
+    r"|\[[^\[\]]*[А-Яа-яЁё][^\[\]]*\](?!\s*[(:\[])"  # square brackets: [marker], [marker]; not a markdown link
 )
 
 
 def check_category(fm: str, name: str, prefix: str, anthropic: bool, rel: Path) -> int:
-    """Проверить категорию области применения по закрытому справочнику и имени.
+    """Check the application area category against the closed reference and the name.
 
-    Категория опциональна; при наличии - оба поля, слаг и название из справочника,
-    слаг совпадает со вторым сегментом имени. Без категории второй сегмент имени
-    не должен совпадать со слагом справочника (однозначность разбора).
+    The category is optional; when present - both fields, slug and name from the
+    reference, the slug matches the second name segment. Without a category the second
+    name segment must not match a reference slug (unambiguous parsing).
     """
     if anthropic:
         category = metadata_value(fm, "category")
@@ -81,9 +82,9 @@ def check_category(fm: str, name: str, prefix: str, anthropic: bool, rel: Path) 
     if category not in CATEGORY_NAMES:
         fail(f"{rel}: категория ({category}) не из справочника - допустимы: {', '.join(CATEGORY_NAMES)}")
         errors += 1
-    elif CATEGORY_NAMES[category] != category_name:
+    elif category_name not in (CATEGORY_NAMES[category], CATEGORY_NAMES_EN[category]):
         fail(f"{rel}: category_name ({category_name}) не соответствует справочнику для {category} "
-             f"({CATEGORY_NAMES[category]})")
+             f"({CATEGORY_NAMES_EN[category]} / {CATEGORY_NAMES[category]})")
         errors += 1
     if prefix:
         segment = name_category(name, prefix)
@@ -94,7 +95,7 @@ def check_category(fm: str, name: str, prefix: str, anthropic: bool, rel: Path) 
 
 
 def check_concrete_ext_refs(path: Path, rel: Path) -> int:
-    """Запрет ссылок на конкретные навыки чужих репозиториев (пути ext/<repo-name>/)."""
+    """Forbid references to concrete skills of other repositories (ext/<repo-name>/ paths)."""
     errors = 0
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
@@ -110,7 +111,7 @@ def check_concrete_ext_refs(path: Path, rel: Path) -> int:
 
 
 def check_internal(path: Path, root: Path, in_repo_subfolder: bool, place: str = "doc/skills") -> int:
-    """Проверить плоский навык plain-формата; вернуть число ошибок."""
+    """Check a plain-format flat skill; return the number of errors."""
     rel = path.relative_to(root)
     errors = 0
     errors += check_concrete_ext_refs(path, rel)
@@ -156,7 +157,7 @@ def check_internal(path: Path, root: Path, in_repo_subfolder: bool, place: str =
     prefix = next((p for p in FLAT_PREFIX_TO_SLUG if path.name.startswith(p)), "")
     prefix_slug = FLAT_PREFIX_TO_SLUG.get(prefix, "")
     if not prefix_slug:
-        if not is_prefix_optional(ftype):  # для локальных навыков (pr_loc) префикс опционален
+        if not is_prefix_optional(ftype):  # for local skills (pr_loc) the prefix is optional
             fail(f"{rel}: нет типового префикса (hub_, glob_, pg_, pl_) - переименовать в pg_{path.stem}")
             errors += 1
             return errors
@@ -176,7 +177,7 @@ def check_internal(path: Path, root: Path, in_repo_subfolder: bool, place: str =
 
 
 def check_anthropic(skill_dir: Path, root: Path, place: str) -> int:
-    """Проверить пакет формата Anthropic; вернуть число ошибок."""
+    """Check an Anthropic-format package; return the number of errors."""
     rel = skill_dir.relative_to(root)
     errors = 0
     errors += check_concrete_ext_refs(skill_dir / "SKILL.md", rel)
@@ -213,7 +214,7 @@ def check_anthropic(skill_dir: Path, root: Path, place: str) -> int:
     prefix = next((p for p in DIR_PREFIX_TO_SLUG if skill_dir.name.startswith(p)), "")
     prefix_slug = DIR_PREFIX_TO_SLUG.get(prefix, "")
     if not prefix_slug:
-        if not is_prefix_optional(mtype):  # для локальных навыков (pr_loc) префикс опционален
+        if not is_prefix_optional(mtype):  # for local skills (pr_loc) the prefix is optional
             fail(f"{rel}: нет типового префикса ({', '.join(DIR_PREFIX_TO_SLUG)}) - переименовать в pg-{skill_dir.name}/")
             errors += 1
             return errors
@@ -233,7 +234,7 @@ def check_anthropic(skill_dir: Path, root: Path, place: str) -> int:
 
 
 def walk_skills(root: Path) -> tuple[int, int]:
-    """Обойти канонические места и проверить все навыки; вернуть (проверено, ошибок)."""
+    """Walk the canonical locations and check every skill; return (checked, errors)."""
     checked = 0
     errors = 0
 

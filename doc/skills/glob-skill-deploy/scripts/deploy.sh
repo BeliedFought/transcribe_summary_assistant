@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Деплой навыка формата Anthropic Agent Skills: копирование каталога навыка
-# в боевой каталог целевого инструмента с заменой существующей копии
-# или создание симлинка на источник (режим --link).
-# Защита: отказ до удаления, если целевой каталог совпадает с источником,
-# вложен в него или содержит его; при копировании исключаются каталоги __pycache__.
-# Использование:
+# Deploy an Anthropic Agent Skills format skill: copy the skill directory
+# into the live directory of the target tool, replacing an existing copy,
+# or create a symlink to the source (--link mode).
+# Guards: refuse before deleting if the target directory equals the source,
+# is nested in it, or contains it; __pycache__ directories are excluded on copy.
+# Usage:
 #   deploy.sh [--link] <source-dir> <target-dir>
-#   --link       - создать симлинк target -> source вместо копирования
-#   <source-dir> - каталог навыка с SKILL.md в корне (например doc/skills/<name>)
-#   <target-dir> - целевой каталог (например .opencode/skills/<name>)
+#   --link       - create a symlink target -> source instead of copying
+#   <source-dir> - skill directory with SKILL.md at the root (e.g. doc/skills/<name>)
+#   <target-dir> - target directory (e.g. .opencode/skills/<name>)
 
 set -euo pipefail
 
@@ -46,8 +46,8 @@ fi
 PARENT="$(dirname "$TARGET")"
 mkdir -p "$PARENT"
 
-# Абсолютный путь цели без раскрытия последнего звена: существующий симлинк
-# на источник - легальный случай замены при повторном деплое, а не совпадение
+# Absolute target path without resolving the last link: an existing symlink
+# to the source is a legitimate replacement case on redeploy, not a match
 TARGET_ABS="$(readlink -f -- "$PARENT")/$(basename -- "$TARGET")"
 
 if [ "$TARGET_ABS" = "$SOURCE" ]; then
@@ -87,8 +87,8 @@ if [ -e "$TARGET" ] || [ -L "$TARGET" ]; then
     ACTION="заменен"
 fi
 
-# Копия без артефактов __pycache__; rsync может отсутствовать на машине -
-# тогда cp с последующей зачисткой __pycache__ из целого каталога
+# Copy without __pycache__ artifacts; rsync may be missing on the machine -
+# then cp followed by cleanup of __pycache__ from the whole directory
 if command -v rsync >/dev/null 2>&1; then
     rsync -a --exclude='__pycache__' -- "$SOURCE"/ "$TARGET"
 else

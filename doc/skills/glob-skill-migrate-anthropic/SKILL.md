@@ -1,244 +1,236 @@
 ---
 name: glob-skill-migrate-anthropic
-description: Переносит навык внутреннего формата (doc/skills/<name>.md) в самодостаточный пакет Anthropic Agent Skills - каталог <name>/SKILL.md, весь код и внешние скрипты навыка в <name>/scripts/, исходники (навык и скрипты проекта) в <name>/templates/ через git mv; приводит существующий пакет SKILL.md в соответствие стандарту; проверяет полноту - все навыки репозитория обоих форматов на соответствие требованиям (тип, категория области применения, префикс, расположение, поля frontmatter). Применять при запросах мигрировать, конвертировать или перенести навык в формат SKILL.md, Anthropic или opencode, проверить или исправить существующий SKILL.md-навык, проверить все навыки или провести проверку полноты навыков; исходный навык указывает пользователь
-allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/move_source.sh *), Bash(${CLAUDE_SKILL_DIR}/scripts/check_package.py *), Bash(${CLAUDE_SKILL_DIR}/scripts/check_all_skills.py *)
+description: Validates and repairs Anthropic Agent Skills packages (a <name>/SKILL.md directory with scripts and data templates), converts legacy plain skills found in sibling repositories into SKILL.md packages, and checks repository-wide package completeness - type, category, prefix, location, frontmatter fields. Use when the user asks to migrate, convert, or move a skill to the SKILL.md / Anthropic / opencode format, validate or repair an existing SKILL.md skill, check all skills, or run a completeness check (мигрировать, конвертировать или перенести навык в формат SKILL.md, Anthropic или opencode, проверить или исправить существующий SKILL.md-навык, проверить все навыки или провести проверку полноты навыков)
+allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/check_package.py *), Bash(${CLAUDE_SKILL_DIR}/scripts/check_all_skills.py *)
 metadata:
   version: 1.9.3
   status: stable
   type: hub_glob
   category: skill
-  category_name: Навыки
+  category_name: Skills
 ---
 
-# Миграция навыка на формат Anthropic Agent Skills
+# Validate, repair, and migrate skills to the Anthropic Agent Skills format
 
-Переносит навык из внутреннего формата пакета (плоский файл `doc/skills/`) в формат Anthropic Agent Skills (каталог с `SKILL.md`). Результат - самодостаточный переносимый пакет: весь исполняемый код навыка в `scripts/` каталога, исходники (сам навык и внешние скрипты проекта, на которые он опирался) - в `templates/` через `git mv`, строка в индексе навыков. Пакет переносится на любую машину целиком одной папкой, без репозитория-источника. Существующий пакет SKILL.md, не соответствующий стандарту, приводится в соответствие (раздел 8). Три режима: полная миграция (шаги 1-7), приведение существующего пакета в соответствие (раздел 8), проверка полноты всех навыков репозитория (раздел 9); режимы 8 и 9 покрывают и общие пакеты в `doc/skills/`, и локальные в `data/skills/`. Остальные существующие файлы не изменяются.
+Validates and repairs `SKILL.md` packages, converts legacy plain skills from sibling repositories into self-contained `SKILL.md` packages, and checks repository-wide completeness. `SKILL.md` is the single editable source; `templates/` holds data templates and artifact blanks only. Three modes: full migration of a legacy flat skill (steps 1-7), repair of an existing package (section 8), completeness check of all repository skills (section 9). The package transfers to any machine as one folder, without the source repository. Other existing files are not changed.
 
-## Когда использовать
+## When to use
 
-- Пользователь просит мигрировать, конвертировать или перенести навык в формат SKILL.md / Anthropic / opencode
-- Пользователь просит проверить, доработать или привести в соответствие существующий навык формата SKILL.md (каталог есть, но пакет не соответствует стандарту: код в теле, зависимости от кода проекта, вывод скриптов вне стандарта)
-- Пользователь просит проверить все навыки репозитория на соответствие требованиям, провести проверку полноты или аудит навыков
-- Пользователь явно указал исходный навык: тег `@doc/skills/<file>`, имя файла или `id`, имя каталога
-- Репозиторий переводит навыки на `doc/standards/skill_anthropic_standards.md`
+- The user asks to migrate, convert, or move a skill to the SKILL.md / Anthropic / opencode format
+- The user asks to validate, repair, or align an existing SKILL.md package (the directory exists but does not meet the standard: code in the body, dependencies on project code, script output outside the standard)
+- The user asks to check all repository skills, run a completeness check, or audit skills
+- The user names the source skill explicitly: tag `@doc/skills/<file>`, file name or `id`, directory name
+- The repository moves skills to `doc/standards/skill_anthropic_standards.md`
 
-Режим проверки полноты (раздел 9) - единственный, работающий без указанного исходного навыка. В остальных режимах без явно указанного исходного навыка не применять: запросить у пользователя путь или имя, кандидатов не подбирать самостоятельно.
+The completeness check (section 9) is the only mode that works without a named source skill. In other modes, do not run without an explicit source skill: ask the user for a path or name and do not pick candidates yourself.
 
-## Инструкция
+## Instructions
 
-### 0. Предусловия
+### 0. Prerequisites
 
-- Исходный навык указан пользователем явно (кроме режима проверки полноты - раздел 9). При отсутствии - спросить и ждать ответа.
-- Прочитать оба стандарта: `doc/standards/skill_anthropic_standards.md` (целевой формат), `doc/standards/skill_plain_standards.md` (исходный формат).
-- Определить режим: плоский файл `doc/skills/<name>.md` - полная миграция (шаги 1-7); существующий каталог с `SKILL.md` (`doc/skills/` или локальный в `data/skills/`) - приведение в соответствие (раздел 8); запрос на проверку всех навыков - проверка полноты (раздел 9).
-- Целевой каталог - подпапка `doc/skills/<kebab-id>/` с `SKILL.md` в корне (раздел 3 стандарта); для локального навыка (слаг `pr_loc`, префикс опционален) - `data/skills/<kebab-id>/`. Боевые каталоги инструментов (`.opencode/skills/` и др.) не использовать: деплой - отдельный процесс, стандартом не регламентируется.
-- Имя целевого каталога свободно. Занято - стоп, уточнить у пользователя.
+- The source skill is named explicitly by the user (except the completeness check - section 9). If missing, ask and wait.
+- Read the target standard: `doc/standards/skill_anthropic_standards.md` (format, body structure, scripts, checklist, legacy migration - 04.02).
+- Determine the mode: a legacy flat file `doc/skills/<name>.md` or `data/skills/<name>.md` - full migration (steps 1-7); an existing directory with `SKILL.md` (`doc/skills/` or a local one in `data/skills/`) - repair (section 8); a request to check all skills - completeness check (section 9).
+- Target directory - the subdirectory `doc/skills/<kebab-id>/` with `SKILL.md` at the root (standard section 01.03); for a local skill (slug `pr_loc`, optional prefix) - `data/skills/<kebab-id>/`. Do not use live tool directories (`.opencode/skills/` and others): deploy is a separate process outside this standard.
+- The target directory name must be free. If occupied, stop and ask the user.
 
-### 1. Изучить исходный навык
+### 1. Study the source skill
 
-1. Прочитать файл навыка целиком.
-2. Извлечь frontmatter: `id`, `type`, `description`, `auto_apply`, `version`, `status`, `category`, `category_name`.
-3. Зафиксировать состав и порядок разделов (Описание, Когда использовать, Предусловия, Инструкция, Критерии завершения, Примеры, Ограничения и др.).
-4. Определить деструктивность: операции удаления, перезаписи, миграций БД, деплоя - по разделу «Ограничения» и командам инструкции.
-5. Оценить объем: если тело исходника больше ~500 строк - заранее спланировать вынос материала в `reference.md` / `examples.md`.
+1. Read the skill file in full.
+2. Extract the frontmatter: `id`, `type`, `description`, `auto_apply`, `version`, `status`, `category`, `category_name`.
+3. Record the section composition and order (Description, When to use, Prerequisites, Instructions, Completion criteria, Examples, Restrictions, and so on).
+4. Determine destructiveness: deletion, overwrite, DB migration, deploy operations - from the Restrictions section and the instruction commands.
+5. Estimate the volume: if the source body is over ~500 lines, plan in advance to move material into `reference.md` / `examples.md`.
 
-### 2. Инвентаризация ссылок и кода
+### 2. Inventory links and code
 
-Пройти по телу исходника и собрать все внешние сущности. Для каждой - проверить существование пути и назначить судьбу:
+Walk the source body and collect every external entity. For each one, check that the path exists and assign its fate:
 
-| Категория | Что искать | Судьба при миграции |
-| --------- | ---------- | ------------------- |
-| Ссылки на файлы проекта | `../../src/<path>`, `run/`, `data/`, `sql/`, `doc/specs/`, `output/` | Переписать от корня репозитория; контракт (назначение, формат, режимы) - в `reference.md` |
-| Команды вызова | `python -m src.tools.<module>`, bash-блоки вызова модулей | Не переносить как есть: код операции - в `scripts/` пакета (адаптация к `${CLAUDE_SKILL_DIR}`); в теле - команда вызова нового скрипта |
-| Встроенный код | fenced-блоки кода в теле | Весь - в `scripts/<name>.<ext>` с вызовом из тела, без порога длины; нерасполнимые схемы (структура frontmatter, деревья каталогов, шаблоны разметки) остаются в теле |
-| Внешние скрипты проекта | `run/<script>.py`, `src/tools/<module>.py`, используемые только навыком | `git mv` исходника в `templates/` пакета (канон скрипта); адаптированная копия - в `scripts/`; при других потребителях скрипта вне навыка - стоп и уточнение у пользователя |
-| Внешние URL | интернет-источники, API | Оставить в теле, если участвуют в инструкции; справочные - в `reference.md` |
-| Шаблоны и примеры файлов | заготовки артефактов | `templates/` или `examples.md` |
+| Category | What to look for | Fate on migration |
+| -------- | ---------------- | ----------------- |
+| Project file references | `../../src/<path>`, `run/`, `data/`, `sql/`, `doc/specs/`, `output/` | Rewrite from the repository root; the contract (purpose, format, modes) goes to `reference.md` |
+| Invocation commands | `python -m src.tools.<module>`, bash blocks calling modules | Do not carry over as is: the operation code goes to the package `scripts/` (adapted to `${CLAUDE_SKILL_DIR}`); the body holds the invocation command of the new script |
+| Inline code | fenced code blocks in the body | All of it goes to `scripts/<name>.<ext>` with an invocation from the body, no length threshold; non-executable schemes (frontmatter structure, directory trees, markup templates) stay in the body |
+| External project scripts | `run/<script>.py`, `src/tools/<module>.py` used only by the skill | Move into the package `scripts/` via `git mv` (history preserved), then adapt to `${CLAUDE_SKILL_DIR}` and arguments; if other consumers exist outside the skill - stop and ask the user |
+| External URLs | internet sources, APIs | Keep in the body if the instruction uses them; reference material goes to `reference.md` |
+| Templates and example files | artifact blanks | `templates/` (data templates and blanks only) or `examples.md` |
 
-Битые пути - зафиксировать для отчета, молча не выбрасывать и не «чинить».
+Broken paths - record them for the report; do not silently discard or "fix" them.
 
-### 3. Сформировать пакет
+### 3. Build the package
 
-Имя каталога - `id` исходника в kebab-case: `db_migrate` -> `db-migrate`, `parse_report` -> `parse-report`.
+The directory name is the source `id` in kebab-case: `db_migrate` -> `db-migrate`, `parse_report` -> `parse-report`.
 
-Frontmatter - только ключи спецификации:
+Frontmatter - specification keys only:
 
 ```yaml
 ---
 name: <kebab-id>
-description: <what-and-when>   # WHAT + WHEN, до 1024 символов; из description исходника, дополнить триггерами из «Когда использовать» при необходимости
+description: <what-and-when>   # WHAT + WHEN, up to 1024 characters; from the source description, add triggers from "When to use" when needed
 metadata:
-  version: <version>   # версия исходника или 1.0.0
-  status: <status>   # статус исходника или stable
-  type: <type>   # тип исходника из таксономии (hub_loc, hub_glob, pr_glob, pr_loc); соответствует префиксу имени каталога
-  category: <category>   # опционально: слаг из закрытого справочника (skill_plain_standards.md, раздел 01.03)
-  category_name: <category-name>   # название из справочника, строго парой с category
+  version: <version>   # source version or 1.0.0
+  status: <status>   # source status or stable
+  type: <type>   # source type from the taxonomy (hub_loc, hub_glob, pr_glob, pr_loc); matches the directory name prefix
+  category: <category>   # optional: slug from the closed dictionary (skill_anthropic_standards.md, section 01.04)
+  category_name: <category-name>   # name from the dictionary, strictly paired with category
 ---
 ```
 
-Отображение полей исходника:
+Source field mapping:
 
-| Исходник | Цель |
-| -------- | ---- |
+| Source | Target |
+| ------ | ------ |
 | `id` | `name` (snake_case -> kebab-case) |
-| `description` | `description` (проверить наличие WHAT и WHEN) |
-| `auto_apply: true` | не переносится; авто-применение по `description` - поведение по умолчанию |
-| `auto_apply: false` | правило «только явный вызов по имени» - в тело; для Claude Code допускается `disable-model-invocation: true` (расширение, раздел 5 стандарта) - только если навык не распространяется по строгой спецификации |
+| `description` | `description` (check that WHAT and WHEN are present) |
+| `auto_apply: true` | not carried over; automatic application by `description` is the default behavior |
+| `auto_apply: false` | the "explicit invocation by name only" rule goes to the body; for Claude Code, `disable-model-invocation: true` is allowed (extension, standard section 02.01) - only if the skill is not distributed under a strict specification |
 | `version`, `status` | `metadata.version`, `metadata.status` |
-| `type` | `metadata.type` (слаг таксономии: `hub_loc` / `hub_glob` / `pr_glob` / `pr_loc`; переносится из исходника и далее следует за ним, `skill_anthropic_standards.md` раздел 02.01) |
-| `category`, `category_name` | `metadata.category`, `metadata.category_name` (слаг и название из закрытого справочника; заполняются парой) |
+| `type` | `metadata.type` (taxonomy slug: `hub_loc` / `hub_glob` / `pr_glob` / `pr_loc`; carried over from the source and maintained afterwards, `skill_anthropic_standards.md` section 01.04) |
+| `category`, `category_name` | `metadata.category`, `metadata.category_name` (slug and name from the closed dictionary; filled as a pair) |
 
-Отображение разделов:
+Section mapping:
 
-| Исходник | Цель |
-| -------- | ---- |
-| Заголовок H1 | Заголовок H1 |
-| Примечание-цитата | абзац после заголовка или в `## Ограничения` |
-| Описание | вводный абзац до `## Когда использовать` |
-| Когда использовать | `## Когда использовать` |
-| Предусловия | первый подраздел `## Инструкция` (Предусловия) |
-| Инструкция | `## Инструкция` |
-| Критерии завершения | `## Критерии завершения` |
-| Примеры | `## Примеры` |
-| Ограничения | `## Ограничения` |
-| Root-команды и подтверждение выполнения | `## Root-команды и подтверждение выполнения` |
-| Скрипт, Пример результата | вызов `scripts/`, `examples.md` |
-| Ссылки на стандарты и соседние навыки | `## Ссылки` |
+| Source | Target |
+| ------ | ------ |
+| H1 heading | H1 heading |
+| Note quote | paragraph after the heading or in `## Restrictions` |
+| Description | introductory paragraph before `## When to use` |
+| When to use | `## When to use` |
+| Prerequisites | first subsection of `## Instructions` (Prerequisites) |
+| Instruction | `## Instructions` |
+| Completion criteria | `## Completion criteria` |
+| Examples | `## Examples` |
+| Restrictions | `## Restrictions` |
+| Root commands and execution confirmation | `## Root commands and execution confirmation` |
+| Script, Result example | `scripts/` invocation, `examples.md` |
+| References to standards and neighboring skills | `## References` |
 
-Требования к телу - по разделам 03.01 и 03.03 `skill_anthropic_standards.md`:
+Body requirements - per sections 03.01 and 03.03 of `skill_anthropic_standards.md`:
 
-- императив, до 500 строк; излишки - в `reference.md` / `examples.md` с условиями чтения;
-- тело - только текст: допустимы команды вызова скриптов пакета (пути от `${CLAUDE_SKILL_DIR}`) и нерасполнимые схемы; исполняемый код операций - весь в `scripts/`;
-- переносить полный текст разделов, включая вводный текст между заголовком раздела и первым подразделом; молча не выбрасывать ничего;
-- при миграции нескольких навыков в одной сессии ссылки на уже мигрированные навыки обновлять на новые имена (`id` snake_case -> `name` kebab-case); перечень переименований - в отчет;
-- если инструкция навыка при последующем применении удалит результат миграции (например, пересборка индекса не учитывает новые каталоги `SKILL.md`) - минимально скорректировать формулировку и зафиксировать адаптацию в отчете;
-- пути к файлам проекта - от корня репозитория: исходник лежал глубже (обычно в `doc/skills/<repo-name>/`), старые относительные пути `../../` из нового каталога нерабочие;
-- вызов скриптов пакета - через переменную каталога навыка (`${CLAUDE_SKILL_DIR}` или аналог инструмента);
-- скрипты пакета - с выводом по основному стандарту хаба: строки `YYYY-MM-DD HH:MM:SS [marker] сообщение` - стиль строгого режима логгера (04.04.01), но без логгера (время вставляет сам скрипт, без `src/logger.py` и лог-файлов), монохромный stdout без ANSI-цветов и рамок, маркеры `[!]` / `[i]` / `[*]`, текст по 04.03: русский, без точки в конце сообщений, без `ё`/`Ё` (только `е`/`Е`), без длинного и короткого тире - только дефис-минус, без многоточий; одна строка - одно сообщение, коды завершения 0 / 1 / 2 (`project_standards.md` 04.02-04.04, 05.03);
-- в раздел «Ссылки» внести строку про канон: `templates/<name>.md` - исходник навыка (внутренний формат); правки вносить только в него, затем повторная миграция; для перемещенных внешних скриптов - аналогичные строки про их каноны в `templates/`;
-- язык тела - язык исходного навыка (как правило русский); перевод на английский - только по запросу пользователя.
+- imperative, up to 500 lines; overflow goes to `reference.md` / `examples.md` with reading conditions;
+- the body is text only: package script invocation commands (paths from `${CLAUDE_SKILL_DIR}`) and non-executable schemes are allowed; all executable operation code goes to `scripts/`;
+- transfer the full text of sections, including the introductory text between a section heading and the first subsection; silently discard nothing;
+- when migrating several skills in one session, update references to already migrated skills to the new names (`id` snake_case -> `name` kebab-case); list the renames in the report;
+- if applying the skill later would delete the migration result (for example, an index rebuild does not see the new `SKILL.md` directories), minimally adjust the wording and record the adaptation in the report;
+- project file paths are from the repository root: the source was deeper (usually `doc/skills/<repo-name>/`), and old relative `../../` paths do not work from the new directory;
+- package script invocation goes through the skill directory variable (`${CLAUDE_SKILL_DIR}` or the tool equivalent);
+- package scripts output per the hub core standard: lines `YYYY-MM-DD HH:MM:SS [marker] message` - logger strict mode style (04.04.01) but without a logger (the script inserts the time, no `src/logger.py` and no log files), monochrome stdout without ANSI colors and frames, markers `[!]` / `[i]` / `[*]`, text per 04.03: Russian, no trailing period, no Cyrillic yo letter (U+0451 / U+0401, only ye U+0435 / U+0415), no em or en dash - hyphen-minus only, no ellipsis; one line - one message, exit codes 0 / 1 / 2 (`project_standards.md` 04.02-04.04, 05.03);
+- body language - English for `doc/skills/**` (standard 03.01); user-facing templates, examples, and report blocks may stay in the project language; a legacy Russian body is translated during migration unless the user asks otherwise;
+- `templates/` holds data templates and artifact blanks only; do not put a legacy skill copy, a parallel source, or an editable format pair there.
 
-**Перемещение исходников.** После сборки пакета переместить исходники в `templates/` каталога навыка - исходник навыка и исходники внешних скриптов проекта (по одному вызову на файл):
+**Archiving the source.** After the package is built and validated, archive the legacy flat skill file per repository rules (`.arch/`), not into `templates/`. Do not keep a parallel copy of the legacy skill as an editable source. For project skills the source path is `doc/skills/<repo-name>/<name>.md`; for local skills - `data/skills/<name>.md` or `data/skills/<name>/SKILL.md` (the skill stays local inside `data/skills/`). External project scripts used only by the skill are moved into `scripts/` via `git mv` (history preserved) and adapted there; the source is not duplicated in `templates/`.
 
-```bash
-${CLAUDE_SKILL_DIR}/scripts/move_source.sh doc/skills/<name>.md doc/skills/<kebab-id>
-${CLAUDE_SKILL_DIR}/scripts/move_source.sh run/<script>.py doc/skills/<kebab-id>
-```
+### 4. Validate the package
 
-Для проектных навыков исходный путь навыка - `doc/skills/<repo-name>/<name>.md`, для локальных - `data/skills/<name>.md` или `data/skills/<name>/SKILL.md` (внутри `data/skills/` навык остается локальным). Перемещение выполняется внутри скрипта через `git mv` (сохранение истории git); в `templates/` исходники хранятся под своими исходными именами, внутренний frontmatter не меняется. Каноны не редактируются: излишки объема при миграции выносятся в `reference.md` / `examples.md`, адаптация внешних скриптов выполняется в копии в `scripts/`, а не в исходнике.
-
-### 4. Проверить пакет
-
-Прогнать чеклист автора из раздела 05.03 стандарта `skill_anthropic_standards.md` и скрипт проверок пакета:
+Run the author checklist from section 05.03 of `skill_anthropic_standards.md` and the package check script:
 
 ```bash
 ${CLAUDE_SKILL_DIR}/scripts/check_package.py doc/skills/<kebab-id>
 ```
 
-Дополнительно:
+Additional checks:
 
-- [ ] в frontmatter нет `id` / `auto_apply` и других полей внутреннего формата
-- [ ] `name` совпадает с именем каталога, kebab-case, до 64 символов
-- [ ] `description` - WHAT + WHEN, до 1024 символов
-- [ ] тип навыка перенесен: `metadata.type` из поля `type` исходника (слаг таксономии `hub_loc` / `hub_glob` / `pr_glob` / `pr_loc`), соответствует префиксу имени каталога; верхнеуровневое поле `type` во frontmatter отсутствует (строгий allowlist)
-- [ ] категория (при наличии): `metadata.category` / `metadata.category_name` из закрытого справочника, слаг совпадает со вторым сегментом имени каталога (у локального навыка без типового префикса - первый сегмент), заполнены парой
-- [ ] тело до 500 строк
-- [ ] в теле нет исполняемого кода: только команды вызова `scripts/` пакета и нерасполнимые схемы; предупреждения `check_package.py` по блокам тела разобраны
-- [ ] скрипты исполняемые (`chmod +x`), с shebang; `py_compile` без ошибок; артефакты `__pycache__` удалены скриптом проверок
-- [ ] вывод скриптов - строки `YYYY-MM-DD HH:MM:SS [marker] сообщение` (время вставляет сам скрипт, без логгера и лог-файлов), монохромные, маркеры по основному стандарту (04.02, 04.04.01), текст по 04.03: без точки в конце, без `ё`/`Ё`, тире - только дефис-минус; коды завершения 0 / 1 / 2 (05.03)
-- [ ] все пути из инвентаризации существуют; битые - перечислены в отчете
-- [ ] относительные пути `../..` из исходника переписаны от корня репозитория
-- [ ] внешние скрипты проекта: исходники перемещены в `templates/` (`git mv`), адаптированные копии в `scripts/`, другие потребители вне навыка отсутствуют
-- [ ] исходник навыка перемещен в `templates/` каталога навыка; в корне `doc/skills/` (или `doc/skills/<repo-name>/`) не остался; внутренний frontmatter исходника не менялся
-- [ ] разделы перенесены полностью (текстовое сравнение с исходником): «Когда использовать», «Инструкция» с вводным текстом, «Критерии завершения», «Примеры», «Ограничения»
-- [ ] навык с привилегированными операциями содержит раздел «Root-команды и подтверждение выполнения» (два пути и правила ожидания - `skill_anthropic_standards.md`, раздел 03.04); навык без таких операций раздел не содержит
-- [ ] в «Ссылки» добавлена строка про канон `templates/<name>.md`
-- [ ] адаптации сверх механического переноса (переименования ссылок на мигрированные навыки, скорректированные формулировки, адаптация скриптов к `${CLAUDE_SKILL_DIR}`) собраны для отчета
+- [ ] frontmatter has no `id` / `auto_apply` or other legacy fields
+- [ ] `name` matches the directory name, kebab-case, up to 64 characters
+- [ ] `description` - WHAT + WHEN, up to 1024 characters
+- [ ] skill type is carried over: `metadata.type` from the source `type` field (taxonomy slug `hub_loc` / `hub_glob` / `pr_glob` / `pr_loc`), matches the directory name prefix; there is no top-level `type` field in frontmatter (strict allowlist)
+- [ ] category (when present): `metadata.category` / `metadata.category_name` from the closed dictionary, the slug matches the second segment of the directory name (for a local skill without a type prefix - the first segment), filled as a pair
+- [ ] body up to 500 lines
+- [ ] no executable code in the body: only package `scripts/` invocation commands and non-executable schemes; `check_package.py` warnings about body blocks are resolved
+- [ ] scripts are executable (`chmod +x`) with a shebang; `py_compile` passes; `__pycache__` artifacts are removed by the check script
+- [ ] script output - lines `YYYY-MM-DD HH:MM:SS [marker] message` (the script inserts the time, no logger and no log files), monochrome, markers per the core standard (04.02, 04.04.01), text per 04.03: no trailing period, no Cyrillic yo letter (U+0451 / U+0401), dash - hyphen-minus only; exit codes 0 / 1 / 2 (05.03)
+- [ ] every path from the inventory exists; broken ones are listed in the report
+- [ ] relative `../..` paths from the source are rewritten from the repository root
+- [ ] external project scripts: working copies live in `scripts/`, adapted to `${CLAUDE_SKILL_DIR}` and arguments, with no other consumers outside the skill
+- [ ] the legacy flat source is archived per repository rules and does not remain in `doc/skills/` (or `data/skills/`) as a parallel source
+- [ ] sections are transferred fully (text comparison with the source): "When to use", "Instructions" with introductory text, "Completion criteria", "Examples", "Restrictions"
+- [ ] a skill with privileged operations contains a "Root commands and execution confirmation" section (application levels and waiting rules - `skill_anthropic_standards.md`, section 03.04); a skill without such operations does not contain it
+- [ ] `templates/` holds data templates and artifact blanks only, with no legacy skill copy or parallel source
+- [ ] adaptations beyond mechanical transfer (renamed references to migrated skills, adjusted wording, scripts adapted to `${CLAUDE_SKILL_DIR}`) are collected for the report
 
-### 5. Зарегистрировать в индексе навыков
+### 5. Register in the skill index
 
-- Производный репозиторий: `_index_skills_repo.md` - добавить строку в раздел навыков формата SKILL.md (создать раздел, если отсутствует): колонки «Навык, Путь, Назначение»; если у плоского навыка была строка в основном реестре - удалить ее (файл больше не в корне).
-- Хаб: `_index_skills_hub.md` - добавить строку в раздел «Навыки формата Anthropic Agent Skills (SKILL.md)»; если у плоского навыка была строка в основном реестре - удалить ее.
-- Полную пересборку индексов (`glob-update-indexes` / `hub-sync-indexes`) не запускать без запроса: они собирают индекс из `doc/skills/` и могут не знать о разделе SKILL.md. После любого их прогона проверить, что строка сохранилась, при утере - восстановить.
+- Derived repository: regenerate `_index_skills_repo.md` with `glob-update-indexes --skills`; the generated registry has columns "Skill (dir), Class, Scope, Version, Purpose". If the index is maintained manually, add the row to the SKILL.md section and remove the legacy flat row (the file is no longer at the root).
+- Hub: `_index_skills_hub.md` - add a row to the "Anthropic Agent Skills format skills (SKILL.md)" section; if the legacy flat skill had a row in the main registry, remove it.
+- Running an index rebuild (`glob-update-indexes` / `hub-sync-indexes`) requires a user request. The generators include SKILL.md directories; after a run, verify that the migrated skill row is present.
 
-### 6. Границы изменений
+### 6. Change boundaries
 
-- Изменения существующих файлов - только перемещения в `templates/` каталога навыка через `git mv`: исходник навыка и исходники внешних скриптов, задействованных только навыком.
-- Не править стандарты, код проекта, файлы, на которые ссылается навык, конфигурацию инструментов. Адаптация перемещаемых скриптов - в копии в `scripts/` пакета, не в исходнике; при обнаружении других потребителей скрипта вне навыка - стоп и уточнение у пользователя.
-- Разрешенные записи: файлы нового каталога (включая перемещенные исходники) и правки строк индекса навыков (добавление строки формата SKILL.md, удаление строки плоского навыка из основного реестра).
-- Подтвердить через `git status`: новый каталог (untracked), перемещения исходников (rename) и изменения строк индексов. Любые другие изменения - откатить и повторить шаг аккуратнее.
+- Changes to existing files: external project scripts used only by the skill move into the package `scripts/` via `git mv`, and the legacy flat skill file is archived per repository rules. Nothing else changes.
+- Do not edit standards, project code, files referenced by the skill, or tool configuration. Adaptation of moved scripts happens in the working copy in the package `scripts/`, not in a duplicate source; if other consumers of the script exist outside the skill, stop and ask the user.
+- Allowed writes: files of the new directory (including moved scripts) and skill index row edits (adding a SKILL.md row, removing a legacy flat skill row from the main registry).
+- Confirm with `git status`: the new directory (untracked), script moves (rename), the legacy source archive, and index row changes. Any other changes - revert and repeat the step more carefully.
 
-### 7. Отчет пользователю
+### 7. Report to the user
 
-- Дерево созданного пакета (включая перемещенные исходники в `templates/`).
-- Таблица соответствия: поле или раздел исходника - куда перенесен.
-- Судьба каждой ссылки и блока кода из инвентаризации.
-- Факт перемещения исходников: откуда и куда (вызовы `move_source.sh`) - исходник навыка и каждый внешний скрипт.
-- Адаптации сверх механического переноса: переименования ссылок на мигрированные навыки, скорректированные формулировки, адаптация скриптов к `${CLAUDE_SKILL_DIR}` - с обоснованием каждой.
-- Битые ссылки, превышения лимита объема, открытые вопросы - отдельным списком.
-- Напоминание: навык хранится в `doc/skills/<kebab-id>/`; канон для дальнейших правок - `templates/<name>.md`. Чтобы инструмент начал применять навык - скопировать каталог в боевой каталог инструмента (например `.opencode/skills/`) отдельной операцией, после деплоя вызов по имени `name`.
+- Tree of the created package (including scripts and data templates).
+- Mapping table: source field or section - where it went.
+- Fate of every link and code block from the inventory.
+- Source archiving fact: from where to where - the legacy skill file and each external script.
+- Adaptations beyond mechanical transfer: renamed references to migrated skills, adjusted wording, scripts adapted to `${CLAUDE_SKILL_DIR}` - with a rationale for each.
+- Broken links, volume limit overruns, open questions - in a separate list.
+- Reminder: the skill lives in `doc/skills/<kebab-id>/`; `SKILL.md` is the single editable source for further changes. To make the tool apply the skill, copy the directory to the tool live directory (for example `.opencode/skills/`) as a separate operation; after deploy, invoke it by the `name`.
 
-### 8. Приведение существующего пакета в соответствие
+### 8. Repair an existing package
 
-Режим для существующего каталога `<name>/` с `SKILL.md` (общий - в `doc/skills/`, локальный - в `data/skills/`), не соответствующего стандарту: исполняемый код в теле, зависимости от кода и скриптов проекта, вывод скриптов вне стандарта хаба, нарушения frontmatter или чеклиста раздела 05.03.
+Mode for an existing `<name>/` directory with `SKILL.md` (shared - in `doc/skills/`, local - in `data/skills/`) that does not meet the standard: executable code in the body, dependencies on project code and scripts, script output outside the hub standard, frontmatter or checklist violations of section 05.03.
 
-1. Диагностика: прогнать `${CLAUDE_SKILL_DIR}/scripts/check_package.py doc/skills/<name>` (для локального пакета - `data/skills/<name>`) и чеклист автора (раздел 05.03 стандарта); зафиксировать перечень нарушений.
-2. Инвентаризация по правилам шага 2 к телу `SKILL.md` и скриптам пакета: встроенный код тела - в `scripts/`; команды вызова модулей проекта и внешние скрипты - перенос (`move_source.sh` исходника в `templates/`, адаптированная копия - в `scripts/`); при других потребителях скрипта вне навыка - стоп и уточнение у пользователя.
-3. Исправления вносить по правилу пары форматов: у навыка с каноном в `templates/` - повторная миграция по шагам 1-7 (`SKILL.md` напрямую не редактировать); у навыка без пары - править `SKILL.md` и ресурсы пакета на месте.
-4. Скрипты пакета привести к выводу по основному стандарту хаба: строки `YYYY-MM-DD HH:MM:SS [marker] сообщение` - стиль строгого режима логгера, но без логгера (время вставляет сам скрипт, без `src/logger.py` и лог-файлов), монохромный stdout без ANSI-цветов и рамок, маркеры `[!]` / `[i]` / `[*]`, текст по 04.03: без точки в конце сообщений, без `ё`/`Ё`, тире - только дефис-минус, без многоточий; одна строка - одно сообщение, коды завершения 0 / 1 / 2 (`project_standards.md` 04.02-04.04, 05.03).
-5. Контроль: повторный прогон `check_package.py` - ошибок нет, предупреждения по телу разобраны; границы изменений - по шагу 6; отчет - по шагу 7 (что исправлено и по какой причине, до и после). Для локального пакета (`data/skills/`) проверить строку реестра в `data/skills/_index_skills_pl.md` (сводные индексы `_index_skills_hub.md` и `_index_skills_repo.md` локальные навыки не включают).
+1. Diagnostics: run `${CLAUDE_SKILL_DIR}/scripts/check_package.py doc/skills/<name>` (for a local package - `data/skills/<name>`) and the author checklist (standard section 05.03); record the list of violations.
+2. Inventory the `SKILL.md` body and package scripts by the rules of step 2: inline body code goes to `scripts/`; project module invocation commands and external scripts are moved into `scripts/` (via `git mv` when the script has no other consumers); if other consumers of the script exist outside the skill, stop and ask the user.
+3. Fix by editing `SKILL.md` and package resources in place: `SKILL.md` is the single editable source, there is no format pair and no `templates/` source copy.
+4. Bring package scripts to the hub core standard output: lines `YYYY-MM-DD HH:MM:SS [marker] message` - logger strict mode style but without a logger (the script inserts the time, no `src/logger.py` and no log files), monochrome stdout without ANSI colors and frames, markers `[!]` / `[i]` / `[*]`, text per 04.03: no trailing period, no Cyrillic yo letter (U+0451 / U+0401), dash - hyphen-minus only, no ellipsis; one line - one message, exit codes 0 / 1 / 2 (`project_standards.md` 04.02-04.04, 05.03).
+5. Control: rerun `check_package.py` - no errors, body warnings resolved; change boundaries - per step 6; report - per step 7 (what was fixed and why, before and after). For a local package (`data/skills/`), check the registry row in `data/skills/_index_skills_pl.md` (the summary indexes `_index_skills_hub.md` and `_index_skills_repo.md` do not include local skills).
 
-### 9. Проверка полноты всех навыков репозитория
+### 9. Completeness check of all repository skills
 
-Массовый режим: все навыки репозитория обоих форматов сверяются с требованиями стандартов. Ничего не меняет - только отчет. Не требует указания исходного навыка.
+Mass mode: all repository skills in canonical locations - `SKILL.md` packages and legacy flat files when present - are checked against the standard. It changes nothing and only reports. No source skill is required.
 
-Запуск из корня репозитория:
+Run from the repository root:
 
 ```bash
 ${CLAUDE_SKILL_DIR}/scripts/check_all_skills.py
 ```
 
-Скрипт проверяет для каждого навыка:
+The script checks for every skill:
 
-- места хранения по типу: плоские `hub_*` / `glob_*` - в корне `doc/skills/`, `pg_*` - в `doc/skills/<repo-name>/`; пакеты Anthropic `hub-` / `glob-` / `pg-` - в `doc/skills/`; локальные (`pr_loc`) - только в `data/skills/`, оба формата: каталоги `pl-` или без префикса и плоские `pl_` или без префикса;
-- внутренний формат - обязательные поля frontmatter: `id` (совпадает с именем файла), `type`, `description`, `auto_apply`;
-- формат Anthropic - обязательные поля: `name` (совпадает с именем каталога), `description`, `metadata.type`; верхнеуровневое `type` - нарушение (строгий allowlist);
-- слаг типа валиден: `hub_loc`, `hub_glob`, `pr_glob`, `pr_loc`;
-- категория области применения (при наличии): слаг и название из закрытого справочника, второй сегмент имени совпадает со слагом (у локального навыка без типового префикса - первый сегмент), поля `category` / `category_name` (или `metadata.category` / `metadata.category_name`) заполнены парой; без категории соответствующий сегмент имени не совпадает ни с одним слагом справочника (`skill_plain_standards.md`, раздел 01.03);
-- префикс имени соответствует слагу: `hub_` / `hub-` - `hub_loc`, `glob_` / `glob-` - `hub_glob`, `pg_` / `pg-` - `pr_glob`; для `pr_loc` префикс опционален: `pl_` / `pl-` или без префикса;
-- навыки без типового префикса в `doc/skills/` - нарушение (кандидаты на переименование); для локальных навыков `data/skills/` имя без префикса допустимо;
-- обход покрывает `doc/skills/` (включая подпапки `<repo-name>/`, кроме агрегата `ext/`) и `data/skills/` в обоих форматах; индексные файлы `_index*.md` пропускаются - навыками не являются;
-- агрегат `doc/skills/ext/` пропускается - его содержимое проверяется в репо-источниках.
+- storage by type: legacy flat `hub_*` / `glob_*` - at the `doc/skills/` root, `pg_*` - in `doc/skills/<repo-name>/`; Anthropic packages `hub-` / `glob-` / `pg-` - in `doc/skills/`; local (`pr_loc`) - only in `data/skills/`, both forms: `pl-` or prefixless directories and `pl_` or prefixless flat files;
+- legacy plain format - required frontmatter fields: `id` (matches the file name), `type`, `description`, `auto_apply`;
+- Anthropic format - required fields: `name` (matches the directory name), `description`, `metadata.type`; a top-level `type` is a violation (strict allowlist);
+- the type slug is valid: `hub_loc`, `hub_glob`, `pr_glob`, `pr_loc`;
+- application category (when present): slug and name from the closed dictionary, the second name segment matches the slug (for a local skill without a type prefix - the first segment), the `category` / `category_name` fields (or `metadata.category` / `metadata.category_name`) are filled as a pair; without a category, the corresponding name segment matches no dictionary slug (`skill_anthropic_standards.md`, section 01.04);
+- the name prefix matches the slug: `hub_` / `hub-` - `hub_loc`, `glob_` / `glob-` - `hub_glob`, `pg_` / `pg-` - `pr_glob`; for `pr_loc` the prefix is optional: `pl_` / `pl-` or no prefix;
+- skills without a type prefix in `doc/skills/` are a violation (rename candidates); for local `data/skills/` skills a name without a prefix is allowed;
+- the walk covers `doc/skills/` (including `<repo-name>/` subfolders, except the `ext/` aggregate) and `data/skills/` in both formats; index files `_index*.md` are skipped - they are not skills;
+- the `doc/skills/ext/` aggregate is skipped - its content is checked in the source repositories.
 
-Порядок работы:
+Procedure:
 
-1. Прогнать скрипт, зафиксировать нарушения из отчета.
-2. Для каждого нарушения предложить исправление: правка или добавление поля `type` / `metadata.type`; переименование с типовым префиксом через `git mv`; перенос `pl-` каталога в `data/skills/`; дозаполнение frontmatter. Пакет правок - на согласование пользователю (пакетный или интерактивный режим - раздел 07.02 основного стандарта); без подтверждения ничего не менять.
-3. У пакетов с каноном в `templates/` исправления - повторной миграцией исходника (SKILL.md напрямую не редактировать); у остальных - правка на месте. У локального навыка (`data/skills/`) строка реестра - в `data/skills/_index_skills_pl.md`, в сводные индексы он не входит.
-4. Повторный прогон скрипта - ошибок нет. Отчет: сколько навыков проверено, перечень нарушений, что исправлено, что осталось на решении пользователя.
+1. Run the script and record the violations from the report.
+2. For each violation, propose a fix: edit or add the `type` / `metadata.type` field; rename with a type prefix via `git mv`; move a `pl-` directory to `data/skills/`; fill in the frontmatter. Submit the fix package for user approval (batch or interactive mode - section 07.02 of the core standard); change nothing without confirmation.
+3. For `SKILL.md` packages, fix in place; for legacy flat skills, convert by full migration (steps 1-7) - do not edit them as a parallel format. For a local skill (`data/skills/`), the registry row is in `data/skills/_index_skills_pl.md`; it is not part of the summary indexes.
+4. Rerun the script - no errors. Report: how many skills were checked, the list of violations, what was fixed, what remains for the user to decide.
 
-## Примеры
+## Examples
 
-1. «мигрируй @doc/skills/<repo-name>/pg_<name>.md на формат SKILL» -> изучить навык; инвентаризация: модули `src/`, команды, пути отчетов; создать `doc/skills/pg-<name>/SKILL.md` и `scripts/` (весь код - туда, пути проекта - аргументами), контракт путей - в `reference.md`; `move_source.sh` для исходника навыка и внешнего скрипта `run/<script>.py`; зарегистрировать в индексе; отчет.
-2. «перенеси pg_<name> в opencode» -> пакет `doc/skills/pg-<name>/`, встроенный код - целиком в `scripts/`, описание на основе description и «Когда использовать» исходника; исходник перемещен в `pg-<name>/templates/<name>.md`; деплой в `.opencode/skills/` - отдельно, не в рамках миграции.
-3. «проверь и поправь pg-render-chart, он не по стандарту» -> `check_package.py`: блоки кода в теле, зависимость от `run/render.sh`; встроенный код - в `scripts/`, `move_source.sh` для `run/render.sh`; навык без пары - правки в `SKILL.md` на месте; повторный прогон без ошибок; отчет «до и после».
-4. «проверь все навыки на соответствие стандарту» -> `check_all_skills.py`: найдены навык без поля `type` и `pl-` каталог в `doc/skills/`; отчет с целевыми именами; после подтверждения - дозаполнение `type`, перенос `pl-` в `data/skills/`; повторный прогон - ошибок нет.
+1. «мигрируй @doc/skills/<repo-name>/pg_<name>.md на формат SKILL» -> study the skill; inventory: `src/` modules, commands, report paths; create `doc/skills/pg-<name>/SKILL.md` and `scripts/` (all code goes there, project paths become arguments), put the path contract in `reference.md`; move the external script `run/<script>.py` into `scripts/`; archive the legacy source; register in the index; report.
+2. «перенеси pg_<name> в opencode» -> package `doc/skills/pg-<name>/`, inline code entirely in `scripts/`, description based on the source description and "When to use"; the legacy source is archived; deploy to `.opencode/skills/` is a separate operation, not part of migration.
+3. «проверь и поправь pg-render-chart, он не по стандарту» -> `check_package.py`: code blocks in the body, dependency on `run/render.sh`; move the code and the script into `scripts/`; edit `SKILL.md` in place (there is no format pair); rerun without errors; "before and after" report.
+4. «проверь все навыки на соответствие стандарту» -> `check_all_skills.py`: a skill without the `type` field and a `pl-` directory in `doc/skills/` are found; report with target names; after confirmation, fill in `type` and move `pl-` to `data/skills/`; rerun - no errors.
 
-## Ссылки
+## References
 
-- `doc/standards/skill_anthropic_standards.md` - целевой формат: frontmatter, структура тела, progressive disclosure, самодостаточность пакета, правила кода и root-команды (разделы 03.01, 03.03, 03.04), чеклист автора, пары форматов (раздел 01.03)
-- `doc/standards/skill_plain_standards.md` - исходный формат: поля frontmatter и состав разделов
-- `scripts/move_source.sh` - перемещение исходников (навык, внешние скрипты) в `templates/` пакета через `git mv`
-- `scripts/check_package.py` - проверки одного пакета: frontmatter (`name`, `metadata.type` и соответствие префиксу, `metadata.category` / `metadata.category_name` и соответствие второму сегменту имени), исполнимость скриптов, компиляция, исполняемые блоки в теле
-- `scripts/check_all_skills.py` - проверка полноты: все навыки репозитория обоих форматов на соответствие требованиям (тип, префикс, расположение, поля frontmatter)
-- `scripts/skill_common.py` - общие константы и помощники чекеров (таксономия типов, префиксы имени, справочник категорий, разбор frontmatter, предикат индексного файла и политика опционального префикса локальных навыков); единая точка правды, устраняет расхождение проверок `check_package.py` и `check_all_skills.py`
-- Индекс навыков репозитория (`_index_skills_repo.md`; в хабе - `_index_skills_hub.md`) - регистрация результата
+- `doc/standards/skill_anthropic_standards.md` - target format: frontmatter, body structure, progressive disclosure, package self-sufficiency, code rules and root commands (sections 01.03, 01.04, 03.01, 03.03, 03.04), author checklist (05.03), legacy migration (04.02)
+- `superpowers:writing-skills` - skill authoring and review guidance
+- `scripts/check_package.py` - single package checks: frontmatter (`name`, `metadata.type` and prefix match, `metadata.category` / `metadata.category_name` and second name segment match), script executability, compilation, executable body blocks
+- `scripts/check_all_skills.py` - completeness check: all repository skills in canonical locations, including legacy flat files when present, against the requirements (type, prefix, location, frontmatter fields)
+- `scripts/skill_common.py` - shared constants and checker helpers (type taxonomy, name prefixes, category dictionary, frontmatter parsing, index file predicate, and the optional-prefix policy for local skills); the single point of truth that keeps `check_package.py` and `check_all_skills.py` checks aligned
+- Repository skill index (`_index_skills_repo.md`; in the hub - `_index_skills_hub.md`) - result registration
 
-## Ограничения
+## Restrictions
 
-- Удаление файлов и папок репозитория - перенос в `.trash/<slug>_<YYYYMMDDHHMM>/` (карантин, `project_standards.md` 01.01.06), а не удаление; чистить `.trash/` только по явному запросу пользователя
-- Миграция перемещает в `templates/` нового пакета исходник навыка и исходники внешних скриптов; удаление исходников и обратная конверсия не выполняются; исходники после перемещения не редактируются (канон пары форматов - раздел 01.03 `skill_anthropic_standards.md`); адаптация скриптов - только в копиях в `scripts/`.
-- Распространение в другие репозитории - навыком `hub_sync_skills` для общих навыков (каталоги с префиксом `glob-`, включая вложенный исходник); без префикса навык проект-специфичен и агрегируется в хаб под `doc/skills/ext/<repo-name>/<name>/`.
-- Мигрируется один навык за запуск (в любом режиме); для пакета навыков - повторять по каждому, указанному пользователю.
-- Режим проверки полноты ничего не меняет: только отчет; исправления вносить по правилам раздела 9 и только после подтверждения пользователя.
-- Режим приведения в соответствие не меняет назначение и имя навыка: `name` и имя каталога остаются, при несоответствии между собой - выровнять по имени каталога.
+- Deleting repository files and folders means moving them to `.trash/<slug>_<YYYYMMDDHHMM>/` (quarantine, `project_standards.md` 01.01.06), never deletion; clean `.trash/` only on an explicit user request
+- Migration archives the legacy flat skill file per repository rules and moves external project scripts into `scripts/`; deletion of sources and reverse conversion are not performed; the archived source is not edited; script adaptation happens only in the `scripts/` working copy
+- Distribution to other repositories - via the `hub-sync-skills` skill for shared skills (directories with the `glob-` prefix); a skill without the prefix is project-specific and is aggregated into the hub under `doc/skills/ext/<repo-name>/<name>/`
+- One skill is migrated per run (in any mode); for a skill package, repeat for each one named by the user
+- The completeness check changes nothing: report only; apply fixes per section 9 and only after user confirmation
+- Repair mode does not change the skill purpose or name: `name` and the directory name stay; if they mismatch, align to the directory name
