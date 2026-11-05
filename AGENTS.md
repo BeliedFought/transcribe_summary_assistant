@@ -21,7 +21,9 @@ This file contains instructions for AI agents working with this project.
 | Human | Chat responses, `README.md`, user guides, `doc/specs/`, implementation plans, `doc/change_requests/`, UI and console text through `t()` | Russian |
 | Agent and code | `AGENTS.md`, `CLAUDE.md`, standards, indexes, skills, code, comments, docstrings, technical logs (`logger.*`), commit messages, subagent communication | English |
 
-Typography applies to both contours: hyphen-minus `-` only (no em dash or en dash), letter `е` without diaeresis, no ellipsis, no emoji, no exclamation marks, no non-breaking or narrow spaces. User-facing text follows `doc/standards/human_text_standards.md`; the machine override is `~/.config/opencode/AGENTS.md`; the core rule is `project_standards.md` (04.03).
+Typography applies to both contours: hyphen-minus `-` only (no em dash or en dash), letter `е` without diaeresis, no ellipsis, no emoji, no exclamation marks, no non-breaking or narrow spaces. User-facing text follows `doc/standards/human_text_standards.md`; the machine override is `~/.config/opencode/AGENTS.md`; the core rule is `project_standards.md` (04.03). This block is self-sufficient and keeps the rules for sessions where the machine layer is absent. When the machine layer is present, it takes precedence over this block; the two texts must not contradict. Do not remove the rules as duplicates.
+
+The language split in the table above is self-sufficient and applies when the machine layer is absent. When the machine layer is present, its `## Language` section takes precedence on conflict; the two texts must not contradict.
 
 ## Development Process
 
