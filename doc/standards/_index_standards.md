@@ -86,6 +86,7 @@ Archive rule: `.backup/<version>/` holds cold snapshots of prior package version
 | Exceptions, shutdown, exit codes, privileged levels 0-3 | `project_standards.md` (05.02-05.04); `skill_anthropic_standards.md` (03.04) |
 | Git, `.gitignore`, English commits, dynamic author, pre-commit gate | `project_standards.md` (06.01) |
 | `README.md` (Russian) and `AGENTS.md` (English); index and `CLAUDE.md` policy | `project_standards.md` (06.02); `repo_info_doc_standards.md`; `index_nav_standards.md` (07) |
+| AGENTS.md typography layer: static block, machine layer, where rules live | `index_nav_standards.md` (07.04-07.06); `project_standards.md` (04.03) |
 | Debugging discipline and 3-fix rule | `project_standards.md` (06.03); `superpowers:systematic-debugging` |
 | Testing priorities and reference tests | `project_standards.md` (06.04); `cli_data_standards.md` (02.04) |
 | Workflow, superpowers delegation, task classification, clarification modes, Russian specs, screenshots, `ДЕЛАЙ`/`GO`, data UI recon, initialization, audit, editing standards, decision cascade | `project_standards.md` (07) |
