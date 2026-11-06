@@ -41,7 +41,7 @@ SKILLS_MAP_NOTE = """Maps task topics to skills (`index_nav_standards.md`, Secti
 
 SKILLS_AUTO = """## Index Auto-Update
 
-On any change to `doc/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes`, refine purposes and routing map topics per `index_nav_standards.md` (Sections 03.03, 04), and report added, updated, and removed entries.
+On any change to `doc/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes`, refine purposes and routing map topics per `index_nav_standards.md` (Sections 03.03, 04), fix `metadata.purpose` and `metadata.topic` where the description yields a weak purpose or topic, and report added, updated, and removed entries.
 """
 
 SPECS_APPLY = """## Mandatory Application
@@ -80,7 +80,7 @@ Tagging this file requires applying relevant local skills, not merely reading th
 
 PL_AUTO = """## Index Auto-Update
 
-On any change to `data/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes`, refine purposes and routing map topics per `index_nav_standards.md` (Sections 03.03, 04), and report added, updated, and removed entries.
+On any change to `data/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes`, refine purposes and routing map topics per `index_nav_standards.md` (Sections 03.03, 04), fix `metadata.purpose` and `metadata.topic` where the description yields a weak purpose or topic, and report added, updated, and removed entries.
 """
 
 
@@ -97,13 +97,75 @@ def warn(message: str) -> None:
     print(f"{now()} [*] {message}")
 
 
-def first_clause(description: str) -> str:
-    """First sentence of description (capped at 180 chars) for compact index tables."""
-    sent = (description or "").split(". ")[0].rstrip(".")
-    if len(sent) > 180:
-        cut = sent[:180].rsplit(" ", 1)[0]
-        sent = (cut or sent[:180]).rstrip(" ,;:-")
-    return sent
+STOP_TAIL = {
+    "и", "или", "а", "но", "да", "что", "чтобы", "как", "когда", "если", "чем",
+    "в", "во", "на", "по", "с", "со", "из", "от", "до", "для", "при", "про",
+    "без", "над", "под", "за", "об", "о", "у", "к", "ко", "не", "же", "ли", "бы",
+    "the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "with", "by",
+    "as", "at", "from", "into", "over", "under", "that", "which", "when", "if",
+}
+
+ABBREVIATIONS = {
+    "т", "е", "к", "п", "д", "др", "пр", "см", "напр", "рис", "табл", "гл",
+    "e.g", "i.e", "etc", "vs", "fig",
+}
+
+
+def sentence_end(text: str) -> int:
+    """Index after the first sentence terminator, skipping abbreviations and initials."""
+    for m in re.finditer(r"[.!?](?=\s|$)", text):
+        head = text[: m.start()].rstrip()
+        raw = (head.rsplit(" ", 1)[-1] if head else "").strip("\"'`()[]{}«»")
+        if len(raw) == 1 and raw.isalpha():
+            continue
+        if raw.lower().rstrip(".") in ABBREVIATIONS:
+            continue
+        return m.end()
+    return -1
+
+
+def first_sentence(description: str) -> str:
+    """First sentence of description, complete, with no mid-phrase truncation."""
+    text = " ".join((description or "").split())
+    if not text:
+        return ""
+    end = sentence_end(text)
+    sent = text[:end] if end > 0 else text
+    return sent.strip().rstrip(".!?").strip()
+
+
+def purpose_value(meta: dict, fallback: str) -> str:
+    """Purpose: explicit frontmatter value, else the full first sentence, else the old index value."""
+    explicit = (meta.get("purpose") or "").strip()
+    if explicit:
+        return explicit
+    desc = (meta.get("description") or "").strip()
+    if desc:
+        return first_sentence(desc)
+    return fallback
+
+
+def topic_value(purpose: str, explicit: str | None) -> str:
+    """Map topic: explicit frontmatter value, else the purpose head before the colon."""
+    explicit = (explicit or "").strip()
+    if explicit:
+        return explicit
+    head, sep, _ = purpose.partition(":")
+    if sep and head.strip():
+        return head.strip()
+    return purpose
+
+
+def check_row(index_label: str, ident: str, purpose: str, topic: str, explicit_topic: bool,
+              dup_topics: list[str]) -> None:
+    """Report stopped purposes and collect topics that duplicate the purpose."""
+    if not purpose or purpose == "-":
+        return
+    tail = purpose.rstrip(" .,;:-").rsplit(" ", 1)[-1].lower()
+    if tail in STOP_TAIL:
+        warn(f"{index_label}: назначение `{ident}` заканчивается служебным словом `{tail}`")
+    if not explicit_topic and topic == purpose:
+        dup_topics.append(ident)
 
 
 TYPE_CLASS = {
@@ -156,7 +218,7 @@ def get_index_version(index_path: Path) -> str:
 def frontmatter(path: Path) -> dict:
     meta: dict[str, str | None] = {
         "id": None, "description": None, "auto_apply": None, "version": None, "type": None,
-        "category": None, "category_name": None,
+        "category": None, "category_name": None, "purpose": None, "topic": None,
     }
     text = path.read_text(encoding="utf-8")
     if text.startswith("---"):
@@ -164,6 +226,8 @@ def frontmatter(path: Path) -> dict:
         fm = text[3:end] if end > 0 else ""
         for key in meta:
             m = re.search(rf"^{key}:\s*(.+)$", fm, re.MULTILINE)
+            if not m and key in ("purpose", "topic"):
+                m = re.search(rf"^[ \t]+{key}:\s*(.+)$", fm, re.MULTILINE)
             if m:
                 meta[key] = m.group(1).strip()
     return meta
@@ -231,7 +295,8 @@ def old_spec_map_rows(path: Path) -> list[tuple[str, str]]:
 
 def anthropic_meta(path: Path) -> dict:
     text = path.read_text(encoding="utf-8")
-    meta = {"name": "", "description": "", "version": "", "type": "", "category": "", "category_name": ""}
+    meta = {"name": "", "description": "", "version": "", "type": "", "category": "",
+            "category_name": "", "purpose": "", "topic": ""}
     if not text.startswith("---"):
         return meta
     end = text.find("\n---", 3)
@@ -240,8 +305,9 @@ def anthropic_meta(path: Path) -> dict:
         m = re.search(rf"^{key}:\s*(.+)$", fm, re.MULTILINE)
         if m:
             meta[key] = m.group(1).strip()
-    for key in ("version", "type", "category", "category_name"):
-        m = re.search(rf"^\s+{key}:\s*(\S.*)$", fm, re.MULTILINE)
+    for key in ("version", "type", "category", "category_name", "purpose", "topic"):
+        m = (re.search(rf"^[ \t]+{key}:\s*(\S.*)$", fm, re.MULTILINE)
+             or re.search(rf"^{key}:\s*(\S.*)$", fm, re.MULTILINE))
         if m:
             meta[key] = m.group(1).strip()
     return meta
@@ -276,14 +342,16 @@ def rebuild_skills_index(root: Path) -> None:
         "|-------|-------|-------|------------|---------|---------|",
     ]
     map_rows = []
+    dup_topics: list[str] = []
     for p in skills + sub_skills:
         m = frontmatter(p)
         cls = class_of(p.stem, m["type"])
         ident = m["id"] or p.stem
-        desc = m["description"] or ""
-        purpose = first_clause(desc) if desc else purposes.get(ident, "-")
+        purpose = purpose_value(m, purposes.get(ident, "-"))
+        topic = topic_value(purpose, m["topic"])
+        check_row("индекс навыков", ident, purpose, topic, bool((m["topic"] or "").strip()), dup_topics)
         lines.append(f"| `{ident}` | {cls} | {area_value(m['category'], m['category_name'])} | {m['auto_apply'] or '-'} | {m['version'] or '-'} | {purpose} |")
-        map_rows.append(f"| {purpose} | `{ident}` |")
+        map_rows.append(f"| {topic} | `{ident}` |")
     lines.append("")
     anthropic = [
         d
@@ -301,9 +369,11 @@ def rebuild_skills_index(root: Path) -> None:
             m = anthropic_meta(d)
             name = d.parent.relative_to(SKILLS_DIR).as_posix()
             cls = class_of(name, m["type"])
-            purpose = first_clause(m["description"]) or purposes.get(name, "-")
+            purpose = purpose_value(m, purposes.get(name, "-"))
+            topic = topic_value(purpose, m["topic"])
+            check_row("индекс навыков", name, purpose, topic, bool((m["topic"] or "").strip()), dup_topics)
             lines.append(f"| `{name}` | {cls} | {area_value(m['category'], m['category_name'])} | {m['version'] or '-'} | {purpose} |")
-            map_rows.append(f"| {purpose} | `{name}` |")
+            map_rows.append(f"| {topic} | `{name}` |")
         lines.append("")
     lines += [
         "---",
@@ -317,6 +387,9 @@ def rebuild_skills_index(root: Path) -> None:
         "",
         SKILLS_AUTO,
     ]
+    if dup_topics:
+        warn(f"индекс навыков: тема совпадает с назначением, задайте `metadata.topic`: "
+             f"{', '.join(dup_topics)}")
     SKILLS_INDEX.write_text("\n".join(lines), encoding="utf-8")
     info(f"Обновлен {SKILLS_INDEX} - навыков: {len(skills) + len(sub_skills)}, каталогов SKILL.md - {len(anthropic)}")
     for p in skills:
@@ -348,13 +421,15 @@ def rebuild_local_skills_index(root: Path) -> None:
         "|-------|-------|-------|------------|---------|---------|",
     ]
     map_rows = []
+    dup_topics: list[str] = []
     for p in flat:
         m = frontmatter(p)
         ident = m["id"] or p.stem
-        desc = m["description"] or ""
-        purpose = first_clause(desc) if desc else purposes.get(ident, "-")
+        purpose = purpose_value(m, purposes.get(ident, "-"))
+        topic = topic_value(purpose, m["topic"])
+        check_row("индекс локальных навыков", ident, purpose, topic, bool((m["topic"] or "").strip()), dup_topics)
         lines.append(f"| `{ident}` | local | {area_value(m['category'], m['category_name'])} | {m['auto_apply'] or '-'} | {m['version'] or '-'} | {purpose} |")
-        map_rows.append(f"| {purpose} | `{ident}` |")
+        map_rows.append(f"| {topic} | `{ident}` |")
     lines.append("")
     if dirs:
         lines += [
@@ -365,9 +440,11 @@ def rebuild_local_skills_index(root: Path) -> None:
         ]
         for d in dirs:
             m = anthropic_meta(d / "SKILL.md")
-            purpose = first_clause(m["description"]) or purposes.get(d.name, "-")
+            purpose = purpose_value(m, purposes.get(d.name, "-"))
+            topic = topic_value(purpose, m["topic"])
+            check_row("индекс локальных навыков", d.name, purpose, topic, bool((m["topic"] or "").strip()), dup_topics)
             lines.append(f"| `{d.name}` | local | {area_value(m['category'], m['category_name'])} | {m['version'] or '-'} | {purpose} |")
-            map_rows.append(f"| {purpose} | `{d.name}` |")
+            map_rows.append(f"| {topic} | `{d.name}` |")
         lines.append("")
     lines += [
         "---",
@@ -381,6 +458,9 @@ def rebuild_local_skills_index(root: Path) -> None:
         "",
         PL_AUTO,
     ]
+    if dup_topics:
+        warn(f"индекс локальных навыков: тема совпадает с назначением, задайте `metadata.topic`: "
+             f"{', '.join(dup_topics)}")
     LOCAL_SKILLS_INDEX.write_text("\n".join(lines), encoding="utf-8")
     info(f"Обновлен {LOCAL_SKILLS_INDEX} - навыков: {len(flat)}, каталогов SKILL.md - {len(dirs)}")
     for p in flat:
