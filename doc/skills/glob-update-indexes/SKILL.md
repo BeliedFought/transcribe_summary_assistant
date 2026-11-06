@@ -2,7 +2,7 @@
 name: glob-update-indexes
 description: Rebuilds the repository local indexes by the index_nav_standards.md canon - the skills index _index_skills_repo.md, the specifications index doc/specs/_index_specs.md, and the local skills index data/skills/_index_skills_pl.md (when the directory exists). Regenerates the full canonical skeleton (intro, mandatory application, registries, routing map, auto-update) and checks index structure against the canon checklist; supports targeted rebuilds with --skills, --specs, and --local-skills. Use when asked to update local indexes, refresh the skill or specification list, or after changes in doc/skills/, doc/specs/, or data/skills/
 metadata:
-  version: 1.6.0
+  version: 1.6.1
   status: stable
   type: hub_glob
   category: update
