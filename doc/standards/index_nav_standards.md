@@ -144,6 +144,7 @@ Local index H1 format: `# <dir> Index` (for the hub - without a repository name 
 4. Every registry row corresponds to an existing file or directory; every directory object (except the index files themselves and `.gitkeep`) is present in the registry
 5. The index does not duplicate object content - only pointers: purpose, application triggers, links to sections. Content is read in the file itself
 6. Archive elements (`<dir>/.arch/`) are not entered in the registry; a row of an archived object is removed from the registry (`project_standards.md`, 01.01)
+7. A skill purpose can be fixed in frontmatter (`metadata.purpose`; top-level `purpose` for legacy flat skills); the explicit value takes precedence over `description`. A purpose is never cut inside a phrase - only at a sentence boundary
 
 ---
 
@@ -175,6 +176,7 @@ The routing map is a table connecting a task type to directory objects (for `_in
 3. A reference points to a precise object section (section number, paragraph), not the whole document - when only a part is relevant; to the whole document - when the entire document applies
 4. Row language is Russian in Russian-language repositories; in the English agent contour rows are English. Technical identifiers (paths, masks, keys) stay English
 5. One row - one topic; do not split a row into duplicate synonyms, and do not merge until specificity is lost
+6. A skill map topic can be fixed in frontmatter (`metadata.topic`; top-level `topic` for legacy flat skills). Without it the topic is the purpose head before the first colon; with no colon the topic repeats the purpose and the row is reported for manual refinement
 
 ---
 

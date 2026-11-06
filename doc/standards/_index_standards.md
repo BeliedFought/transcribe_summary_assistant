@@ -39,7 +39,7 @@ The standards apply whenever work touches the project, tagged or not. Subagents 
 | `skill_anthropic_standards.md` | Creating, updating, migrating a skill |
 | `skill_data_standards.md` | Skill writes registries, journals, state, cache |
 | `opencode_tool_standards.md` | Creating or revising custom tools |
-| `index_nav_standards.md` | Creating or editing an index or `AGENTS.md` |
+| `index_nav_standards.md` | Creating or editing an index or `AGENTS.md`; setting skill purpose or topic fields |
 | `memory_standards.md` | Reading or updating agent memory |
 | `change_request_standards.md` | Creating, tracking, archiving a CR |
 | `repo_info_doc_standards.md` | Writing or updating `README.md` |
