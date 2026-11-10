@@ -1,4 +1,4 @@
-# Console UI Standards. Version 5.0.0
+# Console UI Standards. Version 5.0.1
 
 This document fixes the visual and navigation contract of the interactive console UI (`menu` / `rich` modes) and the mandatory reference `doc/specs/spec_ui.html`. It supplements `doc/standards/project_standards.md` and applies on top of it. All core standard requirements remain in force unless this document explicitly states otherwise.
 
@@ -77,7 +77,7 @@ A relative path such as `doc/specs/spec_ui.html` without an absolute path is an 
 - The menu is always in the top zone; the body (pending + overview) is in the middle; the `[>]` input is always below the body. Never print the menu after long content.
 - **One path for TTY and non-TTY:** print the body, a blank line, `[>]`, `input()`. No ANSI cursor tricks (CUP / CSI s/u / DECSTBM) and no body buffering. After `input()` - `clear_screen` again.
 - Always exactly one blank line before `[>]` (after the body, or after the items when there is no body).
-- Pipes and CI are not the target scenario for a color UI; the contract targets an interactive TTY. Non-interactive signs (no TTY, `CI`, `TERM=dumb`) - see `project_standards.md` (Section 04.07): the rich/menu frame degrades to plain. UI color is always on in an interactive TTY (never disabled for `NO_COLOR`).
+- Pipes and CI are not the target scenario for a color UI; the contract targets an interactive TTY. Non-interactive signs (no TTY, `CI`, `TERM=dumb`) - see `project_standards.md` (Section 04.07): the rich/menu frame degrades to plain. UI color is always on for the interactive `menu`/`rich` frame in a TTY; the rule does not cover scripts, `report`, or `plain`. The structured report and `plain` respect `NO_COLOR`, `CI`, `TERM=dumb`, and `CLI_COLOR` (`cli_output_standards.md`, 02.05).
 
 **Body sections.**
 
@@ -217,7 +217,7 @@ Roles:
 - **column header** / th - table column labels; gray bold (not the data cell color);
 - **error** / err - refusal / unavailability / failure; red.
 
-UI color is always on in an interactive scenario. The log file has no ANSI. Emoji are forbidden. Separator lines (`=====`, `-----`, `---`) are forbidden.
+UI color is always on in an interactive `menu`/`rich` scenario. The log file has no ANSI. The `report` and `plain` formats follow `cli_output_standards.md` (02.05); the interactive frame rule does not apply to them. Emoji are forbidden. Separator lines (`=====`, `-----`, `---`) are forbidden.
 
 **Change on user request:** hex role colors and the reference font styling (`spec_ui.html`: CSS `:root`, frame monospace family/size) may change on an explicit user request. Role names, the frame contract, and role application rules do not change. After a change, update the palette in `spec_ui.html`, the mockup CSS, and bump the mockup SemVer in the same change.
 
@@ -278,7 +278,7 @@ UI color is always on in an interactive scenario. The log file has no ANSI. Emoj
 
 *Required.*
 
-- User-facing menu and message strings go through `t()` (`project_standards.md`, Section 04.01), except status/unit hardcodes explicitly listed in the project `spec_ui.html`.
+- User-facing menu and message strings go through `t()` (`project_standards.md`, Section 04.01). English is the default catalog; Russian is allowed through the locale or a project override, so the frame does not cement one language. Status and unit hardcodes are allowed only when listed in the project `spec_ui.html`.
 - Record units of measure, status values in cells, and state wording in the project `spec_ui.html` method.
 - Inline commands in text use the command role (Section 03.01): helpers `emit_message_with_command` / `menu_item_with_command` or equivalent.
 - Reference hints (not an action result) use the hint role: helper `emit_hint_with_command` or equivalent; text `* <hint>`, italic + dim; an inline command uses the command role.
@@ -305,7 +305,7 @@ UI color is always on in an interactive scenario. The log file has no ANSI. Emoj
 *Required.*
 
 - **Console:** clear, color, rich tables, menu frame through the presentation channel (`src/menu.py`, `print` / ANSI clear), not through the info logger to the console. Session messages (Section 04.03) also go through `print` / `emit_session_notice`.
-- **Log file:** plain; format `YYYY-MM-DD HH:MM:SS [marker] message` (`project_standards.md` 04.04.01); tables per the hierarchy in Section 03.02; summaries and commands without ANSI; no clear.
+- **Log file:** plain; format `YYYY-MM-DD HH:MM:SS [marker] message` (`project_standards.md` 04.04.01); English by default, Russian allowed through the locale; tables per the hierarchy in Section 03.02; summaries and commands without ANSI; no clear.
 - User actions and results are written to the log even when the console shows only the current frame.
 - Service hints outside the frame body may go to the log only (`log_file_only`).
 - Entry-point logger: `mode="menu"` or `mode="rich"` (`project_standards.md`, Sections 04.06, 04.07). The `mode` parameter disables `console_message()`; the frame is rendered only by the presentation channel. Non-interactive signs (no TTY, `CI`, `TERM=dumb`) - `project_standards.md` (Section 04.07).
@@ -347,7 +347,7 @@ Messages outside the usual pending action: application start, interruption (Ctrl
 - Summaries may be several lines of one style (total, subtotal, archive path, time) - each per Section 03.04 (per-metric coloring; value `0` neutral). Do not merge unrelated totals into a second table.
 - Console - rich + colored summaries; log - plain (lines/list/summary; `tabulate` only when a tabular structure is required).
 - The column, cell status, and summary template contract lives in the project `spec_ui.html` (output point map and batch method).
-- **Interactive context:** canonical definition and signs - `project_standards.md` 04.07. Outside the interactive context - `mode="plain"`, no Live/progress. Decide once at entry-point initialization.
+- **Interactive context:** canonical definition and signs - `project_standards.md` 04.07. Outside the interactive context the rich batch frame degrades to `plain`, no Live/progress; a command whose output is a status snapshot uses `report` (`cli_output_standards.md`). Decide once at entry-point initialization.
 - Mutating batch commands require an explicit `--dry-run` (`project_standards.md` 03.01); note in the mockup if dry-run changes the set of sections/summaries (plan instead of apply).
 
 **Presentation modules (roles, not domain implementation):**
@@ -418,7 +418,8 @@ The illustrative batch frame order and two-line progress are in the `doc/specs/s
 | i18n `t()`, translations | `project_standards.md` 04.01 |
 | Markers, text style | 04.02, 04.03 |
 | Log line format, plain | 04.04.01, 04.06 |
-| Logger mode selection, progress, rich Live, interactive context | 04.07, 04.07.01, 04.07.03 |
+| Script output formats, `report`, `plain`, `--porcelain`, color, language | `cli_output_standards.md` |
+| Logger mode selection, progress, rich Live, interactive context | 04.07, 04.07.01, 04.07.03, 04.07.04 |
 | `log_file_only`, `console_message` | 04.06 |
 | `--dry-run` for CLI mutations | 03.01 |
 | GUI | 04.08; screens in `spec_ui.html` |

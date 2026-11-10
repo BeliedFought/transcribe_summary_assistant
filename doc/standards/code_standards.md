@@ -1,4 +1,4 @@
-# Code Standards. Version 5.0.0
+# Code Standards. Version 5.0.1
 
 Canonical coding requirements by language: Python, JavaScript, HTML and CSS, Shell, Windows (PowerShell and batch); data formats; shared rules (comments, TODO, line length, encoding); and linters. This document supplements `project_standards.md` and applies on top of it: project structure, configuration, output and UI, security, git, and workflow live in the core standard. For decision priority when a rule is missing or ambiguous, see `project_standards.md` (Section 07.06).
 
@@ -90,7 +90,7 @@ Rules apply to Python project code and Python skill scripts; skill script output
 | Private attributes | _snake_case | `_session`, `_config`       |
 | Modules / files    | snake_case  | `data_loader.py`            |
 
-**Naming language.** Identifiers are written in English (meaningful English words and established abbreviations: `id`, `url`, `api`, `db`, `config`). Transliterating Russian words into Latin is forbidden: use `data`, `writeoff`, `turnover`, not `dannye`, `spisanie`, `oborot`. Cyrillic in technical naming is not allowed (see also core standard Section 04.03). Human-readable user strings (UI, documentation) are Russian via `t()` or documentation; they are not code identifiers.
+**Naming language.** Identifiers are written in English (meaningful English words and established abbreviations: `id`, `url`, `api`, `db`, `config`). Transliterating Russian words into Latin is forbidden: use `data`, `writeoff`, `turnover`, not `dannye`, `spisanie`, `oborot`. Cyrillic in technical naming is not allowed (see also core standard Section 04.03). Human-readable user strings (UI) default to English via `t()`; Russian is allowed through the locale or a project override. Documentation stays Russian. User strings are not code identifiers.
 
 **Hierarchy in compound names (general to specific).** When a file, module, key, or other identifier name consists of several meaningful parts, the parts run left to right from the larger context to the narrower detail: domain / section / block / detail. Do not start with a small detail and do not put a common prefix at the end. Examples: `log_export_summary.txt` (log -> export section -> summary block), `db_init.py`, `api_sync_users.py`. Domain prefixes defined in the core standard (`db_`, `api_`, `ai_`, `email_`, `orch_`, and similar) are the first level of this hierarchy.
 

@@ -1,4 +1,4 @@
-# Anthropic Agent Skills Standards. Version 5.0.0
+# Anthropic Agent Skills Standards. Version 5.0.1
 
 This document is the single skill canon for the package. It defines the Anthropic Agent Skills format: a skill directory with a mandatory `SKILL.md`, YAML frontmatter, progressive disclosure, nested files, and scripts. It also defines the four-type taxonomy, the closed ten-category dictionary, naming, distribution, and verification. It supplements `doc/standards/project_standards.md` and applies on top of it.
 
@@ -229,13 +229,15 @@ metadata:
 
 **Skill category.** The application domain is recorded in `metadata.category` (a slug from the closed dictionary) and `metadata.category_name` (the name from the same dictionary) - 01.04. The fields are optional and filled only as a pair; `category_name` is strictly the dictionary name, local synonyms are forbidden.
 
+**Index maintenance fields.** `metadata.purpose` and `metadata.topic` are optional fields consumed by `glob-update-indexes` when it rebuilds a skill index. `metadata.purpose` overrides the first sentence of `description` as the registry purpose and must be a complete factual sentence cut only at a sentence boundary. `metadata.topic` sets the routing-map topic from the user task perspective with trigger synonyms and overrides the colon-head fallback. Both fields live in the arbitrary `metadata` dictionary allowed by the specification; a generated index cell is not a storage for edited wording, the next rebuild replaces it (`index_nav_standards.md`, 03.03 and 04.02).
+
 **Tool extensions** (outside the specification; work in a tool that supports them but do not pass strict packaging - do not use in distributed skills):
 
 | Field | Tool | Rule |
 | ----- | ---- | ---- |
 | `disable-model-invocation` | Claude Code | `true` - the skill is invoked by the user explicitly only, the agent does not apply it on its own. Destructive skills - always `true` |
 
-Package-internal fields (`id`, `auto_apply`, and others) are forbidden in SKILL.md. The `argument-hint` field is valid for Claude Code commands but not for skills.
+Package-internal fields (`id`, `auto_apply`, and others) are forbidden in SKILL.md; the index maintenance fields `metadata.purpose` and `metadata.topic` are the only exception. The `argument-hint` field is valid for Claude Code commands but not for skills.
 
 ---
 
@@ -320,7 +322,7 @@ Brief overview: what the skill does and what result is expected.
 - Terms are consistent across the skill; one entity - one name.
 - "When to use" states the application conditions. A separate "Trigger words" section and verbal synonyms of launch triggers are not allowed: launch triggers are only `ДЕЛАЙ` and `GO` (`project_standards.md`, 07.02).
 - Detail level follows task fragility: migrations and deploy - exact commands; review and analysis - principles and a checklist.
-- Language of headings, body, and `description` is uniform and **English** by default for every `doc/skills/**` skill (`project_standards.md`, 04.03). Russian is allowed only in user-facing templates, examples, and report blocks that the skill outputs to the user. Legacy team skills may keep a Russian body until migration; mixing languages in headings and body is forbidden.
+- Language of headings, body, and `description` is uniform and **English** by default for every `doc/skills/**` skill (`project_standards.md`, 04.03). Russian is allowed in user-facing templates, examples, report blocks, and script output when the project locale or an override selects it; the package does not cement one language. Legacy team skills may keep a Russian body until migration; mixing languages in headings and body is forbidden.
 - The body is text only. Allowed fenced blocks are of two kinds: invocation commands for the skill's own scripts and resources (paths from `${CLAUDE_SKILL_DIR}`) and non-executable schemes (frontmatter structure, directory tree, markup templates). Executable operation code - shell command sequences, programs, SQL - is forbidden in the body: all code goes to `scripts/` (03.03).
 - Do not mention concrete skills from concrete repositories: names of other repositories, `doc/skills/ext/<repo>/` paths, and real project skills of neighbors are forbidden. Only placeholders (`<repo-name>`, `pg-<name>`, `pl-<name>`, `glob-<name>`) and generalized examples; references to neighboring skills of the same repository are allowed.
 - Placeholders are Latin only (`<name>`, `<dir-name>`, `<repo-name>`); Cyrillic inside angle brackets is forbidden (`project_standards.md`, 04.03).
@@ -368,7 +370,7 @@ This rule is stricter than the Anthropic canon (the specification allows inline 
 - Executability: execute permission, shebang, dependencies described in the body or a resource.
 - Safety: arguments through parameters, no side effects beyond the task, destructive actions only behind an explicit flag.
 - One script - one operation; output is compact, to stdout or an artifact file.
-- Script output and text follow the core standard (`project_standards.md`) in the logger strict-mode format (04.04.01), but without a logger: every output line is `YYYY-MM-DD HH:MM:SS [marker] message`, where the time is the output moment inserted by the script itself (plain output, no `src/logger.py`, no log files, no `log` folder); monochrome stdout without ANSI colors, frames, and separator lines (04.04, 04.07.01); markers `[!]` / `[i]` / `[*]` instead of emoji (04.02); text per 04.03: Russian, no trailing period in messages, no diaeresis letter (only `е`/`Е`), no em or en dash - hyphen-minus U+002D only, no ellipsis; one line - one message (04.04.02); exit codes 0 / 1 / 2 - success / execution error / usage error (05.03).
+- Script output and text follow `cli_output_standards.md`: human status uses `report` (header, key-value block, steps `[n/m]`, `Result`, `error:` on stderr); logs and parsable streams use `plain` (`YYYY-MM-DD HH:MM:SS [marker] message`, the time inserted by the script itself, monochrome, no ANSI, no frames, no separator lines, markers `[!]` / `[i]` / `[*]`; no `src/logger.py`, no log files, no `log` folder); automation uses `--porcelain`. English is the default; Russian is allowed through the project locale or an override (04.03). Typography: no trailing period, no diaeresis letter, hyphen-minus U+002D only, no ellipsis; one line - one message (04.04.02); exit codes 0 / 1 / 2 - success / execution error / usage error (05.03).
 - Remove tool confirmations with a prefix in `allowed-tools`:
 
 ```yaml
@@ -475,7 +477,7 @@ Migration is one-way and mechanical: map the fields per the table, bring the sec
 | Skill resources | external (`run/`, `doc/specs/`) | inside the directory (`reference.md`, `scripts/`) |
 | Skill code | inline code in the body allowed (up to ~100 lines) | all executable code in `scripts/`, invocation commands in the body (03.03) |
 | Size limit | 800 lines | 500-line body |
-| Language | project language | language of expected requests (uniform for headings, body, and description); fully English for ecosystem publication |
+| Language | project language | English default, uniform for headings, body, and description; Russian allowed by project override; fully English for ecosystem publication |
 | Storage directory | `doc/skills/<repo-name>/pg_<name>.md` | `doc/skills/pg-<name>/SKILL.md`; local - `data/skills/pl-<name>/SKILL.md` |
 | Frontmatter | required plain fields (including `type`) plus arbitrary extras | strict allowlist (02.01) |
 
@@ -497,7 +499,7 @@ Migration is one-way and mechanical: map the fields per the table, bring the sec
 | Executable code in the SKILL.md body (command sequences, programs) | All code in `scripts/`; the body holds invocation commands and non-executable schemes (03.01, 03.03) |
 | Skill dependency on project scripts and modules outside the skill directory | The script is moved into the package: working copy in `scripts/`; the package transfers as one folder (03.03) |
 | Absolute machine paths in the body and scripts | `${CLAUDE_SKILL_DIR}` and passed arguments |
-| Colored or decorative script output (ANSI colors, frames, emoji), output without a timestamp | Lines `YYYY-MM-DD HH:MM:SS [marker] message` - logger strict style without a logger (04.02, 04.04.01) |
+| Colored or decorative output in `plain` or `--porcelain` (ANSI colors, frames, emoji); a log line without a timestamp | `report` color follows `cli_output_standards.md`; `plain` lines `YYYY-MM-DD HH:MM:SS [marker] message` - logger strict style without a logger (04.02, 04.04.01) |
 | Cyrillic or transliteration in `name` and file names | Latin, `kebab-case` for `name` |
 | Arbitrary category or a synonym outside the dictionary; `metadata.category` without `category_name` | Slug and name strictly from the closed dictionary (01.04), filled as a pair |
 | One skill for several unrelated scenarios | A separate directory for each scenario |
@@ -578,7 +580,7 @@ Before publishing a skill, check:
 - [ ] All executable code is in `scripts/` with `allowed-tools` and `${CLAUDE_SKILL_DIR}`; the body holds only invocation commands and non-executable schemes (03.01, 03.03)
 - [ ] The skill is self-sufficient: the directory transfers to any machine as a whole, without dependencies on source repository code and paths (03.03)
 - [ ] Skill runtime data (registries, journals, state, cache) is in repository `data/` zones with an ownership marker, not in the skill directory or body; machine-specific data is in the `<hostname>` subfolder (`doc/standards/skill_data_standards.md`)
-- [ ] Script output - lines `YYYY-MM-DD HH:MM:SS [marker] message` (the script inserts the time, no logger and no log files), monochrome (no ANSI, no frames), text per 04.03: no trailing period, no diaeresis letter, dashes - hyphen-minus only; exit codes 0 / 1 / 2 (`project_standards.md`, 04.02, 04.04, 05.03)
+- [ ] Script output follows `cli_output_standards.md`: `report` for human status, `plain` for logs (`YYYY-MM-DD HH:MM:SS [marker] message`, the script inserts the time, no logger and no log files, monochrome, no ANSI, no frames), `--porcelain` for automation; English default, Russian opt-in; no trailing period, no diaeresis letter, hyphen-minus only; exit codes 0 / 1 / 2 (`project_standards.md`, 04.02, 04.04, 05.03)
 - [ ] No duplication between the body and resources
 - [ ] No time-sensitive data and no absolute machine paths
 - [ ] No mentions of concrete skills from other repositories and no `doc/skills/ext/<repo>/` paths - only placeholders and generalized examples

@@ -1,4 +1,4 @@
-# Standards Package Index. Version 5.0.0
+# Standards Package Index. Version 5.0.1
 
 Entry point to the standards package. Tag this file to make an agent load only the documents relevant to the current task. Each overlay applies on top of `project_standards.md` for its project class.
 
@@ -30,13 +30,14 @@ The standards apply whenever work touches the project, tagged or not. Subagents 
 | `network_ops_standards.md` | Network or system work (retries, SSH, DPI/routing/SMB, mutations) |
 | `code_standards.md` | Writing or reviewing code; linter setup |
 | `console_ui_standards.md` | Menu/rich UI, batch CLI, console mockups |
+| `cli_output_standards.md` | Script and CLI console output: named formats, `report`, `plain`, `porcelain`, color, language |
 | `deploy_standards.md` | Packaging a Python tool; install/update/migration |
 | `deploy_lin_standards.md` | Installing on Linux |
 | `deploy_win_standards.md` | Installing on Windows |
 | `deploy_docker_standards.md` | Docker services, ports, logs, backups |
 | `deploy_hyperv_standards.md` | Hyper-V VM deployment |
 | `web_standards.md` | Building or deploying a web app |
-| `skill_anthropic_standards.md` | Creating, updating, migrating a skill |
+| `skill_anthropic_standards.md` | Creating, updating, migrating a skill; frontmatter `purpose` and `topic` fields |
 | `skill_data_standards.md` | Skill writes registries, journals, state, cache |
 | `opencode_tool_standards.md` | Creating or revising custom tools |
 | `index_nav_standards.md` | Creating or editing an index or `AGENTS.md`; setting skill purpose or topic fields |
@@ -56,8 +57,8 @@ Synced with `doc/standards/` (read-only in derivative repos). Load a template on
 |---|---|
 | `config.py` | `PROJECT_ROOT`, `config`, `APP_NAME`, `APP_VERSION`; Linux XDG and Windows AppData deploy variants |
 | `config.ini.example` | Canonical `config.ini` sections and keys |
-| `localization.py` | `t(key, *, count=None, **kwargs)` Russian UI localization |
-| `logger.py` | Dual-language logger: English `%s` logs, Russian UI channel, `_SecretFilter`, rotation |
+| `localization.py` | `t(key, *, count=None, **kwargs)` UI localization; English default, Russian opt-in |
+| `logger.py` | Dual-channel logger: English `%s` logs, English-default console (`report`/`plain`/`menu`/`rich`), `_SecretFilter`, rotation |
 | `progress.py` | `plain`-mode progress line helpers |
 | `gitignore.template` | Base `.gitignore` |
 | `install.py` | CLI installer (flat `src/`, `uv tool install`, `PROJECT_ROOT` swap) |
@@ -78,10 +79,11 @@ Archive rule: `.backup/<version>/` holds cold snapshots of prior package version
 | DB/API/Ollama settings, SMTP; GitHub SSH discovery | `project_standards.md` (02.01-02.06) |
 | Retry/liveness, SSH hosts and embedded targets, DPI/DNS/SNI/IPv6/CDN/SMB, system config mutation patterns | `network_ops_standards.md` |
 | Idempotency, atomic writes, `--dry-run`, non-interactive confirmation | `project_standards.md` (03.01) |
-| Output modes, TTY detection, localization `t()`, markers, formatting, errors | `project_standards.md` (04.01-04.07); `console_ui_standards.md` |
-| Language split, typography, dual-language logging | `project_standards.md` (04.03, 04.06); `human_text_standards.md` |
+| Output modes, TTY detection, localization `t()`, markers, formatting, errors | `project_standards.md` (04.01-04.07); `console_ui_standards.md`; `cli_output_standards.md` |
+| Script and CLI output: named formats, `report` default, clean `plain`, `--porcelain`, color, English default with Russian opt-in | `cli_output_standards.md`; `project_standards.md` (04.04, 04.07) |
+| Language split, typography, dual-channel logging | `project_standards.md` (04.03, 04.06); `cli_output_standards.md` (05); `human_text_standards.md` |
 | GUI startup validation and `tkinter` | `project_standards.md` (04.08) |
-| Console UI frame, keys and Russian layout, roles, tables, batch progress, `spec_ui.html` | `console_ui_standards.md` |
+| Console UI frame, keys and menu layout, roles, tables, batch progress, `spec_ui.html` | `console_ui_standards.md` |
 | Secrets, external input validation, SQL/subprocess/TLS/path safety, sudoers fragments | `project_standards.md` (05.01) |
 | Exceptions, shutdown, exit codes, privileged levels 0-3 | `project_standards.md` (05.02-05.04); `skill_anthropic_standards.md` (03.04) |
 | Git, `.gitignore`, English commits, dynamic author, pre-commit gate | `project_standards.md` (06.01) |

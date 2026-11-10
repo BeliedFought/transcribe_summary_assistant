@@ -1,4 +1,4 @@
-# Network & Operations Standards. Version 5.0.0
+# Network & Operations Standards. Version 5.0.1
 
 Rules for connection retries, channel liveness probes, SSH client configuration, embedded SSH targets, DPI-filtered networks, selective routing, SMB shares, and system configuration mutation patterns. Apply on top of `project_standards.md`. For decision priority, see `project_standards.md` (Section 07.06).
 

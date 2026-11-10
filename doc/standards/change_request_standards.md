@@ -1,4 +1,4 @@
-# Change Requests (CR). Version 5.0.0
+# Change Requests (CR). Version 5.0.1
 
 Canon for incoming change requests (`doc/change_requests/`): purpose and place in the workflow, folder and naming, document skeleton, lifecycle, transfer to a live specification, and directory index. The document supplements `project_standards.md` and applies on top of it. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 

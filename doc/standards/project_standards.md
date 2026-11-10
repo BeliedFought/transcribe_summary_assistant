@@ -1,4 +1,4 @@
-# Project Standards. Version 5.0.0
+# Project Standards. Version 5.0.1
 
 Core rules across initialization, development, refactoring, and maintenance. Coding rules: `doc/standards/code_standards.md`. SQLite marts, `diag/`/`tmp/`/`test/`, sessions, SQL/migrations, and `run/` CLI: `doc/standards/cli_data_standards.md`. Retries, SSH, DPI/routing, and system config mutations: `doc/standards/network_ops_standards.md`. Universal rules apply to all repos; Python rules (`.venv`, `requirements.txt`, `pytest`) apply to Python projects; deviations use `doc/specs/overrides.md` (Section 01.01.02). Tagging `@doc/standards/project_standards.md` runs the audit in Section 07.04.
 
@@ -7,7 +7,7 @@ Core rules across initialization, development, refactoring, and maintenance. Cod
 - **01. Structure & Config:** `01.01` Layout (`01.01.01`-`01.01.07`), `01.02` `config.ini`, `01.03` Identity/SemVer, `01.04` Paths, `01.05` Validation, `01.06` Deps, `01.07` `.venv`
 - **02. Connections:** `02.01`-`02.03` DB/API/Ollama, `02.04` Retry, `02.05` GitHub SSH, `02.06` SMTP, `02.07` SSH Hosts, `02.08` DPI/Routing
 - **03. Architecture & CLI:** `03.01` Idempotency, Atomicity & `--dry-run`, `03.02` SQL (`03.02.01`-`03.02.03`), `03.03` `run/` (`03.03.01`-`03.03.04`), `03.04` CLI
-- **04. Output & UI:** `04.01` `t()`, `04.02` Markers, `04.03` Language Split & Typography, `04.04` Format (`04.04.01`-`04.04.06`), `04.05` Errors, `04.06` Logging, `04.07` Modes (`04.07.01`-`04.07.03`), `04.08` GUI
+- **04. Output & UI:** `04.01` `t()`, `04.02` Markers, `04.03` Language Split & Typography, `04.04` Format (`04.04.01`-`04.04.06`), `04.05` Errors, `04.06` Logging, `04.07` Modes (`04.07.01`-`04.07.04`), `04.08` GUI
 - **05. Security:** `05.01` Secrets & Sudoers, `05.02` Exceptions, `05.03` Shutdown & Exit Codes, `05.04` Privileged Operations (Levels 0-3)
 - **06. Git & Testing:** `06.01` Git & Pre-Commit Gate, `06.02` `README.md` & `AGENTS.md`, `06.03` Debugging, `06.04` Testing
 - **07. Workflow:** `07.01` Superpowers & Subagents, `07.02` Clarification, Specs & `ДЕЛАЙ`/`GO`, `07.03` Init, `07.04` Audit, `07.05` Hub Editing, `07.06` Decision Cascade
@@ -202,8 +202,8 @@ Domain entry points live in `run/{db,api,ai,email}/` (`<domain>_<action>.py`). S
 
 ## 04.01. Localization (`i18n` and `src/localization.py`)
 
-- **Dual-language boundary:** all **user-facing UI and console output** (`menu`, `rich`, GUI widgets, `--help`, and user status/error notices in `plain` mode) is rendered in **Russian** via `t(key, *, count=None, **kwargs)` from `src/localization.py` (`config/translations.json` or SQLite `translations` table). Internal technical logs use **English** with `%s` formatting without `t()` (Section 04.06). Developer-only check scripts in `run/` may omit `t()` if recorded in the project spec.
-- **Keys & fallback:** dot-separated Latin keys (`menu.*`, `msg.*`, `error.*`, `title.*`, `prompt.*`, `label.*`, `help.*`) with plural suffixes (`.zero`, `.one`, `.few`, `.many`). Priority: `[app] language` -> `LANGUAGE` -> locale -> `"en"`. Fallback: `active_lang -> default_lang -> "!KEY!"`. No literal `{}` outside `{param}`.
+- **Language boundary:** **user-facing UI and console output** (`report`, `menu`, `rich`, GUI widgets, `--help`, and status/error notices in `plain` and `report` modes) defaults to **English** and goes through `t(key, *, count=None, **kwargs)` from `src/localization.py` (`config/translations.json` or SQLite `translations` table); `en` is the default locale. Russian is allowed through `t()`, `[app] language`, `LANGUAGE`, or a project override. Internal technical logs use **English** with `%s` formatting without `t()` (Section 04.06). Developer-only check scripts in `run/` may omit `t()` if recorded in the project spec.
+- **Keys & fallback:** dot-separated Latin keys (`menu.*`, `msg.*`, `error.*`, `title.*`, `prompt.*`, `label.*`, `help.*`) with plural suffixes (`.zero`, `.one`, `.few`, `.many`). Priority: `[app] language` -> `LANGUAGE` -> locale -> `"en"`. The default catalog is English; Russian is an optional translation. Fallback: `active_lang -> default_lang -> "!KEY!"`. No literal `{}` outside `{param}`.
 - **API contract:** `t(key, *, count=None, **kwargs) -> str`, `init(language=None) -> None`, `reload(language=None) -> None`. **Template:** `doc/standards/templates/localization.py`.
 
 ## 04.02. Text Markers (No Emoji)
@@ -212,7 +212,8 @@ Domain entry points live in `run/{db,api,ai,email}/` (`<domain>_<action>.py`). S
 
 ## 04.03. Language Split and Typography Rules
 
-- **Human Contour (Russian):** user chat responses, `README.md`, user guides, `doc/specs/`, `doc/change_requests/`, `data/lessons.md`, `SESSION.md`, and user-facing UI/console strings via `t()` (`translations.json`, `spec_ui.html`). Governed by `doc/standards/human_text_standards.md` and its three dictionaries.
+- **Human Contour (Russian):** user chat responses, `README.md`, user guides, `doc/specs/`, `doc/change_requests/`, `data/lessons.md`, `SESSION.md`. Governed by `doc/standards/human_text_standards.md` and its three dictionaries.
+- **User-Facing Output (English default, Russian opt-in):** console strings, `report`, `menu`, `rich`, GUI widgets, and `--help` via `t()` (`translations.json`, `spec_ui.html`). English is the default catalog; Russian is allowed through `t()`, `[app] language`, `LANGUAGE`, or a project override, so the package does not cement one language. Format canon - `cli_output_standards.md`.
 - **Agent and Code Contour (English):** code identifiers, filenames, config/translation keys (Latin only, no transliteration; `code_standards.md`, Section 02.01), code comments and docstrings, technical log records (`logger.*` with `%s`), git commit messages (Section 06.01), subagent briefs/reports, `AGENTS.md` / `CLAUDE.md`, `doc/standards/*.md`, `doc/skills/**`, and `_index_*.md`. (Cyrillic allowed only in `[app] name`, session folder names `YYYY-MM-DD_<Cyrillic-Slug>`, and user content filenames in `output/`/`data/`/`input/`/`backup/`).
 - **Typography Rules (mandatory across all contours):**
   - **Hyphen-minus (`-`, U+002D) only:** never use em dash (U+2014) or en dash (U+2013), including number ranges (`10-15`).
@@ -225,11 +226,11 @@ Domain entry points live in `run/{db,api,ai,email}/` (`<domain>_<action>.py`). S
 
 ### 04.04.01. Line Format
 
-Log file (always, English) and `plain` console through `console_message()` (Russian): `YYYY-MM-DD HH:MM:SS [marker] message`. `menu` console: `message` (no prefix). `rich` console: styled via `src/rich_console.py` (Section 04.07.03).
+Log file (always, English) and `plain` console through `console_message()` (English default, Russian opt-in): `YYYY-MM-DD HH:MM:SS [marker] message`. `report` console: structured report (`cli_output_standards.md`, Section 02). `menu` console: `message` (no prefix). `rich` console: styled via `src/rich_console.py` (Section 04.07.03).
 
 ### 04.04.02. General Formatting Rules
 
-One message per line; no separator lines (`=====`, `-----`), emoji, or trailing periods; zero-pad counters (`09/23`). Log files are monochrome; `menu`/`rich` colors follow `doc/specs/spec_ui.html` (`console_ui_standards.md`).
+One message per line; no separator lines (`=====`, `-----`), emoji, or trailing periods; zero-pad counters (`09/23`). Log files and `plain` are monochrome; `report` color follows `cli_output_standards.md` (02.05); `menu`/`rich` colors follow `doc/specs/spec_ui.html` (`console_ui_standards.md`).
 
 ### 04.04.03. Block Spacing
 
@@ -249,22 +250,22 @@ Single-line `prefix: key: N, key: M` via `t()` without panels (`console_ui_stand
 
 ## 04.05. Error Wording and Terminology
 
-Format user-facing errors as single-line human-readable messages via `t()` without raw subprocess `stderr`/`stdout` or internal jargon. Keep domain terminology uniform everywhere.
+Format user-facing errors as single-line human-readable messages via `t()` (English default, Russian opt-in) without raw subprocess `stderr`/`stdout` or internal jargon. Keep domain terminology uniform everywhere.
 
-## 04.06. Dual-Language Logging (`src/logger.py`)
+## 04.06. Dual-Channel Logging (`src/logger.py`)
 
-- **Dual-language contract:** `logger.debug/info/warning/error/exception` write **English** technical records to the **log file only**, using lazy `%s` formatting (`logger.info("Loaded %d rows from %s", count, table)`), never f-strings or `t()`. User-facing console output is **Russian** via `console_message(level, t("key", ...))` in `plain` mode; in `menu`/`rich` modes the presentation layer (`src/menu.py`, `src/rich_console.py`) renders the screen and `console_message()` is a no-op. Use `log_file_only(logger, message, level)` for explicit audit events.
+- **Dual-channel contract:** `logger.debug/info/warning/error/exception` write **English** technical records to the **log file only**, using lazy `%s` formatting (`logger.info("Loaded %d rows from %s", count, table)`), never f-strings or `t()`. User-facing console output defaults to **English** via `console_message(level, t("key", ...))` in `plain` mode and as a bare line without a timestamp in `report` mode; Russian is allowed through the locale. In `report` mode the structured block is rendered by the report helpers (`cli_output_standards.md`, Section 02); in `menu`/`rich` modes the presentation layer (`src/menu.py`, `src/rich_console.py`) renders the screen and `console_message()` is a no-op. The log file always uses `plain`, regardless of the console mode. Use `log_file_only(logger, message, level)` for explicit audit events.
 - **Files & levels:** one file per run at `log/log_<script_name>_<YYYY-MM-DD_HH-MM-SS>.log`. `[logging] file_level` (default `DEBUG`) sets the `FileHandler` level. `[logging] keep_last` (default `0`) rotates older logs per script. `_SecretFilter` masks `SECRET_KEYS` (Section 05.01).
 - **Permitted `print()` exemptions (no log file):** (1) `scripts/` in Anthropic skills (full `YYYY-MM-DD HH:MM:SS [marker] message` emulation required), (2) temporary scripts in `tmp/`/`debug/`, (3) agreed read-only check scripts in `run/`, (4) custom OpenCode tool scripts (`opencode_tool_standards.md`).
 - **Template:** `doc/standards/templates/logger.py`.
 
 ## 04.07. Console Output Modes
 
-Select `mode="plain" | "menu" | "rich"` in `get_logger()`. **Interactive context (TTY):** `sys.stdout.isatty()` is true and neither `CI` nor `TERM=dumb` is set (plus `sys.stdin.isatty()` for `menu`). Decide fallback once at startup: outside interactive context, degrade to `plain` without `Live`/colors and never call `input()`.
+Select `mode="report" | "plain" | "menu" | "rich"` in `get_logger()`. The default is `report` for human-facing output; `plain` is the clean mode for logs and parsable streams; `menu` and `rich` are interactive TTY modes selected explicitly. **Interactive context (TTY):** `sys.stdout.isatty()` is true and neither `CI` nor `TERM=dumb` is set (plus `sys.stdin.isatty()` for `menu`). Decide fallback once at startup: outside interactive context, degrade `menu`/`rich` to `plain` without `Live`/colors and never call `input()`. The log file always uses `plain`, regardless of the console mode (`cli_output_standards.md`, 01.01).
 
-### 04.07.01. Strict Mode (`plain`) and `src/progress.py`
+### 04.07.01. Clean Stream (`plain`) and `src/progress.py`
 
-Default mode. For long loops, use `src/progress.py` (`update_progress(line)` via `\r` and `clear_progress()` via `\r\033[K` on `sys.stdout`, bypassing the log file), calling `clear_progress()` on completion and `SIGINT` before printing the final summary via `console_message()`. **Template:** `doc/standards/templates/progress.py`.
+Clean mode for logs and parsable streams. Not the default for human status output; `report` is. For long loops, use `src/progress.py` (`update_progress(line)` via `\r` and `clear_progress()` via `\r\033[K` on `sys.stdout`, bypassing the log file), calling `clear_progress()` on completion and `SIGINT` before printing the final summary via `console_message()`. **Template:** `doc/standards/templates/progress.py`.
 
 ### 04.07.02. Interactive Menu (`menu`)
 
@@ -274,9 +275,13 @@ Rendered by `src/menu.py` without raw ANSI cursor positioning; governed by `cons
 
 Rendered by `src/rich_console.py`, `src/console_table.py`, and `src/console_summary.py`; governed by `console_ui_standards.md` and `doc/specs/spec_ui.html`. Stop `Live`/progress on `SIGINT`/`SIGTERM`.
 
+### 04.07.04. Structured Report (`report`)
+
+Default for human-facing status output. Renders a snapshot of one object: header, key-value block with a 16-character key column, steps `[n/m]`, and a final `Result` line. Errors go to stderr as `error: <text>`; exit codes are `0`/`1`/`2`. Color follows `CLI_COLOR`, `NO_COLOR`, `FORCE_COLOR`, and auto-detection; `plain` and `--porcelain` never receive ANSI. The full contract and examples - `cli_output_standards.md` (Section 02).
+
 ## 04.08. Graphical User Interface (GUI)
 
-Launch from `main.py` (`{APP_NAME} v{APP_VERSION}` title, `tkinter` by default), isolating UI in `src/gui/` with all strings via `t()` and blocking I/O on background threads. Run startup validation (Section 01.05) before opening the window; on critical failure, report via `t()` and exit with **`sys.exit(2)`**.
+Launch from `main.py` (`{APP_NAME} v{APP_VERSION}` title, `tkinter` by default), isolating UI in `src/gui/` with all strings via `t()` (English default, Russian opt-in) and blocking I/O on background threads. Run startup validation (Section 01.05) before opening the window; on critical failure, report via `t()` and exit with **`sys.exit(2)`**.
 
 ---
 
@@ -382,7 +387,8 @@ Priority order: (1) current dialogue user instructions -> (2) `SESSION.md` overr
 - **Data Mart / Pipeline Modes:** local `data/mart.sqlite` snapshot and `local` / `refresh` modes (`01.01.03`, `cli_data_standards.md` 01.01-01.02).
 - **Lessons Log / Agent Memory:** append-only `data/lessons.md` (`01.01.07`) vs persistent context in `data/memory/` (`memory_standards.md`).
 - **Orchestrator / Migration:** pipeline entry point `main.py` or `orch_*` (`01.01`) / one-time `sql/migrations/M<N>_*.sql` in `schema_version` (`03.02.03`, `cli_data_standards.md` 04.02).
-- **Dual-Channel / Interactive Context:** English file logs (`logger.*`) vs Russian console UI (`console_message`, `menu`/`rich`) (`04.06`) / TTY without `CI` or `TERM=dumb` (`04.07`).
+- **Dual-Channel / Interactive Context:** English file logs (`logger.*`) vs user-facing console output (`report`, `plain`, `menu`/`rich`; English default, Russian opt-in) (`04.06`) / TTY without `CI` or `TERM=dumb` (`04.07`).
+- **Output Format (`report` / `plain` / `menu` / `rich` / `porcelain`):** human status report, clean stream for logs and parsing, interactive menu, rich console, and machine-readable `--porcelain` (`cli_output_standards.md`, 01.01).
 - **Frame / Role / Batch CLI / `spec_ui.html`:** console screen unit, semantic style role, two-line rich-progress CLI, and visual UI/log spec (`console_ui_standards.md`).
 - **Init vs Active Specs:** pre-MVP `doc/specs/init/` (archived to `.arch/` at MVP) vs modular `doc/specs/spec_<module>.md` (`07.02`, `07.03`).
 - **Front / Backend / Pre-Commit Hook:** nginx server block vs FastAPI uvicorn process (`web_standards.md` 01.02) / `.githooks/pre-commit` gate (`06.01`).
@@ -394,7 +400,7 @@ Priority order: (1) current dialogue user instructions -> (2) `SESSION.md` overr
 ## 09.01. Related Standards
 
 - **Core & Architecture:** `_index_standards.md` (registry, routing, SemVer), `cli_data_standards.md` (`mart.sqlite`, `diag/`/`tmp/`/`test/`, `SESSION.md`, `sql/`, `run/`), `network_ops_standards.md` (retries, SSH, DPI/routing/SMB, config mutations), `code_standards.md` (languages & linters).
-- **UI & Text:** `console_ui_standards.md` (`menu`, `rich`, `spec_ui.html`), `human_text_standards.md` + `human_text_*_standards.md` (Russian text rules and dictionaries), `repo_info_doc_standards.md` (`README.md`), `software_doc_standards.md` (install guides).
+- **UI & Text:** `console_ui_standards.md` (`menu`, `rich`, `spec_ui.html`), `cli_output_standards.md` (named formats, `report`, `plain`, `porcelain`, color, language), `human_text_standards.md` + `human_text_*_standards.md` (Russian text rules and dictionaries), `repo_info_doc_standards.md` (`README.md`), `software_doc_standards.md` (install guides).
 - **Deploy & Web:** `deploy_standards.md`, `deploy_lin_standards.md`, `deploy_win_standards.md`, `deploy_docker_standards.md`, `deploy_hyperv_standards.md`, `web_standards.md`.
 - **Agent Ecosystem:** `skill_anthropic_standards.md`, `skill_data_standards.md`, `opencode_tool_standards.md`, `memory_standards.md`, `index_nav_standards.md`, `change_request_standards.md`.
 

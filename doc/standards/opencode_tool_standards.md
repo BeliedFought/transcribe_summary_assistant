@@ -1,4 +1,4 @@
-# OpenCode Custom Tool Standards. Version 5.0.0
+# OpenCode Custom Tool Standards. Version 5.0.1
 
 This document defines rules for creating custom tools for opencode: location and naming, registration through a plugin, argument schema, `description` field, thin wrapper over an external script, output and errors for the agent, permissions, and mutations. It supplements `doc/standards/project_standards.md` and applies on top of it.
 
@@ -245,7 +245,7 @@ Rules:
 
 - All logic is in the external project script (`run/`, `src/`); the wrapper has no business logic. The script is testable and reusable independently of opencode.
 - The script does not depend on the current working directory - only on passed arguments and the path from `ctx.location`.
-- Script output and text follow the core standard: lines `YYYY-MM-DD HH:MM:SS [marker] message`, monochrome stdout without ANSI colors and frames, markers `[!]` / `[i]` / `[*]`, text per 04.03 (Russian, no trailing period in messages, no diaeresis letter, dashes - hyphen-minus only), exit codes 0 / 1 / 2 (`project_standards.md`, 04.02-04.04, 05.03); output format - 03.02 of this document.
+- Script output and text follow `cli_output_standards.md`: human status uses `report`; logs and parsable streams use `plain` (`YYYY-MM-DD HH:MM:SS [marker] message`, monochrome, no ANSI, no frames, markers `[!]` / `[i]` / `[*]`); automation uses `--porcelain`. English is the default; Russian is allowed through the locale or a project override (04.03). Typography: no trailing period, no diaeresis letter, hyphen-minus only. Exit codes 0 / 1 / 2 (`project_standards.md`, 04.02-04.04, 05.03); the wrapper result format is 03.02 of this document.
 - Script dependencies are in the project dependencies (`requirements.txt`); the plugin adds no dependencies.
 - Process launch uses plugin runtime facilities (`node:child_process`, `Bun.spawn`, and similar) with `context.signal` passed; in V2 the `Bun.$` helper is not provided to the plugin, the process is managed by plugin code.
 - Script noise (stack traces, progress, timings) is filtered by the wrapper: success - a brief mark, full output only on a non-zero exit code.
@@ -436,7 +436,7 @@ Before publishing a tool, check:
 - [ ] The argument schema is JSON Schema with a description for every field; required arguments are minimal (02.02)
 - [ ] `description`: WHAT + WHEN + constraints + response composition (02.03)
 - [ ] Logic is in the external script; the wrapper only launches and shapes the response (03.01)
-- [ ] The process launch passes `context.signal`; the script does not depend on cwd; output follows the marker format; exit codes 0 / 1 / 2 (03.01)
+- [ ] The process launch passes `context.signal`; the script does not depend on cwd; output follows `cli_output_standards.md` (`report`, `plain`, or `--porcelain`); exit codes 0 / 1 / 2 (03.01)
 - [ ] The result is a `Tool.Result`; `content` is high-signal and truncated by the wrapper, artifacts are `file` parts (03.02)
 - [ ] Errors are fixable messages with an input example, without stack traces (03.03)
 - [ ] A mutating tool is in `permissions` with at least `ask`; read-only may be `allow` (04.01)

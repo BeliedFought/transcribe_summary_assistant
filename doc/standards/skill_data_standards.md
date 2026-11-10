@@ -1,4 +1,4 @@
-# Skill Runtime Data Standards. Version 5.0.0
+# Skill Runtime Data Standards. Version 5.0.1
 
 This document canonizes storage of data that skills create and maintain during execution: registries, journals, state markers, and cache. Principle: a skill is an engine, not a storage; the skill directory contains only a static package, while runtime data lives in repository zones. The rules are uniform for all skill types (`hub_loc`, `hub_glob`, `pr_glob`, `pr_loc`). The document supplements `project_standards.md` and applies on top of it together with the skill standards.
 

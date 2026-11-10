@@ -1,4 +1,4 @@
-# CLI & Data Architecture Standards. Version 5.0.0
+# CLI & Data Architecture Standards. Version 5.0.1
 
 Architecture, storage, and entry-point rules for CLI pipelines, local SQLite data marts, diagnostic/test harnesses, session subprojects, SQL layout/migrations, and `run/` scripts. Apply on top of `project_standards.md`. For decision priority, see `project_standards.md` (Section 07.06).
 
@@ -203,7 +203,7 @@ Architecture, storage, and entry-point rules for CLI pipelines, local SQLite dat
 ## 05.01. Entry Points (`run/{db,api,ai,email}`) and Domain Verification Scripts
 
 - Group user-invocable scripts under `run/<domain>/` with filename prefix `<domain>_<action>.py`. Keep the repository orchestrator at root `main.py` and session orchestrators at `<session>/run/orch_*.py` (`project_standards.md`, Section 01.01).
-- Create the standard verification scripts below whenever the project uses the corresponding domain (output messages use `t()` in Russian with automatic logger markers `[i]` / `[*]` / `[!]`, `project_standards.md`, Section 04.04.01):
+- Create the standard verification scripts below whenever the project uses the corresponding domain (output messages use `t()` in English by default with Russian opt-in, plus automatic logger markers `[i]` / `[*]` / `[!]`, `project_standards.md`, Section 04.04.01):
 
 | Domain | Script | Behavior |
 |--------|--------|----------|
@@ -220,11 +220,12 @@ Architecture, storage, and entry-point rules for CLI pipelines, local SQLite dat
 ## 05.02. CLI Conventions (`argparse`, `--help` via `t()`, Exit Code 2, and Mutator Item Contract)
 
 - Parse CLI arguments with standard-library `argparse` (external CLI frameworks like `click` or `typer` require explicit justification in `requirements.txt`, `project_standards.md`, Section 01.06).
-- Support `--help` on every CLI entry point with help strings localized via `t()` (`project_standards.md`, Section 04.01).
+- Support `--help` on every CLI entry point with help strings localized via `t()` (English default, Russian opt-in; `project_standards.md`, Section 04.01).
 - Use long English kebab-case flags (`--output-dir`, `--mode`, `--dry-run`); single-letter short flags are optional aliases and never replace long flags.
 - On any unknown flag or invalid argument, print usage/help and exit with code `2` (`project_standards.md`, Section 05.03); never ignore unknown flags silently.
 - Read defaults from `config/config.ini` and let explicit CLI flags override config values.
 - Support `--dry-run` on all mutating entry points (`project_standards.md`, Section 03.01) and `--mode local|refresh` on data mart pipelines (Section 01.02).
+- Support `--porcelain` on scripts whose output is consumed by automation; the human default stays `report` (`cli_output_standards.md`, 04.01).
 - **Mutating CLI item status contract:**
   - Distinguish between **unavailable** (`недоступно` - a fixable precondition is missing) and **not applicable** (`неприменимо` - structurally irrelevant to the current environment, omitted from candidates and never treated as an error).
   - When the user explicitly selects an unavailable item, fail immediately with an error and stop. When running in batch mode (`--all`), skip unavailable items with a `[*]` warning and continue.

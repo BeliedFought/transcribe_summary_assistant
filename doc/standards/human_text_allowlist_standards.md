@@ -1,4 +1,4 @@
-# Human Text Allowlist Standards. Version 5.0.0
+# Human Text Allowlist Standards. Version 5.0.1
 
 Allowlist of human-facing texts: preferred constructions, phrases, and schemes that replace stop words and AI text markers. This document supplements `human_text_standards.md` and applies together with the other package dictionaries. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 

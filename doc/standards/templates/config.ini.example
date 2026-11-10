@@ -1,7 +1,7 @@
 [app]
 name =
 version = 0.1.0
-; language = ru
+; language = en  ; optional: ru
 
 [paths]
 ; keep only paths relevant to the project; remove unused ones

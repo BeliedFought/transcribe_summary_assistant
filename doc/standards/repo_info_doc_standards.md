@@ -1,4 +1,4 @@
-# Repository Human Documentation: README and Descriptions. Version 5.0.0
+# Repository Human Documentation: README and Descriptions. Version 5.0.1
 
 Canon for human repository documents: README.md, instructions, and user descriptions. The document supplements `project_standards.md` and applies on top of it. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 

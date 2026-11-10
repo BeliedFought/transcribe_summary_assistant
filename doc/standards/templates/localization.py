@@ -1,6 +1,8 @@
 """
 Project localization module for user-facing UI and console output.
 
+English is the default user-facing language; Russian is an optional translation
+selected through [app] language, LANGUAGE, or a project override.
 Loads translations from config/translations.json (sections: meta, translations).
 Fallback chain: active language -> default_lang -> !KEY!.
 

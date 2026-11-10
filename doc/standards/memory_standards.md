@@ -1,4 +1,4 @@
-# Agent Memory (data/memory). Version 5.0.0
+# Agent Memory (data/memory). Version 5.0.1
 
 Canon for persistent AI agent memory: two scopes (project and session), a closed file list, strict structure, and rules for reading and updating. The document supplements `project_standards.md` and applies on top of it. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 

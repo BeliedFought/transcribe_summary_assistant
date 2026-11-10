@@ -1,4 +1,4 @@
-# Deploy Standards. Version 5.0.0
+# Deploy Standards. Version 5.0.1
 
 This document defines OS-agnostic rules for installing a Python project as a system CLI tool. It supplements `doc/standards/project_standards.md` and applies on top of it. All core requirements remain in force unless this document explicitly overrides them.
 

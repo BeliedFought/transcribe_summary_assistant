@@ -1,4 +1,4 @@
-# Repository Navigation Documents: Indexes and AGENTS.md. Version 5.0.0
+# Repository Navigation Documents: Indexes and AGENTS.md. Version 5.0.1
 
 Canon for repository navigation documents: directory indexes and the agent instruction file `AGENTS.md`. Purpose - fast and accurate AI agent routing: in one pass over an index the agent determines which files to open for a task and does not load whole directories. The document supplements `project_standards.md` and applies on top of it. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 
@@ -248,6 +248,8 @@ Three indexes for different levels:
 
 Skill registry columns: directory name, class (by `metadata.type`), application domain (`metadata.category` / `metadata.category_name`), version (`metadata.version`), purpose and when to apply (`description`). Class is determined by the type slug (`skill_anthropic_standards.md`, 01.03): `hub_glob` - global, `pr_glob` - project, `hub_loc` - hub, `pr_loc` - local. The application domain is the category slug and its name from the closed dictionary (`skill_anthropic_standards.md`, 01.04); the category is optional, and when absent the column is filled with `-`. The local skill index link is placed in the repo-specific part of `AGENTS.md` (when the `data/skills/` directory exists).
 
+The generator owns the canonical skeleton and the registry and map cells; sections outside the skeleton are preserved and emitted after `## Index Auto-Update` (03.01), so repository-specific blocks such as `## Running all cfg skills` survive a rebuild. An empty registry table is not emitted. Edited cells do not survive: a durable purpose and topic are stored in `metadata.purpose` and `metadata.topic` (03.03, 04.02).
+
 ---
 
 ## 06.03. Specifications index
@@ -421,7 +423,7 @@ The order and names of sections are fixed; language - English.
 | Section | Layer | Purpose |
 | ------- | ----- | ------- |
 | Session Entry Points | static | session entry points (standards, skills, specifications indexes); agent memory `data/memory/memory.md` when the directory exists; ignored directories; index auto-update on tagging without a task |
-| Language & Typography Matrix | static | Russian human contour (chat, README, specs, plans, CR, UI via `t()`) versus English agent and code contour (code, comments, docstrings, technical logs, commits, agent documents, standards, skills); typography rules; duplication follows from static-block self-sufficiency (07.04); optional machine layer; takes precedence when present; no contradiction between the machine layer and the static block for typography and the language split; references to `~/.config/opencode/AGENTS.md` and `human_text_standards.md` |
+| Language & Typography Matrix | static | Russian human contour (chat, README, specs, plans, CR) versus user-facing output (English default, Russian opt-in: console, `report`, `menu`/`rich`, GUI, `--help` via `t()`) versus English agent and code contour (code, comments, docstrings, technical logs, commits, agent documents, standards, skills); typography rules; duplication follows from static-block self-sufficiency (07.04); optional machine layer; takes precedence when present; no contradiction between the machine layer and the static block for typography and the language split; references to `~/.config/opencode/AGENTS.md` and `human_text_standards.md` |
 | Development Process | static | mandatory superpowers skills; task classification (Spike / Bounded / Architectural); Russian specs and plans; isolated task delegation; fact-checking cascade |
 | Safety, Git & Boundaries | static | approval gate; `.trash/` quarantine; sudo levels; git branch, commits, authorship; no AI mention; no package version bump without a request; `CLAUDE.md` mirror policy |
 | Repository Specifics | repo-specific | all repository-specific subsections: purpose, structure, skills, commit scopes, specifics |
@@ -454,10 +456,11 @@ This file contains instructions for AI agents working with this project.
 
 | Contour | Artifacts | Language |
 | --- | --- | --- |
-| Human | Chat responses, `README.md`, user guides, `doc/specs/`, implementation plans, `doc/change_requests/`, UI and console text through `t()` | Russian |
+| Human | Chat responses, `README.md`, user guides, `doc/specs/`, implementation plans, `doc/change_requests/` | Russian |
+| User-facing output | Console strings, `report`, `menu`/`rich`, GUI widgets, `--help` through `t()` | English by default; Russian opt-in |
 | Agent and code | `AGENTS.md`, `CLAUDE.md`, standards, indexes, skills, code, comments, docstrings, technical logs (`logger.*`), commit messages, subagent communication | English |
 
-Typography applies to both contours: hyphen-minus `-` only (no em dash or en dash), letter `е` without diaeresis, no ellipsis, no emoji, no exclamation marks, no non-breaking or narrow spaces. User-facing text follows `doc/standards/human_text_standards.md`; the machine override is `~/.config/opencode/AGENTS.md`; the core rule is `project_standards.md` (04.03). This block is self-sufficient and keeps the rules for sessions where the machine layer is absent. When the machine layer is present, it takes precedence over this block; the two texts must not contradict. Do not remove the rules as duplicates.
+Typography applies to all contours: hyphen-minus `-` only (no em dash or en dash), letter `е` without diaeresis, no ellipsis, no emoji, no exclamation marks, no non-breaking or narrow spaces. User-facing output defaults to English; Russian is allowed through `t()`, `[app] language`, `LANGUAGE`, or a project override. Documentation, specifications, change requests, and chat stay Russian. User-facing text follows `doc/standards/human_text_standards.md`; the machine override is `~/.config/opencode/AGENTS.md`; the core rule is `project_standards.md` (04.03). This block is self-sufficient and keeps the rules for sessions where the machine layer is absent. When the machine layer is present, it takes precedence over this block; the two texts must not contradict. Do not remove the rules as duplicates.
 
 The language split in the table above is self-sufficient and applies when the machine layer is absent. When the machine layer is present, its `## Language` section takes precedence on conflict; the two texts must not contradict.
 

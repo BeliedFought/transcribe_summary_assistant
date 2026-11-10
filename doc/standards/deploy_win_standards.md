@@ -1,4 +1,4 @@
-# Windows Deploy Standards. Version 5.0.0
+# Windows Deploy Standards. Version 5.0.1
 
 OS overlay for `deploy_standards.md` (shared core). Apply it together with the core and `project_standards.md` to install a project as a system tool on Windows. This document contains Windows specifics only; general deploy rules live in the core.
 

@@ -1,4 +1,4 @@
-# Hyper-V Linux VM Deployment Standards. Version 5.0.0
+# Hyper-V Linux VM Deployment Standards. Version 5.0.1
 
 Host-level OS overlay. Apply it together with `project_standards.md` and `web_standards.md` to deploy a Linux VM on a Windows host with Hyper-V. This document covers only the Windows/Hyper-V host level and initial guest OS setup; the web application is deployed on this VM per `web_standards.md`.
 
