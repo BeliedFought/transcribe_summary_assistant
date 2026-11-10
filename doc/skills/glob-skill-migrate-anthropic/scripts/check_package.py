@@ -51,14 +51,14 @@ def check_category(fm: str, skill_dir: Path) -> int:
     if not category and not category_name:
         return 0
     if not category or not category_name:
-        fail("frontmatter: category и category_name заполняются только парой")
+        fail("frontmatter: category and category_name must be filled as a pair")
         return 1
     if category not in CATEGORY_NAMES:
-        fail(f"metadata.category ({category}) не из справочника - допустимы: {', '.join(CATEGORY_NAMES)}")
+        fail(f"metadata.category ({category}) is not in the reference - allowed: {', '.join(CATEGORY_NAMES)}")
         errors += 1
     elif category_name not in (CATEGORY_NAMES[category], CATEGORY_NAMES_EN[category]):
         fail(
-            f"metadata.category_name ({category_name}) не соответствует справочнику для {category} "
+            f"metadata.category_name ({category_name}) does not match the reference for {category} "
             f"({CATEGORY_NAMES_EN[category]} / {CATEGORY_NAMES[category]})"
         )
         errors += 1
@@ -66,7 +66,7 @@ def check_category(fm: str, skill_dir: Path) -> int:
     if prefix:
         segment = name_category(skill_dir.name, prefix)
         if segment != category:
-            fail(f"второй сегмент имени каталога ({segment}) не совпадает с metadata.category ({category})")
+            fail(f"second segment of the directory name ({segment}) does not match metadata.category ({category})")
             errors += 1
     return errors
 
@@ -75,16 +75,16 @@ def check_type(fm: str, skill_dir: Path) -> int:
     """Check the skill type: metadata.type - a valid slug matching the prefix."""
     errors = 0
     if re.search(r"^type:\s*\S", fm, re.MULTILINE):
-        fail("frontmatter: верхнеуровневое поле type недопустимо - тип в metadata.type")
+        fail("frontmatter: top-level field type is not allowed - the type belongs in metadata.type")
         errors += 1
     match_type = re.search(r"^\s+type:\s*(\S+)", fm, re.MULTILINE)
     if not match_type:
-        fail("frontmatter: metadata.type не найден - поле типа обязательно (hub_loc, hub_glob, pr_glob, pr_loc)")
+        fail("frontmatter: metadata.type not found - the type field is required (hub_loc, hub_glob, pr_glob, pr_loc)")
         return errors + 1
     mtype = match_type.group(1)
     valid = ", ".join(DIR_PREFIX_TO_SLUG.values())
     if mtype not in DIR_PREFIX_TO_SLUG.values():
-        fail(f"metadata.type ({mtype}) невалиден - допустимы: {valid}")
+        fail(f"metadata.type ({mtype}) is invalid - allowed: {valid}")
         return errors + 1
     prefix_slug = next(
         (slug for prefix, slug in DIR_PREFIX_TO_SLUG.items() if skill_dir.name.startswith(prefix)),
@@ -92,10 +92,10 @@ def check_type(fm: str, skill_dir: Path) -> int:
     )
     if not prefix_slug:
         if not is_prefix_optional(mtype):  # for local skills (pr_loc) the prefix is optional
-            fail(f"имя каталога без типового префикса ({', '.join(DIR_PREFIX_TO_SLUG)})")
+            fail(f"directory name without a type prefix ({', '.join(DIR_PREFIX_TO_SLUG)})")
             errors += 1
     elif prefix_slug != mtype:
-        fail(f"префикс имени ({prefix_slug}) не соответствует metadata.type ({mtype})")
+        fail(f"name prefix ({prefix_slug}) does not match metadata.type ({mtype})")
         errors += 1
     return errors
 
@@ -105,15 +105,15 @@ def check_name(skill_dir: Path) -> tuple[int, str]:
     errors = 0
     skill_md = skill_dir / "SKILL.md"
     if not skill_md.is_file():
-        fail("SKILL.md отсутствует в корне пакета")
+        fail("SKILL.md is missing in the package root")
         return 1, ""
     text = skill_md.read_text(encoding="utf-8")
     match = re.search(r"^name:\s*(\S+)", text, re.MULTILINE)
     if not match:
-        fail("frontmatter: поле name не найдено")
+        fail("frontmatter: field name not found")
         errors += 1
     elif match.group(1) != skill_dir.name:
-        fail(f"frontmatter name ({match.group(1)}) не совпадает с именем каталога ({skill_dir.name})")
+        fail(f"frontmatter name ({match.group(1)}) does not match the directory name ({skill_dir.name})")
         errors += 1
     fm = frontmatter_block(text)
     errors += check_type(fm, skill_dir)
@@ -149,7 +149,7 @@ def check_fenced_blocks(text: str) -> int:
             content = "\n".join(lines)
             if lang in EXECUTABLE_LANGS and content.strip() and "${CLAUDE_SKILL_DIR}" not in content:
                 preview = next((item for item in lines if item.strip()), "")
-                print(f"{stamp()} [*] тело: блок {lang} без вызова скрипта пакета - проверить: {preview.strip()}")
+                print(f"{stamp()} [*] body: {lang} block without a package script call - check: {preview.strip()}")
                 warnings += 1
             lang = None
             continue
@@ -170,15 +170,15 @@ def check_scripts(skill_dir: Path) -> tuple[int, int]:
         if path.suffix == ".py":
             py_files.append(path)
         if not path.stat().st_mode & 0o111:
-            fail(f"скрипт не исполняемый: scripts/{path.name} (chmod +x)")
+            fail(f"script is not executable: scripts/{path.name} (chmod +x)")
             errors += 1
         first_line = path.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
         if not first_line or not first_line[0].startswith("#!"):
-            fail(f"скрипт без shebang: scripts/{path.name}")
+            fail(f"script without a shebang: scripts/{path.name}")
             errors += 1
     for path in py_files:
         if not compileall.compile_file(str(path), quiet=2):
-            fail(f"ошибка компиляции: scripts/{path.name}")
+            fail(f"compilation failed: scripts/{path.name}")
             errors += 1
     cache = scripts_dir / "__pycache__"
     if cache.is_dir():
@@ -188,26 +188,26 @@ def check_scripts(skill_dir: Path) -> tuple[int, int]:
 
 def main() -> int:
     if len(sys.argv) != 2:
-        print(f"{stamp()} [!] Использование: {Path(sys.argv[0]).name} <skill-dir>", file=sys.stderr)
+        print(f"{stamp()} [!] Usage: {Path(sys.argv[0]).name} <skill-dir>", file=sys.stderr)
         return EXIT_USAGE
 
     skill_dir = Path(sys.argv[1])
     if not skill_dir.is_dir():
-        fail(f"каталог пакета не найден: {skill_dir}")
+        fail(f"package directory not found: {skill_dir}")
         return EXIT_FAIL
 
     errors, text = check_name(skill_dir)
     if text:
         warnings = check_fenced_blocks(text)
         if warnings:
-            print(f"{stamp()} [*] предупреждений по телу SKILL.md - {warnings}")
+            print(f"{stamp()} [*] SKILL.md body warnings: {warnings}")
     script_errors, _ = check_scripts(skill_dir)
     errors += script_errors
 
     if errors:
-        fail(f"проверка не пройдена: ошибок - {errors}")
+        fail(f"check failed: errors - {errors}")
         return EXIT_FAIL
-    print(f"{stamp()} [i] пакет проверен: ошибок нет")
+    print(f"{stamp()} [i] Package checked: no errors")
     return EXIT_OK
 
 

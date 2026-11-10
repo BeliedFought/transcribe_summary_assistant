@@ -1,8 +1,8 @@
 ---
 name: glob-update-indexes
-description: Rebuilds the repository local indexes by the index_nav_standards.md canon - the skills index _index_skills_repo.md, the specifications index doc/specs/_index_specs.md, and the local skills index data/skills/_index_skills_pl.md (when the directory exists). Regenerates the full canonical skeleton (intro, mandatory application, registries, routing map, auto-update) and checks index structure against the canon checklist; supports targeted rebuilds with --skills, --specs, and --local-skills. Use when asked to update local indexes, refresh the skill or specification list, or after changes in doc/skills/, doc/specs/, or data/skills/
+description: Rebuilds the repository local indexes by the index_nav_standards.md canon - the skills index _index_skills_repo.md, the specifications index doc/specs/_index_specs.md, and the local skills index data/skills/_index_skills_pl.md (when the directory exists). Regenerates the canonical skeleton (intro, mandatory application, registries, routing map, auto-update), preserves sections outside it, keeps prior map rows for live objects, skips an empty registry table, and checks index structure against the canon checklist; supports targeted rebuilds with --skills, --specs, and --local-skills. Use when asked to update local indexes, refresh the skill or specification list, or after changes in doc/skills/, doc/specs/, or data/skills/
 metadata:
-  version: 1.6.1
+  version: 1.7.0
   status: stable
   type: hub_glob
   category: update
@@ -13,7 +13,7 @@ metadata:
 
 Global skill (prefix `glob-`), distributed to every repository. Works only on the local repository and knows nothing about cross-repo state. In the `project_standards` hub the summary skills index `_index_skills_hub.md` is maintained by `hub-sync-indexes`, and the hub `doc/specs/_index_specs.md` is a reference template; in the hub this skill rebuilds only `data/skills/_index_skills_pl.md` (when the directory exists).
 
-The skill rebuilds three repository indexes by the navigation canon `index_nav_standards.md`: `doc/skills/_index_skills_repo.md` - the skills directory entry point, `doc/specs/_index_specs.md` - the specification registry with a subfolder summary, and `data/skills/_index_skills_pl.md` - the local skills index (slug `pr_loc`; built when `data/skills/` exists, including in the hub). The script generates the full canonical skeleton: an intro pointing to 07.06, mandatory application, registries, a routing map (initial fill from descriptions), and an auto-update section. After rebuilding, the skill checks the generated index structure against the canon checklist and refines purposes and the routing map. The skill edits only these indexes and never the skills, specifications, standards, or their indexes.
+The skill rebuilds three repository indexes by the navigation canon `index_nav_standards.md`: `doc/skills/_index_skills_repo.md` - the skills directory entry point, `doc/specs/_index_specs.md` - the specification registry with a subfolder summary, and `data/skills/_index_skills_pl.md` - the local skills index (slug `pr_loc`; built when `data/skills/` exists, including in the hub). The script generates the full canonical skeleton: an intro pointing to 07.06, mandatory application, registries, a routing map (initial fill from descriptions), and an auto-update section. It preserves sections outside the canonical skeleton and emits them after the auto-update section, keeps previous routing-map rows for live objects, and skips an empty registry table. After rebuilding, the skill checks the generated index structure against the canon checklist and refines purposes and the routing map. The skill edits only these indexes and never the skills, specifications, standards, or their indexes.
 
 ## When to Use
 
@@ -42,10 +42,10 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/update_indexes.py
 2. The script rebuilds indexes in the canonical skeleton:
    - `doc/skills/_index_skills_repo.md`: intro, mandatory application, skill registry (class, scope, version, purpose, when to apply), a SKILL.md directories section, a routing map (initial topics from skill descriptions), auto-update; legacy flat `*.md` skills are listed until migration;
    - `doc/specs/_index_specs.md`: intro, mandatory application, root file registry with types, the `init/` section, a `doc/specs/<project>/` subfolder summary, a routing map (by known file types), auto-update;
-   - `data/skills/_index_skills_pl.md` (when the directory exists, in any repository including the hub): intro, mandatory application, a registry of flat skills and SKILL.md directories (class - local, scope from `category` / `metadata.category`), a routing map, auto-update.
-3. The script fills a skill purpose from `metadata.purpose`, then from the full first sentence of `description` (no length cap, no mid-phrase cut), then from the previously filled index value when the description is absent. A map topic comes from `metadata.topic`, then from the purpose head before the first colon; with neither, the topic repeats the purpose and the script prints a warning. For specifications the script preserves previously filled `Purpose` values; new files and subfolders get `-`. After the run, fill specification purposes manually (for `spec_ui.html` state the mockup SemVer per `console_ui_standards.md`). Existing custom routing-map rows for live files are preserved.
+   - `data/skills/_index_skills_pl.md` (when the directory exists, in any repository including the hub): intro, mandatory application, a registry of flat skills and SKILL.md directories (class - local, scope from `category` / `metadata.category`), a routing map, auto-update. The registry table is omitted when no flat skills exist; sections outside the canonical skeleton are preserved and emitted after the auto-update section.
+3. The script fills a skill purpose from `metadata.purpose`, then from the full first sentence of `description` (no length cap, no mid-phrase cut), then from the previously filled index value when the description is absent. A map topic comes from `metadata.topic`, then from a previous routing-map row whose target still exists, then from the purpose head before the first colon; with none of them the topic repeats the purpose and the script prints a warning. Previous map rows without an explicit `metadata.topic` and previous purposes replaced by a description produce a warning - move the wording into the frontmatter. For specifications the script preserves previously filled `Purpose` values; new files and subfolders get `-`. After the run, fill specification purposes manually (for `spec_ui.html` state the mockup SemVer per `console_ui_standards.md`). Existing custom routing-map rows for live files are preserved.
 4. Check the generated index structure against the `index_nav_standards.md` canon checklist:
-   - full skeleton (Section 03.01): intro pointing to 07.06, mandatory application, registry, routing map, auto-update;
+   - full skeleton (Section 03.01): intro pointing to 07.06, mandatory application, registry, routing map, auto-update, preserved additional sections after auto-update;
    - registry (Section 03.03): every row is an existing file; every directory object is present; purposes are factual, without evaluations or history;
    - map (Section 04): topics phrased as user tasks, no vague wording ("other", "misc"), every registry object covered by at least one row, links point to existing objects;
    - the pointer to `project_standards.md` 07.06 is present;
@@ -66,7 +66,9 @@ Generated index cells are not a storage for manual edits: the next rebuild repla
 
 ## Completion Criteria
 
-- Generated indexes match the `index_nav_standards.md` canon skeleton (Section 03.01): intro, mandatory application, registry, routing map, auto-update
+- Generated indexes match the `index_nav_standards.md` canon skeleton (Section 03.01): intro, mandatory application, registry, routing map, auto-update, then preserved additional sections
+- Sections outside the canonical skeleton survive a rebuild and are emitted after `## Index Auto-Update`; an empty registry table is not emitted
+- A second run on unchanged sources produces an empty diff
 - `doc/skills/_index_skills_repo.md` matches the actual root skills, project `pg-*` skills in subfolders, and SKILL.md directories; index files (`_index_*.md`) are not listed
 - `doc/specs/_index_specs.md` matches the actual `doc/specs/` composition: root files with types, the `init/` section, and a subfolder summary
 - `data/skills/_index_skills_pl.md` (when the directory exists) matches the actual `data/skills/` composition: flat skills and SKILL.md directories

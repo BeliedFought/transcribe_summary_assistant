@@ -21,7 +21,7 @@ if [ "${1:-}" = "--link" ]; then
 fi
 
 if [ "$#" -ne 2 ]; then
-    echo "$(now) [!] Использование: deploy.sh [--link] <source-dir> <target-dir>" >&2
+    echo "$(now) [!] Usage: deploy.sh [--link] <source-dir> <target-dir>" >&2
     exit 2
 fi
 
@@ -29,17 +29,17 @@ SOURCE="$(readlink -f -- "${1%/}")"
 TARGET="$2"
 
 if [ ! -d "$SOURCE" ]; then
-    echo "$(now) [!] Каталог навыка не найден: $SOURCE" >&2
+    echo "$(now) [!] Skill directory not found: $SOURCE" >&2
     exit 2
 fi
 
 if [ ! -f "${SOURCE}/SKILL.md" ]; then
-    echo "$(now) [!] SKILL.md отсутствует в корне: $SOURCE" >&2
+    echo "$(now) [!] SKILL.md is missing in the root: $SOURCE" >&2
     exit 2
 fi
 
 if [ -z "$TARGET" ]; then
-    echo "$(now) [!] Целевой каталог не задан" >&2
+    echo "$(now) [!] Target directory not set" >&2
     exit 2
 fi
 
@@ -51,20 +51,20 @@ mkdir -p "$PARENT"
 TARGET_ABS="$(readlink -f -- "$PARENT")/$(basename -- "$TARGET")"
 
 if [ "$TARGET_ABS" = "$SOURCE" ]; then
-    echo "$(now) [!] Целевой каталог совпадает с источником, отказ: $TARGET_ABS" >&2
+    echo "$(now) [!] Target directory equals the source, refusing: $TARGET_ABS" >&2
     exit 2
 fi
 
 case "$SOURCE/" in
     "$TARGET_ABS"/*)
-        echo "$(now) [!] Источник находится внутри целевого каталога, отказ: $TARGET_ABS" >&2
+        echo "$(now) [!] Source is inside the target directory, refusing: $TARGET_ABS" >&2
         exit 2
         ;;
 esac
 
 case "$TARGET_ABS/" in
     "$SOURCE"/*)
-        echo "$(now) [!] Целевой каталог находится внутри источника, отказ: $TARGET_ABS" >&2
+        echo "$(now) [!] Target directory is inside the source, refusing: $TARGET_ABS" >&2
         exit 2
         ;;
 esac
@@ -72,19 +72,19 @@ esac
 if [ "$MODE" = "link" ]; then
     if [ -e "$TARGET" ] || [ -L "$TARGET" ]; then
         rm -rf -- "$TARGET"
-        ACTION="заменен симлинком"
+        ACTION="replaced with a symlink"
     else
-        ACTION="развернут симлинком"
+        ACTION="deployed as a symlink"
     fi
     ln -s -- "$SOURCE" "$TARGET"
-    echo "$(now) [i] Навык ${ACTION}: ${TARGET} -> ${SOURCE}"
+    echo "$(now) [i] Skill ${ACTION}: ${TARGET} -> ${SOURCE}"
     exit 0
 fi
 
-ACTION="скопирован"
+ACTION="copied"
 if [ -e "$TARGET" ] || [ -L "$TARGET" ]; then
     rm -rf -- "$TARGET"
-    ACTION="заменен"
+    ACTION="replaced"
 fi
 
 # Copy without __pycache__ artifacts; rsync may be missing on the machine -
@@ -95,4 +95,4 @@ else
     cp -r -- "$SOURCE" "$TARGET"
     find "$TARGET" -type d -name '__pycache__' -prune -exec rm -rf -- {} +
 fi
-echo "$(now) [i] Навык ${ACTION}: ${SOURCE} -> ${TARGET}"
+echo "$(now) [i] Skill ${ACTION}: ${SOURCE} -> ${TARGET}"

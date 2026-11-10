@@ -9,7 +9,7 @@ set -euo pipefail
 now() { date '+%Y-%m-%d %H:%M:%S'; }
 
 if [ "$#" -ne 1 ]; then
-    echo "$(now) [!] Использование: set_pip_conf.sh <mirror_url>" >&2
+    echo "$(now) [!] Usage: set_pip_conf.sh <mirror_url>" >&2
     exit 2
 fi
 
@@ -23,4 +23,4 @@ cat > "$CONF_FILE" << EOF
 index-url = ${MIRROR}
 EOF
 
-echo "$(now) [i] Записано зеркало PyPI: ${MIRROR} -> ${CONF_FILE}"
+echo "$(now) [i] PyPI mirror written: ${MIRROR} -> ${CONF_FILE}"

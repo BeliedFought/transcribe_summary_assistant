@@ -14,11 +14,6 @@ Tagging this file requires applying relevant skills, not merely reading the inde
 
 ---
 
-## Skill Registry
-
-| Skill | Class | Scope | Auto-Apply | Version | Purpose |
-|-------|-------|-------|------------|---------|---------|
-
 ## Anthropic Agent Skills (SKILL.md)
 
 | Skill (dir) | Class | Scope | Version | Purpose |
@@ -28,7 +23,7 @@ Tagging this file requires applying relevant skills, not merely reading the inde
 | `glob-mine-lesson` | global | Knowledge Mining (`mine`) | 1.0.1 | Records a lesson in the lesson journal data/lessons.md - transferable experience from project work: a technique, a library or environment trap, a non-obvious solution and its reason |
 | `glob-skill-deploy` | global | Skills (`skill`) | 1.3.0 | Deploys an Anthropic Agent Skills skill from doc/skills/<name>/ to live tool directories - opencode, Kilo Code, Cursor (project or personal), by copy or symlink (--link) |
 | `glob-skill-migrate-anthropic` | global | Skills (`skill`) | 1.9.3 | Validates and repairs Anthropic Agent Skills packages (a <name>/SKILL.md directory with scripts and data templates), converts legacy plain skills found in sibling repositories into SKILL.md packages, and checks repository-wide package completeness - type, category, prefix, location, frontmatter fields |
-| `glob-update-indexes` | global | Update (`update`) | 1.6.1 | Rebuilds the repository local indexes by the index_nav_standards.md canon - the skills index _index_skills_repo.md, the specifications index doc/specs/_index_specs.md, and the local skills index data/skills/_index_skills_pl.md (when the directory exists) |
+| `glob-update-indexes` | global | Update (`update`) | 1.7.0 | Rebuilds the repository local indexes by the index_nav_standards.md canon - the skills index _index_skills_repo.md, the specifications index doc/specs/_index_specs.md, and the local skills index data/skills/_index_skills_pl.md (when the directory exists) |
 
 ---
 
@@ -49,4 +44,4 @@ Maps task topics to skills (`index_nav_standards.md`, Section 04).
 
 ## Index Auto-Update
 
-On any change to `doc/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes`, refine purposes and routing map topics per `index_nav_standards.md` (Sections 03.03, 04), fix `metadata.purpose` and `metadata.topic` where the description yields a weak purpose or topic, and report added, updated, and removed entries.
+On any change to `doc/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes` and report added, updated, and removed entries. Refine purposes and routing map topics in the skill frontmatter (`metadata.purpose`, `metadata.topic`), not in the generated cells - the next rebuild replaces them; wording rules - `index_nav_standards.md` (Sections 03.03, 04). Sections outside the canonical skeleton are preserved and appended after this section.

@@ -41,7 +41,7 @@ SKILLS_MAP_NOTE = """Maps task topics to skills (`index_nav_standards.md`, Secti
 
 SKILLS_AUTO = """## Index Auto-Update
 
-On any change to `doc/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes`, refine purposes and routing map topics per `index_nav_standards.md` (Sections 03.03, 04), fix `metadata.purpose` and `metadata.topic` where the description yields a weak purpose or topic, and report added, updated, and removed entries.
+On any change to `doc/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes` and report added, updated, and removed entries. Refine purposes and routing map topics in the skill frontmatter (`metadata.purpose`, `metadata.topic`), not in the generated cells - the next rebuild replaces them; wording rules - `index_nav_standards.md` (Sections 03.03, 04). Sections outside the canonical skeleton are preserved and appended after this section.
 """
 
 SPECS_APPLY = """## Mandatory Application
@@ -80,8 +80,17 @@ Tagging this file requires applying relevant local skills, not merely reading th
 
 PL_AUTO = """## Index Auto-Update
 
-On any change to `data/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes`, refine purposes and routing map topics per `index_nav_standards.md` (Sections 03.03, 04), fix `metadata.purpose` and `metadata.topic` where the description yields a weak purpose or topic, and report added, updated, and removed entries.
+On any change to `data/skills/` (adding, removing, renaming, or updating skill frontmatter), rebuild this index with `glob-update-indexes` and report added, updated, and removed entries. Refine purposes and routing map topics in the skill frontmatter (`metadata.purpose`, `metadata.topic`), not in the generated cells - the next rebuild replaces them; wording rules - `index_nav_standards.md` (Sections 03.03, 04). Sections outside the canonical skeleton are preserved and appended after this section.
 """
+
+
+OWNED_SECTIONS = {
+    "Mandatory Application",
+    "Skill Registry",
+    "Anthropic Agent Skills (SKILL.md)",
+    "Routing Map",
+    "Index Auto-Update",
+}
 
 
 def now() -> str:
@@ -163,7 +172,7 @@ def check_row(index_label: str, ident: str, purpose: str, topic: str, explicit_t
         return
     tail = purpose.rstrip(" .,;:-").rsplit(" ", 1)[-1].lower()
     if tail in STOP_TAIL:
-        warn(f"{index_label}: назначение `{ident}` заканчивается служебным словом `{tail}`")
+        warn(f"{index_label}: purpose of `{ident}` ends with a stop word `{tail}`")
     if not explicit_topic and topic == purpose:
         dup_topics.append(ident)
 
@@ -269,8 +278,8 @@ def old_purposes(path: Path) -> dict[str, str]:
     return purposes
 
 
-def old_spec_map_rows(path: Path) -> list[tuple[str, str]]:
-    """Extract existing (topic, target) rows from Routing Map section of _index_specs.md."""
+def old_map_rows(path: Path) -> list[tuple[str, str]]:
+    """Extract existing (topic, target) rows from the Routing Map section of any index."""
     rows: list[tuple[str, str]] = []
     if not path.exists():
         return rows
@@ -293,6 +302,88 @@ def old_spec_map_rows(path: Path) -> list[tuple[str, str]]:
     return rows
 
 
+def old_map_by_target(path: Path) -> dict[str, str]:
+    """First old routing-map topic per target object."""
+    by_target: dict[str, str] = {}
+    for topic, target in old_map_rows(path):
+        by_target.setdefault(target, topic)
+    return by_target
+
+
+def split_sections(path: Path) -> list[tuple[str, list[str]]]:
+    """Existing sections as (heading, body) pairs; H1 and intro are skipped."""
+    sections: list[tuple[str, list[str]]] = []
+    if not path.exists():
+        return sections
+    heading: str | None = None
+    body: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            if heading is not None:
+                sections.append((heading, body))
+            heading = line[3:].strip()
+            body = []
+            continue
+        if heading is not None:
+            body.append(line)
+    if heading is not None:
+        sections.append((heading, body))
+    return sections
+
+
+def foreign_sections(path: Path) -> tuple[list[tuple[str, list[str]]], list[str]]:
+    """Sections outside the generator-owned set and their names found before the last owned one."""
+    sections = split_sections(path)
+    foreign = [(heading, body) for heading, body in sections if heading not in OWNED_SECTIONS]
+    last_owned = -1
+    for i, (heading, _) in enumerate(sections):
+        if heading in OWNED_SECTIONS:
+            last_owned = i
+    misplaced = [heading for i, (heading, _) in enumerate(sections)
+                 if heading not in OWNED_SECTIONS and i < last_owned]
+    return foreign, misplaced
+
+
+def render_section(heading: str, body: list[str]) -> list[str]:
+    """Section lines with the heading, one blank line, and the trimmed body."""
+    trimmed = list(body)
+    while trimmed and trimmed[-1].strip() in ("", "---"):
+        trimmed.pop()
+    while trimmed and not trimmed[0].strip():
+        trimmed.pop(0)
+    return [f"## {heading}", ""] + trimmed
+
+
+def append_foreign_sections(lines: list[str], path: Path, label: str) -> None:
+    """Append preserved sections after the last owned one (index_nav_standards.md, 03.01)."""
+    preserved, misplaced = foreign_sections(path)
+    for heading in misplaced:
+        warn(f"{label}: section `{heading}` moved after `## Index Auto-Update` - "
+             f"check the order (index_nav_standards.md, 03.01)")
+    if preserved and lines:
+        lines[-1] = lines[-1].rstrip("\n")
+    for heading, body in preserved:
+        lines.extend(["", "---", ""])
+        lines.extend(render_section(heading, body))
+    if preserved:
+        info(f"{label}: preserved foreign sections: {', '.join(h for h, _ in preserved)}")
+
+
+def merged_topic(ident: str, purpose: str, explicit: str, old_topics: dict[str, str],
+                 label: str) -> str:
+    """Map topic: explicit frontmatter value, else the old index row, else the purpose head."""
+    explicit = (explicit or "").strip()
+    if explicit:
+        return explicit
+    derived = topic_value(purpose, None)
+    previous = old_topics.get(ident)
+    if previous and previous != derived:
+        warn(f"{label}: topic for `{ident}` migrated from the previous index - "
+             f"set `metadata.topic` in frontmatter")
+        return previous
+    return derived
+
+
 def anthropic_meta(path: Path) -> dict:
     text = path.read_text(encoding="utf-8")
     meta = {"name": "", "description": "", "version": "", "type": "", "category": "",
@@ -313,12 +404,21 @@ def anthropic_meta(path: Path) -> dict:
     return meta
 
 
+def warn_purpose_override(label: str, ident: str, meta: dict, old: str | None,
+                          purpose: str) -> None:
+    """Report a previous index purpose replaced by the description."""
+    if not (meta.get("purpose") or "").strip() and old and old != purpose:
+        warn(f"{label}: previous purpose of `{ident}` replaced with the first sentence "
+             f"of the description - set `metadata.purpose` in frontmatter")
+
+
 def rebuild_skills_index(root: Path) -> None:
     if not SKILLS_DIR.exists():
-        warn(f"Пропуск индекса навыков: не найдена папка {SKILLS_DIR}")
+        warn(f"Skipped skills index: folder {SKILLS_DIR} not found")
         return
     ver = get_index_version(SKILLS_INDEX)
     purposes = old_purposes(SKILLS_INDEX)
+    old_topics = old_map_by_target(SKILLS_INDEX)
     skills = [p for p in sorted(SKILLS_DIR.glob("*.md")) if not p.name.startswith("_index")]
     sub_skills = []
     for d in sorted(SKILLS_DIR.iterdir()):
@@ -336,23 +436,29 @@ def rebuild_skills_index(root: Path) -> None:
         "",
         "---",
         "",
-        "## Skill Registry",
-        "",
-        "| Skill | Class | Scope | Auto-Apply | Version | Purpose |",
-        "|-------|-------|-------|------------|---------|---------|",
     ]
     map_rows = []
     dup_topics: list[str] = []
+    if skills or sub_skills:
+        lines += [
+            "## Skill Registry",
+            "",
+            "| Skill | Class | Scope | Auto-Apply | Version | Purpose |",
+            "|-------|-------|-------|------------|---------|---------|",
+        ]
     for p in skills + sub_skills:
         m = frontmatter(p)
         cls = class_of(p.stem, m["type"])
         ident = m["id"] or p.stem
-        purpose = purpose_value(m, purposes.get(ident, "-"))
-        topic = topic_value(purpose, m["topic"])
-        check_row("индекс навыков", ident, purpose, topic, bool((m["topic"] or "").strip()), dup_topics)
+        old = purposes.get(ident)
+        purpose = purpose_value(m, old or "-")
+        warn_purpose_override("skills index", ident, m, old, purpose)
+        topic = merged_topic(ident, purpose, m["topic"] or "", old_topics, "skills index")
+        check_row("skills index", ident, purpose, topic, bool((m["topic"] or "").strip()), dup_topics)
         lines.append(f"| `{ident}` | {cls} | {area_value(m['category'], m['category_name'])} | {m['auto_apply'] or '-'} | {m['version'] or '-'} | {purpose} |")
         map_rows.append(f"| {topic} | `{ident}` |")
-    lines.append("")
+    if skills or sub_skills:
+        lines.append("")
     anthropic = [
         d
         for d in sorted(SKILLS_DIR.rglob("SKILL.md"))
@@ -369,9 +475,11 @@ def rebuild_skills_index(root: Path) -> None:
             m = anthropic_meta(d)
             name = d.parent.relative_to(SKILLS_DIR).as_posix()
             cls = class_of(name, m["type"])
-            purpose = purpose_value(m, purposes.get(name, "-"))
-            topic = topic_value(purpose, m["topic"])
-            check_row("индекс навыков", name, purpose, topic, bool((m["topic"] or "").strip()), dup_topics)
+            old = purposes.get(name)
+            purpose = purpose_value(m, old or "-")
+            warn_purpose_override("skills index", name, m, old, purpose)
+            topic = merged_topic(name, purpose, m["topic"], old_topics, "skills index")
+            check_row("skills index", name, purpose, topic, bool((m["topic"] or "").strip()), dup_topics)
             lines.append(f"| `{name}` | {cls} | {area_value(m['category'], m['category_name'])} | {m['version'] or '-'} | {purpose} |")
             map_rows.append(f"| {topic} | `{name}` |")
         lines.append("")
@@ -387,20 +495,22 @@ def rebuild_skills_index(root: Path) -> None:
         "",
         SKILLS_AUTO,
     ]
+    append_foreign_sections(lines, SKILLS_INDEX, "skills index")
     if dup_topics:
-        warn(f"индекс навыков: тема совпадает с назначением, задайте `metadata.topic`: "
+        warn(f"Skills index: topic equals purpose - set `metadata.topic`: "
              f"{', '.join(dup_topics)}")
     SKILLS_INDEX.write_text("\n".join(lines), encoding="utf-8")
-    info(f"Обновлен {SKILLS_INDEX} - навыков: {len(skills) + len(sub_skills)}, каталогов SKILL.md - {len(anthropic)}")
+    info(f"Updated {SKILLS_INDEX} - skills: {len(skills) + len(sub_skills)}, SKILL.md directories: {len(anthropic)}")
     for p in skills:
         info(f"- {p.name}")
 
 
 def rebuild_local_skills_index(root: Path) -> None:
     if not LOCAL_SKILLS_DIR.exists():
-        warn(f"Пропуск индекса локальных навыков: не найдена папка {LOCAL_SKILLS_DIR}")
+        warn(f"Skipped local skills index: folder {LOCAL_SKILLS_DIR} not found")
         return
     purposes = old_purposes(LOCAL_SKILLS_INDEX)
+    old_topics = old_map_by_target(LOCAL_SKILLS_INDEX)
     flat = [p for p in sorted(LOCAL_SKILLS_DIR.glob("*.md")) if not p.name.startswith("_index")]
     dirs = [d for d in sorted(LOCAL_SKILLS_DIR.iterdir())
             if d.is_dir() and not d.name.startswith(".") and (d / "SKILL.md").is_file()]
@@ -415,22 +525,28 @@ def rebuild_local_skills_index(root: Path) -> None:
         "",
         "---",
         "",
-        "## Skill Registry",
-        "",
-        "| Skill | Class | Scope | Auto-Apply | Version | Purpose |",
-        "|-------|-------|-------|------------|---------|---------|",
     ]
     map_rows = []
     dup_topics: list[str] = []
+    if flat:
+        lines += [
+            "## Skill Registry",
+            "",
+            "| Skill | Class | Scope | Auto-Apply | Version | Purpose |",
+            "|-------|-------|-------|------------|---------|---------|",
+        ]
     for p in flat:
         m = frontmatter(p)
         ident = m["id"] or p.stem
-        purpose = purpose_value(m, purposes.get(ident, "-"))
-        topic = topic_value(purpose, m["topic"])
-        check_row("индекс локальных навыков", ident, purpose, topic, bool((m["topic"] or "").strip()), dup_topics)
+        old = purposes.get(ident)
+        purpose = purpose_value(m, old or "-")
+        warn_purpose_override("local skills index", ident, m, old, purpose)
+        topic = merged_topic(ident, purpose, m["topic"] or "", old_topics, "local skills index")
+        check_row("local skills index", ident, purpose, topic, bool((m["topic"] or "").strip()), dup_topics)
         lines.append(f"| `{ident}` | local | {area_value(m['category'], m['category_name'])} | {m['auto_apply'] or '-'} | {m['version'] or '-'} | {purpose} |")
         map_rows.append(f"| {topic} | `{ident}` |")
-    lines.append("")
+    if flat:
+        lines.append("")
     if dirs:
         lines += [
             "## Anthropic Agent Skills (SKILL.md)",
@@ -440,9 +556,11 @@ def rebuild_local_skills_index(root: Path) -> None:
         ]
         for d in dirs:
             m = anthropic_meta(d / "SKILL.md")
-            purpose = purpose_value(m, purposes.get(d.name, "-"))
-            topic = topic_value(purpose, m["topic"])
-            check_row("индекс локальных навыков", d.name, purpose, topic, bool((m["topic"] or "").strip()), dup_topics)
+            old = purposes.get(d.name)
+            purpose = purpose_value(m, old or "-")
+            warn_purpose_override("local skills index", d.name, m, old, purpose)
+            topic = merged_topic(d.name, purpose, m["topic"], old_topics, "local skills index")
+            check_row("local skills index", d.name, purpose, topic, bool((m["topic"] or "").strip()), dup_topics)
             lines.append(f"| `{d.name}` | local | {area_value(m['category'], m['category_name'])} | {m['version'] or '-'} | {purpose} |")
             map_rows.append(f"| {topic} | `{d.name}` |")
         lines.append("")
@@ -458,11 +576,12 @@ def rebuild_local_skills_index(root: Path) -> None:
         "",
         PL_AUTO,
     ]
+    append_foreign_sections(lines, LOCAL_SKILLS_INDEX, "local skills index")
     if dup_topics:
-        warn(f"индекс локальных навыков: тема совпадает с назначением, задайте `metadata.topic`: "
+        warn(f"Local skills index: topic equals purpose - set `metadata.topic`: "
              f"{', '.join(dup_topics)}")
     LOCAL_SKILLS_INDEX.write_text("\n".join(lines), encoding="utf-8")
-    info(f"Обновлен {LOCAL_SKILLS_INDEX} - навыков: {len(flat)}, каталогов SKILL.md - {len(dirs)}")
+    info(f"Updated {LOCAL_SKILLS_INDEX} - skills: {len(flat)}, SKILL.md directories: {len(dirs)}")
     for p in flat:
         info(f"- {p.name}")
     for d in dirs:
@@ -479,10 +598,10 @@ def spec_map_row(key: str, name: str) -> str | None:
 
 def rebuild_specs_index(root: Path) -> None:
     if not SPECS_DIR.exists():
-        warn(f"Пропуск индекса спецификаций: не найдена папка {SPECS_DIR}")
+        warn(f"Skipped specs index: folder {SPECS_DIR} not found")
         return
     purposes = old_purposes(SPECS_INDEX)
-    existing_map = old_spec_map_rows(SPECS_INDEX)
+    existing_map = old_map_rows(SPECS_INDEX)
     root_files = sorted(
         p for p in SPECS_DIR.iterdir()
         if p.is_file() and p.name not in ("_index_specs.md", ".gitkeep")
@@ -566,8 +685,8 @@ def rebuild_specs_index(root: Path) -> None:
         SPECS_AUTO,
     ]
     SPECS_INDEX.write_text("\n".join(lines), encoding="utf-8")
-    info(f"Обновлен {SPECS_INDEX} - корневых файлов: {len(root_files)}, "
-         f"стартовых: {len(init_files)}, подпапок: {len(subdirs)}")
+    info(f"Updated {SPECS_INDEX} - root files: {len(root_files)}, "
+         f"init files: {len(init_files)}, subfolders: {len(subdirs)}")
     for p in root_files:
         info(f"- {p.name}")
     for p in init_files:
@@ -590,9 +709,9 @@ def main() -> int:
 
     if root.name == "project_standards":
         if not any_flag or args.skills or args.specs:
-            warn("Хаб project_standards: сводный индекс _index_skills_hub.md ведет hub-sync-indexes, "
-                 "doc/specs/_index_specs.md - эталонный шаблон; пересобирается только "
-                 "data/skills/_index_skills_pl.md")
+            warn("Hub project_standards: the hub index _index_skills_hub.md is owned by hub-sync-indexes, "
+                 "doc/specs/_index_specs.md is the reference template; only "
+                 "data/skills/_index_skills_pl.md is rebuilt")
         if not any_flag or args.local_skills:
             rebuild_local_skills_index(root)
         return EXIT_OK
