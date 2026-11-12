@@ -1,6 +1,6 @@
-# Windows Deploy Standards. Version 5.0.1
+# Windows Deploy Standards. Version 5.2.0
 
-OS overlay for `deploy_standards.md` (shared core). Apply it together with the core and `project_standards.md` to install a project as a system tool on Windows. This document contains Windows specifics only; general deploy rules live in the core.
+OS overlay for Variant A of `deploy_standards.md` (shared core): installing a Python project as a system CLI tool. Apply it together with the core and `project_standards.md`. This document contains Windows specifics only; general deploy rules live in the core, and the solution runtime (Variant B, section 07) needs no overlay.
 
 The document applies to Windows 10/11 and Windows Server 2016+. The Windows version does not matter - every mechanism used (PowerShell 5.1+, pathlib, uv) behaves identically.
 

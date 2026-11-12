@@ -1,17 +1,21 @@
-# Deploy Standards. Version 5.0.1
+# Deploy Standards. Version 5.2.0
 
-This document defines OS-agnostic rules for installing a Python project as a system CLI tool. It supplements `doc/standards/project_standards.md` and applies on top of it. All core requirements remain in force unless this document explicitly overrides them.
+This document defines OS-agnostic deployment rules for two variants: an installed Python CLI tool (Variant A) and a file-based solution runtime (Variant B). It supplements `doc/standards/project_standards.md` and applies on top of it. All core requirements remain in force unless this document explicitly overrides them.
 
-OS specifics (data paths, install flow, shell commands) live in overlay documents:
+"Deployment Variants" below states the purpose of each variant and the selection rule. Sections 01-05 cover Variant A, the `uv tool` pipeline for a Python CLI. Section 07 covers Variant B: a solution, a file-based installation unit with its own scripts, state and verification. A repository may use either variant or both.
+
+OS specifics of Variant A (data paths, install flow, shell commands) live in overlay documents:
 
 - `deploy_lin_standards.md` - installation on Linux
 - `deploy_win_standards.md` - installation on Windows
 
-Apply this document together with the relevant overlay.
+Apply this document together with the relevant overlay. Variant B uses XDG defaults on every platform (07.05) and needs no overlay.
 
 ---
 
 ## Table of Contents
+
+**Overview:** Deployment Variants
 
 **01. Prerequisites and build:** 01.01 Mandatory project conditions - 01.02 `pyproject.toml` structure - 01.03 Packaging non-Python files (01.03.01 MANIFEST.in - 01.03.02 package-data in pyproject.toml - 01.03.03 Accessing data files in code - 01.03.04 Rules)
 
@@ -24,6 +28,30 @@ Apply this document together with the relevant overlay.
 **05. Maintenance rules:** 05.01 Entry point - 05.02 Developer mode - 05.03 Uninstall - 05.04 Pre-release checklist
 
 **06. Relations and versioning:** 06.01 Related documents - 06.02 Versioning
+
+**07. Solution runtime (Variant B):** 07.01 Contract and factory layout - 07.02 `solution.json` - 07.03 Installed layout - 07.04 Lifecycle - 07.05 Relation to Variant A - 07.06 Reference implementation
+
+---
+
+## Deployment Variants
+
+The package defines two deployment variants. Both install a repository artifact into user directories, keep the repository as the source of truth and leave installed artifacts free of repository paths. They differ in the installation unit and in the installer:
+
+| Aspect | Variant A - installed tool | Variant B - solution runtime |
+|---|---|---|
+| Unit | One Python package: `pyproject.toml`, pinned dependencies, `[project.scripts]` entry point | One solution: `run/solutions/<solution>/solution.json` and its lifecycle scripts |
+| Installer | `uv tool install` from `run/deploy/install.py` and `run/deploy/update.py` | `install.py`, `update.py`, `uninstall.py` and `verify.py` of the solution |
+| Artifacts | Wheel in an isolated tool venv; one CLI command on `PATH` | Scripts, command wrappers, skill payload, templates and documentation |
+| User data | `~/.config/<tool>/` with `config.ini` and `.env` | State in `~/.local/state/<solution>/state.json`, commands in `~/.local/bin/` |
+| Sections | 01-05 and the OS overlays | 07 |
+
+**Selection rule:**
+
+- Use Variant A when the repository ships one Python CLI as a package with dependencies.
+- Use Variant B when the repository ships scripts or commands without a package, mixes bash and Python, or ships several independently versioned artifacts.
+- Both variants may coexist: a repository that ships a Python tool and additional scripts installs the tool per Variant A and the scripts per Variant B. Each artifact follows exactly one variant.
+
+The variant is chosen by the payload, not by repository size or language count. A repository without `pyproject.toml` cannot use Variant A; a repository without `run/solutions/` cannot use Variant B. Reference implementations exist for both variants and illustrate the contracts; they are examples, not requirements (07.06 names one of them).
 
 ---
 
@@ -472,7 +500,7 @@ Common items (OS-specific items are in the overlay for the target OS):
 | Document | Relation |
 |----------|----------|
 | `doc/standards/project_standards.md` | Core standard; this document applies on top of it (project structure, configuration, code) |
-| `deploy_lin_standards.md` / `deploy_win_standards.md` | OS overlays: platform paths, install scripts and commands; applied together with this core |
+| `deploy_lin_standards.md` / `deploy_win_standards.md` | OS overlays for Variant A: platform paths, install scripts and commands; applied together with this core |
 | `deploy_docker_standards.md` | Adjacent standard: Docker infrastructure (network, volumes, port publication); applies to container deployment instead of this core |
 | `web_standards.md` | Adjacent standard: web applications (FastAPI + nginx); this core does not apply to web applications (boundary - `web_standards.md`, 12.02) |
 | `doc/standards/_index_standards.md` | Standards package registry and routing map |
@@ -482,3 +510,166 @@ Common items (OS-specific items are in the overlay for the target OS):
 ## 06.02. Versioning
 
 Standards package versioning is unified for all package documents. The versioning policy, registry and routing map live in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see _index_standards.md).
+
+---
+
+## 07. Solution runtime (Variant B)
+
+Section 07 defines Variant B: a file-based installation unit for scripts, command wrappers and mixed bash and Python artifacts, installed without a Python package. It is independent of Variant A (sections 01-05): a repository may use one variant, the other, or both. The boundary between the two is in 07.05.
+
+---
+
+## 07.01. Contract and factory layout
+
+*Mandatory when the repository ships a solution.*
+
+A solution is the unit of installation. The repository is the factory: it holds sources, contracts and scripts; installed artifacts contain no repository paths. A solution installs files into user directories, keeps its state under `~/.local/state/`, and exposes commands through `~/.local/bin/`.
+
+The unit is not a wheel: a solution installs scripts, skills, templates and documentation together with a state record that makes the installation verifiable. The same solution installs identically on every machine; machine-specific values live in the solution configuration, not in the installed files.
+
+Factory layout:
+
+```
+run/solutions/<solution>/
+  solution.json
+  install.py
+  update.py
+  uninstall.py
+  verify.py
+  migrations/NNNN_<slug>.py
+run/solutions/_lib/solution.py
+run/solutions/verify.py
+```
+
+- `<solution>` - lowercase Latin name with hyphens. It matches the `name` field and the installed directory names.
+- `install.py`, `update.py`, `uninstall.py`, `verify.py` - one action per script (03.01). Documented flags are allowed; subcommands are not.
+- `migrations/NNNN_<slug>.py` - forward-only migrations, applied once each, in numeric order. `NNNN` is a four-digit counter; `<slug>` is a short English description.
+- `run/solutions/_lib/solution.py` - shared helper: repository and user paths, state read and write, sha256 and mode records, the atomic `current` switch, command wrappers, side-effect materialization.
+- `run/solutions/verify.py --all` - aggregate verification of every solution in the repository. It exits non-zero when any solution is not `CURRENT`.
+
+## 07.02. `solution.json`
+
+*Mandatory.*
+
+`solution.json` is the single declaration of a solution. No other file in the factory describes the payload.
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `name` | string | Solution name, lowercase Latin with hyphens; matches the directory and the installed paths |
+| `version` | string | SemVer of the payload; the installed version directory name |
+| `description` | string | One line, English, no trailing period |
+| `owner_skill` | string | Skill that documents, audits and maintains the solution |
+| `dependencies` | array | Required binaries: `binary` and an optional `version` check |
+| `payload` | array | Files and directories: `source`, `target`, optional `mode` |
+| `payload_globs` | array | Bulk copy: `source_glob`, `target_dir` |
+| `commands` | array | Command wrappers: `name`, `entry`, optional `args` |
+| `side_effects` | array | Files outside the version directory: `target` with `$HOME`, and `content` or `template` |
+| `docs` | object | Documentation: `readme` (Russian human guide) and `agent` (English agent instructions) |
+
+Rules:
+
+- `source` and `template` are repository-relative paths; `target` is an absolute path or a `$HOME`-based path.
+- `payload[].mode` is an octal string (`"0755"`); omit it for regular files.
+- `payload_globs` covers trees that change file by file (skills, script collections); `payload` covers named files whose presence is part of the contract.
+- `dependencies[].version` is a shell command and an expected pattern; a failing check blocks install and update.
+- `commands[].entry` is the path inside the installed version directory; `args` prepends fixed arguments.
+- `side_effects[].content` is literal text; `template` names a repository file whose `$HOME` placeholders are substituted at install time. The two are mutually exclusive.
+- `docs.readme` and `docs.agent` are installed as `README.md` and `AGENT.md` in the version directory.
+
+## 07.03. Installed layout
+
+*Mandatory.*
+
+```
+~/.local/share/<solution>/<semver>/
+  <payload files and directories>
+  README.md
+  AGENT.md
+  VERSION
+~/.local/share/<solution>/current -> <semver>
+~/.local/state/<solution>/state.json
+~/.local/bin/<command>
+```
+
+- A version directory is immutable after install. Only `current` changes between versions.
+- `VERSION` holds the installed SemVer in one line; it is the fast source for `--version`.
+- `README.md` is the human guide, `AGENT.md` the agent guide; both come from `docs` and are never edited in place.
+- A command wrapper resolves its target through `current`, so one switch updates every command of the solution. A wrapper intercepts `--version` and prints the installed version without starting the tool.
+- Wrappers are plain scripts with mode `0755`; they are recorded in state as side effects.
+
+`state.json` is the machine record of an installation:
+
+| Field | Meaning |
+|-------|---------|
+| `version` | Installed SemVer |
+| `source_commit` | Repository commit the payload was built from |
+| `files` | Map `path -> {sha256, mode}`; `mode` is octal |
+| `dependencies` | Resolved dependency names and detected versions |
+| `applied_migrations` | Migration ids already applied, in order |
+| `installed_at` | ISO 8601 UTC timestamp of the install or the last successful update |
+
+## 07.04. Lifecycle
+
+**`install.py` - install.**
+
+1. Read and validate `solution.json`; fail on an unknown field or a missing source.
+2. Check dependencies: binary presence, then the optional version check.
+3. Build the payload into a new version directory: copy `payload` and `payload_globs`, add `README.md`, `AGENT.md`, `VERSION`.
+4. Verify the sha256 of every copied file against the build result; abort before touching `current`.
+5. Switch `current` atomically: create the new symlink under a temporary name, then `replace` the old one.
+6. Materialize command wrappers in `~/.local/bin/` and side effects, then write `state.json`.
+
+Exit `0` on success, `1` on a failed step, `2` on invalid input or a failed precondition.
+
+**`update.py` - update.**
+
+1. Read `solution.json` and `state.json`; compare versions and file hashes.
+2. No difference - report `CURRENT`, exit `0`. The run is idempotent.
+3. Difference - run the install pipeline into a new version directory.
+4. Apply pending migrations once each, in numeric order, and record them in state. An applied migration never runs again.
+5. Keep the previous version directory; prune versions older than two after a successful update and a successful verification.
+6. Rebuild wrappers and side effects from the new version, then write state.
+
+**`uninstall.py` - uninstall.**
+
+1. Read state. No state - report `MISSING`, exit `0`.
+2. Remove command wrappers and side-effect files recorded in state.
+3. Remove every version directory and the `current` symlink.
+4. Remove `state.json` and the empty solution directories.
+
+Uninstall never touches user data, keys, profiles or registries. VPN profiles, certificates, keys and resource registries survive an uninstall; the solution only removes what it created.
+
+**`verify.py` - verify.**
+
+Compare three sources: repository canon, `state.json`, and disk. One object per line in `report`, one `key=value` pair per fact in `--porcelain` (`cli_output_standards.md`, 02.02.01).
+
+| Outcome | Meaning |
+|---------|---------|
+| `CURRENT` | Canon, state and disk agree |
+| `MISSING` | No state or no version directory: the solution is not installed |
+| `STALE` | The repository version is newer than the installed version |
+| `DRIFT` | Same version, but a repository hash differs from the state hash: the canon changed in place |
+| `MODIFIED` | A file on disk differs from its state hash: a local edit |
+| `INCOMPLETE` | A recorded file, wrapper or side effect is absent, or a recorded migration is pending |
+| `TAMPERED` | A file mode or installation metadata (`VERSION`, `source_commit`, `installed_at`) differs from the state record |
+
+- Exit codes: `0` every object is `CURRENT`, `1` any other outcome, `2` usage or precondition error.
+- `--porcelain` emits `solution=<name>` and `outcome=<outcome>` pairs for automation.
+- `--state-only` compares state and disk without a repository. It reports `MISSING`, `MODIFIED`, `INCOMPLETE` and `TAMPERED`; `STALE` and `DRIFT` need the canon.
+- The aggregate `run/solutions/verify.py --all` runs the same comparison for every solution and exits with the worst result.
+
+## 07.05. Relation to Variant A
+
+*Mandatory.*
+
+Solutions are file-based bash and Python artifacts. The `uv tool` pipeline of Variant A (01-05) does not apply: no `pyproject.toml`, no wheel, no `uv tool install`, no `config.ini` migration, no `PROJECT_ROOT` swap. A mixed repository keeps the two deploy paths separate: Variant A serves the packaged CLI, Variant B serves the scripts and command wrappers.
+
+- Install and update scripts follow the general rules of 03.01: one task per script, isolation from project modules, output through `print()`, and the AI-agent diagnostic header of 03.02.
+- The application version comes from `solution.json` and from the installed `VERSION` file, not from `config.ini` (04.01 does not apply to solutions).
+- Platform paths use XDG defaults; the overlay documents (`deploy_lin_standards.md`, `deploy_win_standards.md`) name the platform equivalents.
+
+## 07.06. Reference implementation
+
+*Informative - an example, not a requirement.*
+
+`arch_desktop_setup` ships solutions `vpn-adguard` (AdGuard VPN CLI) and `vpn-openvpn` (private OpenVPN contour) and is a reference example. Any repository that follows 07.01-07.05 is conformant. Copy the structure, the state schema and the verify outcomes, not the payload.

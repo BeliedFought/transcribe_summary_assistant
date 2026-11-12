@@ -1,4 +1,4 @@
-# Anthropic Agent Skills Standards. Version 5.0.1
+# Anthropic Agent Skills Standards. Version 5.2.0
 
 This document is the single skill canon for the package. It defines the Anthropic Agent Skills format: a skill directory with a mandatory `SKILL.md`, YAML frontmatter, progressive disclosure, nested files, and scripts. It also defines the four-type taxonomy, the closed ten-category dictionary, naming, distribution, and verification. It supplements `doc/standards/project_standards.md` and applies on top of it.
 
@@ -28,9 +28,9 @@ All core requirements remain in force unless this document explicitly overrides 
 
 *Mandatory.*
 
-Agent Skills is Anthropic's open specification for packaging instructions, knowledge, and scripts into a skill that an AI agent discovers from metadata and applies on request. The ecosystem supports the format: Claude Code, Claude.ai / Anthropic API, opencode, Kilo Code, and other tools read `SKILL.md`.
+Agent Skills is Anthropic's open specification for packaging instructions, knowledge, and scripts into a skill that an AI agent discovers from metadata and applies on request. The ecosystem supports the format: Claude Code, Claude.ai / Anthropic API, opencode, and other tools read `SKILL.md`.
 
-The primary target tool of this standard is **opencode**: SKILL.md skills are created first of all for it. Sources live in the shared `doc/skills/` directory (subdirectories with `SKILL.md`); deployment to live opencode directories is a separate process (01.03). Claude Code, Kilo Code, and other ecosystem tools are compatible consumers of the same format; the Anthropic specification remains the primary source.
+The primary target tool of this standard is **opencode**: SKILL.md skills are created first of all for it. Sources live in the shared `doc/skills/` directory (subdirectories with `SKILL.md`); deployment to live opencode directories is a separate process (01.03). Claude Code, and other ecosystem tools are compatible consumers of the same format; the Anthropic specification remains the primary source.
 
 Apply this standard when:
 
@@ -133,7 +133,6 @@ Deployment target reference (where to copy during deployment):
 | opencode | `.opencode/skills/<name>/SKILL.md` | `~/.config/opencode/skills/<name>/SKILL.md` |
 | Claude Code | `.claude/skills/<name>/SKILL.md` | `~/.claude/skills/<name>/SKILL.md` |
 | Cross-tool registry | - | `~/.agents/skills/<name>/SKILL.md` |
-| Kilo Code | Kilo skill directory per tool documentation | - |
 
 Claude Code plugin skills are published in the plugin structure and follow its documentation; this is also deployment, not source storage.
 

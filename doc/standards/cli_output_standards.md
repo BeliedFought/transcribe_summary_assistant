@@ -1,4 +1,4 @@
-# CLI Output Standards. Version 5.0.1
+# CLI Output Standards. Version 5.2.0
 
 This document is the canon for console output of scripts, command-line tools, and skills. It defines the named output formats, the structured `report`, the clean `plain` stream, the machine-readable `--porcelain` mode, color control, and the language default. It supplements `project_standards.md` and `console_ui_standards.md` and applies on top of them. Core requirements remain in force unless this document explicitly overrides them.
 
@@ -8,9 +8,9 @@ Priority: language and typography - `project_standards.md` (04.03); interactive 
 
 ## Table of Contents
 
-**01. Formats:** 01.01 Named formats and defaults - 01.02 Boundaries between formats
+**01. Formats:** 01.01 Named formats and defaults - 01.02 Boundaries between formats - 01.03 Message style
 
-**02. Structured report (`report`):** 02.01 Layout - 02.02 Key-value block - 02.03 Steps - 02.04 Result and errors - 02.05 Color - 02.06 Examples
+**02. Structured report (`report`):** 02.01 Layout - 02.02 Key-value block (02.02.01 Compound values) - 02.03 Steps - 02.04 Result and errors - 02.05 Color - 02.06 Examples
 
 **03. Clean stream (`plain`):** 03.01 Line format - 03.02 Logs and parsing - 03.03 Progress
 
@@ -59,6 +59,57 @@ Rules:
 - A file that a program reads is `porcelain`. If a program must read a log, it parses the `plain` prefix, not the human report.
 - Color is allowed only in `report`, `menu`, and `rich`. `plain` and `porcelain` emit plain bytes.
 
+## 01.03. Message style
+
+Rules for the message text of every console line: after the marker in `plain`, after the object header in `report`, in CLI help, prompts, and `echo` output. The line format (timestamp, marker, alignment) is set by the format sections; this section governs only the message text.
+
+**Language.** English by default (05.01); Russian is allowed through the project locale or override. One output channel - one language per run: do not mix prose languages inside one message or one run. Identifiers, paths, branch names, tool names, and git terms stay Latin in both languages (`master`, `uv`, `doc/standards/`, `dry-run`); transliteration is forbidden.
+
+**Common rules (both languages).**
+
+- Sentence case: the first word of a message is capitalized; identifiers, paths, and tool names keep their own case.
+- No trailing period, no exclamation marks, no emoji.
+- Headers and statuses use the `Label: value` pattern: capitalized label, colon, space, value (`Project: vpn_list`, `Package version: 5.2.0`; `Проект: vpn_list`, `Версия пакета: 5.2.0`).
+- Labels inside dash list items stay lowercase (`- suggestion: update (python run/deploy/update.py)`, `- предложение: обновить (python run/deploy/update.py)`).
+- Reasons go lowercase after a colon: `Commit skipped: merge in progress` / `Коммит пропущен: merge в процессе`.
+- Plan and item lines keep the dash form `- <object> - <result>` (`- cli_data_standards.md - created (5.2.0)` / `- cli_data_standards.md - создан (5.2.0)`).
+- Recommendations are imperatives or "requires + noun", not past tense: `requires removal from the repo`, `move to data/skills/`, `set metadata.topic` / `требуется удаление из репо`, `переместить в data/skills/`, `задайте metadata.topic`.
+- A path may lead a line as a label (`doc/skills/ext: sync aggregate, skipped`); every other lowercase start is a violation.
+- Status labels are short present-tense words, not verbs of result (`differs`, `matches` / `отличается`, `совпадает`).
+
+**Closed verb set.** Action results use past tense only from the closed set below. Adding a verb is a change to this standard, not a per-script choice.
+
+| English | Russian (base form) |
+|---------|---------------------|
+| created | создан |
+| updated | обновлен |
+| removed | удален |
+| skipped | пропущен |
+| pushed | отправлен |
+| failed | не выполнен |
+| checked | проверен |
+| loaded | загружен |
+| renamed | переименован |
+| replaced | заменен |
+| migrated | перенесен |
+| preserved | сохранен |
+| installed | установлен |
+| deployed | развернут |
+| copied | скопирован |
+
+Russian base forms are masculine; gender and number agree with the subject (`папка создана`, `зеркало удалено`).
+
+**Examples.**
+
+```
+2026-11-10 10:00:00 [i] Source files (project_standards):
+2026-11-10 10:00:00 [i] Package version: 5.2.0
+2026-11-10 10:00:00 [i] Commit: 7b52214 on master, pushed
+2026-11-10 10:00:00 [i] Коммит пропущен: merge в процессе
+```
+
+The verb set covers action results. State words, `report` result words (02.04), and step values (02.03) follow their own sections.
+
 ## 02.01. Layout
 
 A `report` is a human-readable snapshot of one object or operation. Layout top to bottom:
@@ -82,7 +133,7 @@ Rules:
 
 - Line: two spaces, key, padding to 16 characters, value.
 - Key: short English label, one or two words, capital first letter, for example `Service`, `Tunnel`, `Profile`, `Server`, `Route`.
-- Value: the observed value, no trailing period. Paths, addresses, unit names, and state words are allowed.
+- Value: the observed value, no trailing period. Paths, addresses, unit names, and state words are allowed. A multi-part value follows 02.02.01.
 - A missing value is `-`, not an empty string.
 - Do not hide the state word behind color. The word is the carrier of meaning; color is an accent.
 - Example:
@@ -91,9 +142,45 @@ Rules:
 OpenVPN machine channel
   Service         openvpn-client@hm
   State           active (running)
-  Tunnel          tun0 10.8.0.10
+  Tunnel          tun0, 10.8.0.14/24
   Server          203.0.113.10:443
 ```
+
+### 02.02.01. Compound values
+
+*Mandatory.*
+
+One report line answers for one object; the value is a list of facts. Facts are separated by a comma and a space. Comma is the only top-level separator.
+
+- A fact answers one question. Litmus: if joining the parts with "and" yields two independent statements, they are two facts.
+- Inside a fact: a `key value` pair with a space (`dev tun0`, `metric 100`, `via 10.8.0.1`); a parenthesized qualifier (`hm (home)`, `split tunnel (site LAN only)`); a number with unit (`4.346 ms`, `1.0 s`); compound tokens: address with port (`172.17.1.37:3389`), CIDR (`10.8.0.14/24`), path, URL, unit name with `@` (`openvpn-client@hm`); registered composite phrases: ping summary (`3 packets transmitted, 3 received, 4.346 ms avg`), permissions (`600 root:root`), name with version (`adguardvpn-cli 1.8.2`).
+- A registered composite phrase is one fact; its internal commas belong to the phrase and do not start a new fact.
+- Nesting is marked by parentheses, not by a second level of commas.
+- Order from the main object to details.
+- Forbidden as separators between facts: `|`, `;`, `->`, dash, slash, ellipsis. Slash, hyphen, dot, colon and `@` are allowed inside a fact.
+- No trailing period.
+- `--porcelain` is exempt: raw space-separated tokens, machine contract (04.01).
+
+Application:
+
+| Key | Value example |
+|-----|---------------|
+| `Tunnel` | `tun0, 10.8.0.14/24` |
+| `Server` | `<host>, <ping phrase>` |
+| `Host` | `<host>, <ping phrase>` |
+| `Site route` | `<target>, via <gateway>, dev <iface>` |
+| `Default route` | `<gw>, dev <iface>, metric <n>, unchanged` |
+| `Profile` | `<path>, 600 root:root` |
+| `Policy` | `dport 3389, lookup 117, present` |
+| `Service` | `openvpn-client@hm, started` |
+| `Site` | `hm (home)` |
+| `Mode` | `split tunnel (site LAN only)` |
+| `CLI` | `adguardvpn-cli 1.8.2` |
+| `Version` | `repo 1.0.0, deployed 1.0.0` |
+| `Dependencies` | `openvpn 2.6.19, systemctl ok` |
+| `Result` | `UP in 5 s` - a registered form, not a fact list |
+
+The site route fact list carries no `src` and no `uid`: address selection belongs to the kernel, not to the report.
 
 ## 02.03. Steps
 
@@ -105,7 +192,7 @@ OpenVPN machine channel
 
 ## 02.04. Result and errors
 
-- Result line: `Result` padded to 20 characters, no indent, then a state word.
+- Result line: two-space indent, `Result` padded to 16 characters, then a state word - the value column matches the key-value block (02.02).
 - Human result words: `UP`, `DOWN`, `SKIPPED`, `INSTALLED`, `DEPLOYED`, `BUILT`, `ISSUED`, `REVOKED`, `GENERATED`, `INITIALIZED`, `FAILED`. A project may extend the list in its method.
 - Exit codes: `0` success, `1` runtime error, `2` usage or precondition error (`project_standards.md`, 05.03).
 - Errors go to stderr as one line: `error: <text>`. No traceback, no raw subprocess output, no stack trace.
@@ -147,11 +234,11 @@ Human report:
 OpenVPN machine channel
   Service         openvpn-client@hm
   State           active (running)
-  Tunnel          tun0 10.8.0.10
+  Tunnel          tun0, 10.8.0.14/24
   [1/3] profile         checked
   [2/3] service         started
   [3/3] route           installed
-Result              UP
+  Result          UP
 ```
 
 Failure:
@@ -161,7 +248,7 @@ OpenVPN machine channel
   Service         openvpn-client@hm
   State           inactive (dead)
   Profile         /etc/openvpn/client/hm.conf
-Result              DOWN
+  Result          DOWN
 ```
 
 stderr:
@@ -236,6 +323,7 @@ result=up
 - Documentation, `README.md`, user guides, specifications, change requests, and chat remain Russian.
 - The package does not cement a single language: a project may ship Russian UI, but the default catalog and the examples are English.
 - Skill scripts follow the same rule: English default, Russian allowed by project override.
+- Message style for both languages - `01.03` of this document.
 - Typography applies to both languages: hyphen-minus `-` only, no em dash or en dash, no ellipsis, no emoji, no exclamation marks, no non-breaking or narrow spaces, no trailing period on status or error lines.
 
 ## 05.02. `t()` and translations

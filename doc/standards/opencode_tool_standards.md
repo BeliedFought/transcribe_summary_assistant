@@ -1,4 +1,4 @@
-# OpenCode Custom Tool Standards. Version 5.0.1
+# OpenCode Custom Tool Standards. Version 5.2.0
 
 This document defines rules for creating custom tools for opencode: location and naming, registration through a plugin, argument schema, `description` field, thin wrapper over an external script, output and errors for the agent, permissions, and mutations. It supplements `doc/standards/project_standards.md` and applies on top of it.
 

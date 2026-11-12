@@ -1,4 +1,4 @@
-# Software Installation Document Standards. Version 5.0.1
+# Software Installation Document Standards. Version 5.2.0
 
 A single template for documents describing software installation and configuration. Each document is one `.md` file with bash blocks. Skip optional sections without leaving empty headings.
 
@@ -45,10 +45,10 @@ Target document sections follow strictly in the specified order. The numbering b
 *Mandatory.*
 
 ```
-# <app_name>
+# <app_name>. Version X.Y.Z
 ```
 
-The H1 is the application name as it is used; the target section is `Заголовок`.
+The H1 is the application name as it is used, followed by the document version (04.02); the target section is `Заголовок`.
 
 ### 02.01.02. Description
 
@@ -203,7 +203,7 @@ Useful links to documentation, Wiki pages, AUR pages. Format as a regular list, 
 Target document section order:
 
 ```
-# <app_name>
+# <app_name>. Version X.Y.Z
 (Описание - без заголовка, 1-3 предложения)
 
 ## Зависимости              (опционально)
@@ -221,7 +221,7 @@ Target document section order:
 Minimal document (mandatory sections only):
 
 ````
-# <app_name>
+# <app_name>. Version X.Y.Z
 
 Описание приложения.
 
@@ -269,4 +269,14 @@ sudo pacman -Rns <package>
 
 ## 04.02. Versioning
 
-Standards package versioning is unified for all package documents. Versioning policy, registry, and routing map - in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see `_index_standards.md`).
+Two version layers exist and they are independent.
+
+**Human instructional documents.** Every document starts with `# <Title>. Version X.Y.Z`. The title is the application or component name as it is used; the version is the version of the document itself, not the package version.
+
+- **PATCH** - wording and examples: clarified sentences, fixed typos, updated command and version examples.
+- **MINOR** - new sections or rules inside the document.
+- **MAJOR** - changed purpose or incompatible restructuring: removed or renamed sections that readers and external links rely on.
+
+Bump the document version on a material content change. The version lives in the H1 only: no separate version block, no date in the header. A document version never follows the package version automatically, and the package version never follows a document.
+
+**Standards package.** The package keeps its own unified SemVer for all package documents. Versioning policy, registry, and routing map - in `doc/standards/_index_standards.md`. Bump the package version only on an explicit user request (see `_index_standards.md`).

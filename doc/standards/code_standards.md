@@ -1,4 +1,4 @@
-# Code Standards. Version 5.0.1
+# Code Standards. Version 5.2.0
 
 Canonical coding requirements by language: Python, JavaScript, HTML and CSS, Shell, Windows (PowerShell and batch); data formats; shared rules (comments, TODO, line length, encoding); and linters. This document supplements `project_standards.md` and applies on top of it: project structure, configuration, output and UI, security, git, and workflow live in the core standard. For decision priority when a rule is missing or ambiguous, see `project_standards.md` (Section 07.06).
 

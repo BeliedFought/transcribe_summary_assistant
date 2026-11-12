@@ -1,4 +1,4 @@
-# Console UI Standards. Version 5.0.1
+# Console UI Standards. Version 5.2.0
 
 This document fixes the visual and navigation contract of the interactive console UI (`menu` / `rich` modes) and the mandatory reference `doc/specs/spec_ui.html`. It supplements `doc/standards/project_standards.md` and applies on top of it. All core standard requirements remain in force unless this document explicitly states otherwise.
 

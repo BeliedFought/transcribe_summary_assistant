@@ -6,7 +6,6 @@ __pycache__/
 .ruff_cache/
 .vscode/
 .claude/
-.kilo
 .cursor
 web/var/
 

@@ -1,4 +1,4 @@
-# Repository Navigation Documents: Indexes and AGENTS.md. Version 5.0.1
+# Repository Navigation Documents: Indexes and AGENTS.md. Version 5.2.0
 
 Canon for repository navigation documents: directory indexes and the agent instruction file `AGENTS.md`. Purpose - fast and accurate AI agent routing: in one pass over an index the agent determines which files to open for a task and does not load whole directories. The document supplements `project_standards.md` and applies on top of it. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 
@@ -382,7 +382,7 @@ This file contains instructions for AI agents working with this project.
 
 *Mandatory.*
 
-At the start of `AGENTS.md` - explicit references to repository indexes (the list and formatting rules - 02.02). This is the only place where indexes and `AGENTS.md` overlap in mandatory terms: `AGENTS.md` routes to indexes, indexes route to files. The references are placed in the `## Session Entry Points` section of the static body. The section also states the minimum memory read (`data/memory/memory.md`, `decisions.md`, `env.md` when the directory exists) and the directories the agent ignores: `.backup/`, `.trash/`, `.arch/`, `.opencode/`, `.kilo/`.
+At the start of `AGENTS.md` - explicit references to repository indexes (the list and formatting rules - 02.02). This is the only place where indexes and `AGENTS.md` overlap in mandatory terms: `AGENTS.md` routes to indexes, indexes route to files. The references are placed in the `## Session Entry Points` section of the static body. The section also states the minimum memory read (`data/memory/memory.md`, `decisions.md`, `env.md` when the directory exists) and the directories the agent ignores: `.backup/`, `.trash/`, `.arch/`, `.opencode/`.
 
 ---
 
@@ -390,7 +390,7 @@ At the start of `AGENTS.md` - explicit references to repository indexes (the lis
 
 *Mandatory.*
 
-1. Only `AGENTS.md` maintains agent instructions; the primary target tool is opencode, compatible consumers are other ecosystem tools (Kilo Code, Cursor; Claude Code reads `AGENTS.md` by default when there is no `CLAUDE.md` in the project directory and above; when `CLAUDE.md` exists, only it is read - loading is controlled by the Project instructions setting; actual behavior is checked against the installed tool version)
+1. Only `AGENTS.md` maintains agent instructions; the primary target tool is opencode, compatible consumers are other ecosystem tools (Cursor; Claude Code reads `AGENTS.md` by default when there is no `CLAUDE.md` in the project directory and above; when `CLAUDE.md` exists, only it is read - loading is controlled by the Project instructions setting; actual behavior is checked against the installed tool version)
 2. `CLAUDE.md` is **not maintained** and not created by default. If a repository has `CLAUDE.md` - delete it during `AGENTS.md` synchronization (the `hub-sync-agents` skill); move valuable content to `AGENTS.md` before deletion
 3. The exception is a repo override on an explicit user request: then `CLAUDE.md` is maintained as a mirror of `AGENTS.md`. The mirror reference is the hub `CLAUDE.md`. Mirror copies match except for the H1 title and the purpose line: `AGENTS.md` uses `This file contains instructions for AI agents working with this project.`, `CLAUDE.md` uses `This file contains instructions for Claude Code working with this project.`. Any change to one file is made synchronously in the other. `AGENTS.md` is the primary file
 4. Language - English by default; another language only on an explicit user request, without mixing languages in one document
@@ -449,7 +449,7 @@ This file contains instructions for AI agents working with this project.
 - `@doc/skills/_index_skills_hub.md` (hub) or `@doc/skills/_index_skills_repo.md` (derivative repositories) - skill index
 - `@doc/specs/_index_specs.md` - specifications index
 - `data/memory/memory.md`, `data/memory/decisions.md`, `data/memory/env.md` - agent memory minimum when `data/memory/` exists; update it after significant decisions
-- Ignore `.backup/`, `.trash/`, `.arch/`, `.opencode/`, `.kilo/` unless the user explicitly asks
+- Ignore `.backup/`, `.trash/`, `.arch/`, `.opencode/` unless the user explicitly asks
 - Tagging an `@_index_*.md` file without a task runs its index auto-update procedure
 
 ## Language & Typography Matrix

@@ -1,6 +1,6 @@
-# Linux Deploy Standards. Version 5.0.1
+# Linux Deploy Standards. Version 5.2.0
 
-OS overlay for `deploy_standards.md` (shared core). Apply it together with the core and `project_standards.md` to install a project as a system tool on Linux. This document contains Linux specifics only; general deploy rules live in the core.
+OS overlay for Variant A of `deploy_standards.md` (shared core): installing a Python project as a system CLI tool. Apply it together with the core and `project_standards.md`. This document contains Linux specifics only; general deploy rules live in the core, and the solution runtime (Variant B, section 07) needs no overlay.
 
 Installation runs directly on the target Linux machine: `uv tool install .` from the repository root. The agent has full access to the repository and the target machine.
 

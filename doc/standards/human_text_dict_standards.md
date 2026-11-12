@@ -1,4 +1,4 @@
-# Human Text Dictionary Standards. Version 5.0.1
+# Human Text Dictionary Standards. Version 5.2.0
 
 Denylist of Russian text: officialese, filler, amplifiers, evaluations without evidence, pleonasms. This document supplements `human_text_standards.md` and applies on top of it together with the other package dictionaries. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 

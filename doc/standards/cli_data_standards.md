@@ -1,4 +1,4 @@
-# CLI & Data Architecture Standards. Version 5.0.1
+# CLI & Data Architecture Standards. Version 5.2.0
 
 Architecture, storage, and entry-point rules for CLI pipelines, local SQLite data marts, diagnostic/test harnesses, session subprojects, SQL layout/migrations, and `run/` scripts. Apply on top of `project_standards.md`. For decision priority, see `project_standards.md` (Section 07.06).
 

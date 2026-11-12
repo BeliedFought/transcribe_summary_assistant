@@ -1,4 +1,4 @@
-# Project Standards. Version 5.0.1
+# Project Standards. Version 5.2.0
 
 Core rules across initialization, development, refactoring, and maintenance. Coding rules: `doc/standards/code_standards.md`. SQLite marts, `diag/`/`tmp/`/`test/`, sessions, SQL/migrations, and `run/` CLI: `doc/standards/cli_data_standards.md`. Retries, SSH, DPI/routing, and system config mutations: `doc/standards/network_ops_standards.md`. Universal rules apply to all repos; Python rules (`.venv`, `requirements.txt`, `pytest`) apply to Python projects; deviations use `doc/specs/overrides.md` (Section 01.01.02). Tagging `@doc/standards/project_standards.md` runs the audit in Section 07.04.
 
@@ -230,7 +230,7 @@ Log file (always, English) and `plain` console through `console_message()` (Engl
 
 ### 04.04.02. General Formatting Rules
 
-One message per line; no separator lines (`=====`, `-----`), emoji, or trailing periods; zero-pad counters (`09/23`). Log files and `plain` are monochrome; `report` color follows `cli_output_standards.md` (02.05); `menu`/`rich` colors follow `doc/specs/spec_ui.html` (`console_ui_standards.md`).
+One message per line; no separator lines (`=====`, `-----`), emoji, or trailing periods; zero-pad counters (`09/23`). Message style - `cli_output_standards.md` (01.03). Log files and `plain` are monochrome; `report` color follows `cli_output_standards.md` (02.05); `menu`/`rich` colors follow `doc/specs/spec_ui.html` (`console_ui_standards.md`).
 
 ### 04.04.03. Block Spacing
 

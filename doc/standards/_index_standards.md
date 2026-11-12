@@ -1,4 +1,4 @@
-# Standards Package Index. Version 5.0.1
+# Standards Package Index. Version 5.2.0
 
 Entry point to the standards package. Tag this file to make an agent load only the documents relevant to the current task. Each overlay applies on top of `project_standards.md` for its project class.
 
@@ -30,21 +30,21 @@ The standards apply whenever work touches the project, tagged or not. Subagents 
 | `network_ops_standards.md` | Network or system work (retries, SSH, DPI/routing/SMB, mutations) |
 | `code_standards.md` | Writing or reviewing code; linter setup |
 | `console_ui_standards.md` | Menu/rich UI, batch CLI, console mockups |
-| `cli_output_standards.md` | Script and CLI console output: named formats, `report`, `plain`, `porcelain`, color, language |
-| `deploy_standards.md` | Packaging a Python tool; install/update/migration |
+| `cli_output_standards.md` | Script and CLI console output: named formats, `report`, `plain`, `porcelain`, color, key-value alignment and compound values, language |
+| `deploy_standards.md` | Choosing a deployment variant; packaging a Python tool (Variant A); solution runtime (Variant B): factory, state, lifecycle, verify |
 | `deploy_lin_standards.md` | Installing on Linux |
 | `deploy_win_standards.md` | Installing on Windows |
 | `deploy_docker_standards.md` | Docker services, ports, logs, backups |
 | `deploy_hyperv_standards.md` | Hyper-V VM deployment |
 | `web_standards.md` | Building or deploying a web app |
-| `skill_anthropic_standards.md` | Creating, updating, migrating a skill; frontmatter `purpose` and `topic` fields |
+| `skill_anthropic_standards.md` | Creating, updating, migrating a skill; frontmatter `purpose` and `topic` fields; deploy targets |
 | `skill_data_standards.md` | Skill writes registries, journals, state, cache |
 | `opencode_tool_standards.md` | Creating or revising custom tools |
 | `index_nav_standards.md` | Creating or editing an index or `AGENTS.md`; setting skill purpose or topic fields |
 | `memory_standards.md` | Reading or updating agent memory |
 | `change_request_standards.md` | Creating, tracking, archiving a CR |
 | `repo_info_doc_standards.md` | Writing or updating `README.md` |
-| `software_doc_standards.md` | Writing an installation guide |
+| `software_doc_standards.md` | Writing an installation guide; document H1 version and bump rules |
 | `human_text_standards.md` | Writing any human-facing Russian text |
 | `human_text_dict_standards.md` | Editing Russian text (stop words) |
 | `human_text_dict_ai_standards.md` | Editing Russian text (AI markers) |
@@ -80,7 +80,7 @@ Archive rule: `.backup/<version>/` holds cold snapshots of prior package version
 | Retry/liveness, SSH hosts and embedded targets, DPI/DNS/SNI/IPv6/CDN/SMB, system config mutation patterns | `network_ops_standards.md` |
 | Idempotency, atomic writes, `--dry-run`, non-interactive confirmation | `project_standards.md` (03.01) |
 | Output modes, TTY detection, localization `t()`, markers, formatting, errors | `project_standards.md` (04.01-04.07); `console_ui_standards.md`; `cli_output_standards.md` |
-| Script and CLI output: named formats, `report` default, clean `plain`, `--porcelain`, color, English default with Russian opt-in | `cli_output_standards.md`; `project_standards.md` (04.04, 04.07) |
+| Script and CLI output: named formats, `report` default, clean `plain`, `--porcelain`, message style, color, key-value alignment and compound facts, English default with Russian opt-in | `cli_output_standards.md`; `project_standards.md` (04.04, 04.07) |
 | Language split, typography, dual-channel logging | `project_standards.md` (04.03, 04.06); `cli_output_standards.md` (05); `human_text_standards.md` |
 | GUI startup validation and `tkinter` | `project_standards.md` (04.08) |
 | Console UI frame, keys and menu layout, roles, tables, batch progress, `spec_ui.html` | `console_ui_standards.md` |
@@ -92,19 +92,21 @@ Archive rule: `.backup/<version>/` holds cold snapshots of prior package version
 | Debugging discipline and 3-fix rule | `project_standards.md` (06.03); `superpowers:systematic-debugging` |
 | Testing priorities and reference tests | `project_standards.md` (06.04); `cli_data_standards.md` (02.04) |
 | Workflow, superpowers delegation, task classification, clarification modes, Russian specs, screenshots, `ДЕЛАЙ`/`GO`, data UI recon, initialization, audit, editing standards, decision cascade | `project_standards.md` (07) |
-| Package glossary and versioning | `project_standards.md` (08.01); this index |
+| Package glossary and versioning; human document version | `project_standards.md` (08.01); this index; `software_doc_standards.md` (04.02) |
 | Code naming and slugs, comments/TODO, Python, JS/TS and plugins, HTML/CSS, Shell, PowerShell/batch, JSON/TOML/YAML/SQL, linters | `code_standards.md` (01-08) |
-| Deploy CLI: packaging, `PROJECT_ROOT`, install/update contracts, config/.env migration; Linux and Windows overlays | `deploy_standards.md`; `deploy_lin_standards.md`; `deploy_win_standards.md` |
+| Deploy variant selection: packaged Python CLI versus file-based solution, mixed repository | `deploy_standards.md` (Deployment Variants) |
+| Deploy CLI (Variant A): packaging, `PROJECT_ROOT`, install/update contracts, config/.env migration; Linux and Windows overlays | `deploy_standards.md` (01-05); `deploy_lin_standards.md`; `deploy_win_standards.md` |
+| Solution runtime (Variant B): factory layout, `solution.json`, installed layout, lifecycle, verify outcomes, relation to Variant A | `deploy_standards.md` (07) |
 | Docker compose, ports, ufw, logs, backups, service docs, host overrides | `deploy_docker_standards.md` |
 | Hyper-V Linux VM deployment and maintenance | `deploy_hyperv_standards.md` |
 | Web app structure, FastAPI, nginx fronts, systemd/Docker, TLS, update/rollback, runtime data, UI base | `web_standards.md` |
-| Skill `SKILL.md` layout, frontmatter, types, categories, scripts, root commands, discovery/testing | `skill_anthropic_standards.md`; `superpowers:writing-skills` |
+| Skill `SKILL.md` layout, frontmatter, types, categories, scripts, root commands, discovery/testing, deploy targets | `skill_anthropic_standards.md`; `superpowers:writing-skills` |
 | Skill runtime data zones and formats | `skill_data_standards.md` |
 | Local skills and skill indexes | `skill_anthropic_standards.md` (01.03); `index_nav_standards.md` (06.02) |
 | Custom OpenCode tool vs skill; plugin V2, schema, output, permissions | `opencode_tool_standards.md` |
 | Index skeleton, registry, routing map, auto-update | `index_nav_standards.md` (03-06) |
 | Change requests: create, review, transfer to spec, archive | `change_request_standards.md` |
-| `README.md` structure and file table; app installation documents | `repo_info_doc_standards.md`; `software_doc_standards.md` |
+| `README.md` structure and file table; installation document structure and its H1 version | `repo_info_doc_standards.md`; `software_doc_standards.md` (04.02) |
 | Russian text genres, speech styles, writing and self-check | `human_text_standards.md` |
 | Russian stop words, AI markers, preferred constructions and replacements; text overrides | `human_text_dict_standards.md`; `human_text_dict_ai_standards.md`; `human_text_allowlist_standards.md`; `human_text_standards.md` (05.03) |
 | Plan-file style | `superpowers:writing-plans` |

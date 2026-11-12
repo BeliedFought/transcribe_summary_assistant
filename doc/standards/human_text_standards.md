@@ -1,4 +1,4 @@
-# Human Text Standards. Version 5.0.1
+# Human Text Standards. Version 5.2.0
 
 Canon for human-facing texts written by an AI agent: the registry of document types, the speech style matrix, the writing and self-check method, the composition of the dictionaries, and the repo override mechanism. This document supplements `project_standards.md` and applies on top of it. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 
