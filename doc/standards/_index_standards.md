@@ -84,7 +84,7 @@ Archive rule: `.backup/<version>/` holds cold snapshots of prior package version
 | Language split, typography, dual-channel logging | `project_standards.md` (04.03, 04.06); `cli_output_standards.md` (05); `human_text_standards.md` |
 | GUI startup validation and `tkinter` | `project_standards.md` (04.08) |
 | Console UI frame, keys and menu layout, roles, tables, batch progress, `spec_ui.html` | `console_ui_standards.md` |
-| Secrets: project `.env`, machine-local store `~/.config/<tool>/`, resolution order, `secret --set` provisioning, external input validation, SQL/subprocess/TLS/path safety, sudoers fragments | `project_standards.md` (05.01); `skill_anthropic_standards.md` (03.03); `code_standards.md` (05.07) |
+| Secrets: project `.env`, machine-local store `~/.config/<tool>/` with the `0600` file as the binding rule, resolution order, `secret --set` provisioning, the `~/.ssh` askpass exception, external input validation, SQL/subprocess/TLS/path safety, sudoers fragments | `project_standards.md` (05.01); `skill_anthropic_standards.md` (03.03); `code_standards.md` (05.07) |
 | Exceptions, shutdown, exit codes, privileged levels 0-3 | `project_standards.md` (05.02-05.04); `skill_anthropic_standards.md` (03.04) |
 | Git, `.gitignore`, English commits, dynamic author, pre-commit gate | `project_standards.md` (06.01) |
 | `README.md` (Russian) and `AGENTS.md` (English); index and `CLAUDE.md` policy | `project_standards.md` (06.02); `repo_info_doc_standards.md`; `index_nav_standards.md` (07) |
