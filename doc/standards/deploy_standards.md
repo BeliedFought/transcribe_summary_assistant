@@ -1,4 +1,4 @@
-# Deploy Standards. Version 5.2.2
+# Deploy Standards. Version 5.2.3
 
 This document defines OS-agnostic deployment rules for two variants: an installed Python CLI tool (Variant A) and a file-based solution runtime (Variant B). It supplements `doc/standards/project_standards.md` and applies on top of it. All core requirements remain in force unless this document explicitly overrides them.
 

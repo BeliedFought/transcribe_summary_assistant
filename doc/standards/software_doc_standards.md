@@ -1,4 +1,4 @@
-# Software Installation Document Standards. Version 5.2.2
+# Software Installation Document Standards. Version 5.2.3
 
 A single template for documents describing software installation and configuration. Each document is one `.md` file with bash blocks. Skip optional sections without leaving empty headings.
 
