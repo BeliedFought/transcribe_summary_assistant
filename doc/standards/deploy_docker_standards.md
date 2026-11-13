@@ -1,4 +1,4 @@
-# Docker Deploy Standards. Version 5.2.3
+# Docker Deploy Standards. Version 5.2.4
 
 This document defines rules and conventions for deploying services in Docker. It supplements `doc/standards/project_standards.md` and applies on top of it. All core requirements remain in force unless this document explicitly overrides them.
 

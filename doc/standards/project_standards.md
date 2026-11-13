@@ -1,4 +1,4 @@
-# Project Standards. Version 5.2.3
+# Project Standards. Version 5.2.4
 
 Core rules across initialization, development, refactoring, and maintenance. Coding rules: `doc/standards/code_standards.md`. SQLite marts, `diag/`/`tmp/`/`test/`, sessions, SQL/migrations, and `run/` CLI: `doc/standards/cli_data_standards.md`. Retries, SSH, DPI/routing, and system config mutations: `doc/standards/network_ops_standards.md`. Universal rules apply to all repos; Python rules (`.venv`, `requirements.txt`, `pytest`) apply to Python projects; deviations use `doc/specs/overrides.md` (Section 01.01.02). Tagging `@doc/standards/project_standards.md` runs the audit in Section 07.04.
 
@@ -212,9 +212,10 @@ Domain entry points live in `run/{db,api,ai,email}/` (`<domain>_<action>.py`). S
 
 ## 04.03. Language Split and Typography Rules
 
-- **Human Contour (Russian):** user chat responses, `README.md`, user guides, `doc/specs/`, `doc/change_requests/`, `data/lessons.md`, `SESSION.md`. Governed by `doc/standards/human_text_standards.md` and its three dictionaries.
+- **Default language (English):** every written artifact is English unless this section explicitly states otherwise; the Russian contours below are the explicit exceptions.
+- **Human Contour (Russian):** user chat responses, `README.md`, user guides, `data/lessons.md`, `SESSION.md`. Governed by `doc/standards/human_text_standards.md` and its three dictionaries.
 - **User-Facing Output (English default, Russian opt-in):** console strings, `report`, `menu`, `rich`, GUI widgets, and `--help` via `t()` (`translations.json`, `spec_ui.html`). English is the default catalog; Russian is allowed through `t()`, `[app] language`, `LANGUAGE`, or a project override, so the package does not cement one language. Format canon - `cli_output_standards.md`.
-- **Agent and Code Contour (English):** code identifiers, filenames, config/translation keys (Latin only, no transliteration; `code_standards.md`, Section 02.01), code comments and docstrings, technical log records (`logger.*` with `%s`), git commit messages (Section 06.01), subagent briefs/reports, `AGENTS.md` / `CLAUDE.md`, `doc/standards/*.md`, `doc/skills/**`, and `_index_*.md`. (Cyrillic allowed only in `[app] name`, session folder names `YYYY-MM-DD_<Cyrillic-Slug>`, and user content filenames in `output/`/`data/`/`input/`/`backup/`).
+- **Agent and Code Contour (English):** code identifiers, filenames, config/translation keys (Latin only, no transliteration; `code_standards.md`, Section 02.01), code comments and docstrings, technical log records (`logger.*` with `%s`), git commit messages (Section 06.01), subagent briefs/reports, `AGENTS.md` / `CLAUDE.md`, `doc/standards/*.md`, `doc/skills/**`, `_index_*.md`, specifications and implementation plans (`doc/specs/**`), and change requests (`doc/change_requests/**`). (Cyrillic allowed only in `[app] name`, session folder names `YYYY-MM-DD_<Cyrillic-Slug>`, and user content filenames in `output/`/`data/`/`input/`/`backup/`).
 - **Typography Rules (mandatory across all contours):**
   - **Hyphen-minus (`-`, U+002D) only:** never use em dash (U+2014) or en dash (U+2013), including number ranges (`10-15`).
   - **Letter `е` (U+0435 / U+0415) only:** never use the letter with diaeresis (U+0451 / U+0401).
@@ -357,7 +358,7 @@ Store agent reference tests in `test/<domain>/` (`cli_data_standards.md`, Sectio
 - **Superpowers delegation:** use `superpowers:brainstorming` for design exploration and task classification, `superpowers:writing-plans` for written specs and implementation plans (including the `Review Focus` rubric).
 - **Task classification & ratchet:** classify tasks as **Spike**, **Bounded**, or **Architectural**; halt and ratchet up if hidden complexity appears.
 - **Clarification modes:** ask once per dialogue whether to use **Interactive mode** (one prioritized question at a time via the `question` tool with ranked options citing Section 07.06 sources, updating the spec incrementally) or **Batch mode** (`doc/agent_questions/questions_YYYY-MM-DD_HH-MM.md` with ranked options and `Ответ:` blocks, moved to `.trash/` once answered).
-- **Russian specifications (`doc/specs/`):** pre-MVP specs in `doc/specs/init/` (`init_base.txt` -> `init_final.md`), archived to `doc/specs/.arch/` at MVP; post-MVP modular specs in `doc/specs/spec_<module>.md` (with up to 5 **Review Focus** out-of-scope failure classes) fed by `doc/change_requests/cr_<slug>.md` and indexed in `doc/specs/_index_specs.md`.
+- **Specifications (`doc/specs/`, English):** pre-MVP specs in `doc/specs/init/` (`init_base.txt` -> `init_final.md`), archived to `doc/specs/.arch/` at MVP; post-MVP modular specs in `doc/specs/spec_<module>.md` (with up to 5 **Review Focus** out-of-scope failure classes) fed by `doc/change_requests/cr_<slug>.md` and indexed in `doc/specs/_index_specs.md`.
 - **User screenshots:** when mentioned without a path, inspect the newest image in `~/Pictures/Screenshots`, `~/Рабочий стол`, `~/Desktop` (or Windows/macOS equivalents), copy to `tmp/<domain>/` if needed, and ask on ambiguity.
 - **Execution trigger (`ДЕЛАЙ` or `GO`):** stay in read/plan/spec mode until the user sends uppercase `ДЕЛАЙ` or `GO` (word-boundary match; authorizes one major task).
 - **Data UI recon & mockup:** before building any first UI over real data, run read-only data recon into `tmp/<domain>/`, review anomalies with the user, and obtain approval on a single-file interactive HTML+JS mockup in `tmp/<domain>/` before `ДЕЛАЙ` / `GO`.

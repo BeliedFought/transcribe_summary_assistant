@@ -1,4 +1,4 @@
-# Anthropic Agent Skills Standards. Version 5.2.3
+# Anthropic Agent Skills Standards. Version 5.2.4
 
 This document is the single skill canon for the package. It defines the Anthropic Agent Skills format: a skill directory with a mandatory `SKILL.md`, YAML frontmatter, progressive disclosure, nested files, and scripts. It also defines the four-type taxonomy, the closed ten-category dictionary, naming, distribution, and verification. It supplements `doc/standards/project_standards.md` and applies on top of it.
 

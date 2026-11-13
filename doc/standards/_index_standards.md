@@ -1,4 +1,4 @@
-# Standards Package Index. Version 5.2.3
+# Standards Package Index. Version 5.2.4
 
 Entry point to the standards package. Tag this file to make an agent load only the documents relevant to the current task. Each overlay applies on top of `project_standards.md` for its project class.
 

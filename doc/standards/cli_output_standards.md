@@ -1,4 +1,4 @@
-# CLI Output Standards. Version 5.2.3
+# CLI Output Standards. Version 5.2.4
 
 This document is the canon for console output of scripts, command-line tools, and skills. It defines the named output formats, the structured `report`, the clean `plain` stream, the machine-readable `--porcelain` mode, color control, and the language default. It supplements `project_standards.md` and `console_ui_standards.md` and applies on top of them. Core requirements remain in force unless this document explicitly overrides them.
 
