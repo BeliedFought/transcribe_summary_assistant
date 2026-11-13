@@ -1,7 +1,7 @@
 <!-- START static -->
 # AGENTS.md
 
-Standard version: 5.0.1
+Standard version: 5.2.1
 
 This file contains instructions for AI agents working with this project.
 
@@ -11,7 +11,7 @@ This file contains instructions for AI agents working with this project.
 - `@doc/skills/_index_skills_repo.md` - repository skills index
 - `@doc/specs/_index_specs.md` - specifications index
 - `data/memory/memory.md`, `data/memory/decisions.md`, `data/memory/env.md` - agent memory minimum when `data/memory/` exists; update it after significant decisions
-- Ignore `.backup/`, `.trash/`, `.arch/`, `.opencode/`, `.kilo/` unless the user explicitly asks
+- Ignore `.backup/`, `.trash/`, `.arch/`, `.opencode/` unless the user explicitly asks
 - Tagging an `@_index_*.md` file without a task runs its index auto-update procedure
 
 ## Language & Typography Matrix
