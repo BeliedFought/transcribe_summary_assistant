@@ -1,4 +1,4 @@
-# Standards Package Index. Version 5.2.1
+# Standards Package Index. Version 5.2.2
 
 Entry point to the standards package. Tag this file to make an agent load only the documents relevant to the current task. Each overlay applies on top of `project_standards.md` for its project class.
 
@@ -100,7 +100,7 @@ Archive rule: `.backup/<version>/` holds cold snapshots of prior package version
 | Docker compose, ports, ufw, logs, backups, service docs, host overrides | `deploy_docker_standards.md` |
 | Hyper-V Linux VM deployment and maintenance | `deploy_hyperv_standards.md` |
 | Web app structure, FastAPI, nginx fronts, systemd/Docker, TLS, update/rollback, runtime data, UI base | `web_standards.md` |
-| Skill `SKILL.md` layout, frontmatter, types, categories, scripts, root commands, discovery/testing, deploy targets | `skill_anthropic_standards.md`; `superpowers:writing-skills` |
+| Skill `SKILL.md` layout, frontmatter, types, categories, scripts, root commands, legacy cleanup element, discovery/testing, deploy targets | `skill_anthropic_standards.md`; `superpowers:writing-skills` |
 | Skill runtime data zones and formats | `skill_data_standards.md` |
 | Local skills and skill indexes | `skill_anthropic_standards.md` (01.03); `index_nav_standards.md` (06.02) |
 | Custom OpenCode tool vs skill; plugin V2, schema, output, permissions | `opencode_tool_standards.md` |
