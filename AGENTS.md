@@ -1,7 +1,7 @@
 <!-- START static -->
 # AGENTS.md
 
-Standard version: 5.2.3
+Standard version: 5.2.4
 
 This file contains instructions for AI agents working with this project.
 
@@ -18,11 +18,11 @@ This file contains instructions for AI agents working with this project.
 
 | Contour | Artifacts | Language |
 | --- | --- | --- |
-| Human | Chat responses, `README.md`, user guides, `doc/specs/`, implementation plans, `doc/change_requests/` | Russian |
+| Human | Chat responses, `README.md`, user guides | Russian |
 | User-facing output | Console strings, `report`, `menu`/`rich`, GUI widgets, `--help` through `t()` | English by default; Russian opt-in |
-| Agent and code | `AGENTS.md`, `CLAUDE.md`, standards, indexes, skills, code, comments, docstrings, technical logs (`logger.*`), commit messages, subagent communication | English |
+| Agent and code | `AGENTS.md`, `CLAUDE.md`, standards, indexes, skills, code, comments, docstrings, technical logs (`logger.*`), commit messages, subagent communication, specifications (`doc/specs/`), implementation plans, change requests (`doc/change_requests/`) | English |
 
-Typography applies to all contours: hyphen-minus `-` only (no em dash or en dash), letter `е` without diaeresis, no ellipsis, no emoji, no exclamation marks, no non-breaking or narrow spaces. User-facing output defaults to English; Russian is allowed through `t()`, `[app] language`, `LANGUAGE`, or a project override. Documentation, specifications, change requests, and chat stay Russian. User-facing text follows `doc/standards/human_text_standards.md`; the machine override is `~/.config/opencode/AGENTS.md`; the core rule is `project_standards.md` (04.03). This block is self-sufficient and keeps the rules for sessions where the machine layer is absent. When the machine layer is present, it takes precedence over this block; the two texts must not contradict. Do not remove the rules as duplicates.
+Typography applies to all contours: hyphen-minus `-` only (no em dash or en dash), letter `е` without diaeresis, no ellipsis, no emoji, no exclamation marks, no non-breaking or narrow spaces. User-facing output defaults to English; Russian is allowed through `t()`, `[app] language`, `LANGUAGE`, or a project override. English is the default for written artifacts unless explicitly stated otherwise; README, user guides, and chat stay Russian. User-facing text follows `doc/standards/human_text_standards.md`; the machine override is `~/.config/opencode/AGENTS.md`; the core rule is `project_standards.md` (04.03). This block is self-sufficient and keeps the rules for sessions where the machine layer is absent. When the machine layer is present, it takes precedence over this block; the two texts must not contradict. Do not remove the rules as duplicates.
 
 The language split in the table above is self-sufficient and applies when the machine layer is absent. When the machine layer is present, its `## Language` section takes precedence on conflict; the two texts must not contradict.
 
@@ -30,7 +30,7 @@ The language split in the table above is self-sufficient and applies when the ma
 
 - Use the superpowers skills: `brainstorming` (design exploration and task classification), `writing-plans` (specs and implementation plans), `test-driven-development`, `systematic-debugging`, `subagent-driven-development` or `executing-plans`, `verification-before-completion`, `writing-skills`.
 - Classify work as Spike, Bounded, or Architectural before implementation; ratchet up when hidden complexity appears.
-- Write specifications and plans in Russian; keep them in `doc/specs/` (`init/` before MVP, `spec_<module>.md` after).
+- Write specifications and plans in English; keep them in `doc/specs/` (`init/` before MVP, `spec_<module>.md` after).
 - Delegate isolated search, audit, and verification work to subagents; briefs and answers are English, the user summary is Russian.
 - Fact-checking cascade: local code and standards -> `context7` MCP -> `github` MCP -> web search for exact error text -> ask the user when unverifiable.
 
