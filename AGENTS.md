@@ -1,7 +1,7 @@
 <!-- START static -->
 # AGENTS.md
 
-Standard version: 5.2.2
+Standard version: 5.2.3
 
 This file contains instructions for AI agents working with this project.
 
