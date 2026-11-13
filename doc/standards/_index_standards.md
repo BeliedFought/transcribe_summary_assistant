@@ -97,10 +97,10 @@ Archive rule: `.backup/<version>/` holds cold snapshots of prior package version
 | Deploy variant selection: packaged Python CLI versus file-based solution, mixed repository | `deploy_standards.md` (Deployment Variants) |
 | Deploy CLI (Variant A): packaging, `PROJECT_ROOT`, install/update contracts, config/.env migration; Linux and Windows overlays | `deploy_standards.md` (01-05); `deploy_lin_standards.md`; `deploy_win_standards.md` |
 | Solution runtime (Variant B): factory layout, `solution.json`, installed layout, lifecycle, verify outcomes, relation to Variant A | `deploy_standards.md` (07) |
-| Docker compose, ports, ufw, logs, backups, service docs, host overrides | `deploy_docker_standards.md` |
+| Docker compose, ports, ufw and the DOCKER-USER managed block, logs, backups, service docs, host overrides | `deploy_docker_standards.md` |
 | Hyper-V Linux VM deployment and maintenance | `deploy_hyperv_standards.md` |
 | Web app structure, FastAPI, nginx fronts, systemd/Docker, TLS, update/rollback, runtime data, UI base | `web_standards.md` |
-| Skill `SKILL.md` layout, frontmatter, types, categories, scripts, root commands, legacy cleanup element, discovery/testing, deploy targets | `skill_anthropic_standards.md`; `superpowers:writing-skills` |
+| Skill `SKILL.md` layout, frontmatter, types, categories, status vocabulary (`draft` / `optional` / `stable`), scripts, root commands, legacy cleanup element, discovery/testing, deploy targets | `skill_anthropic_standards.md`; `superpowers:writing-skills` |
 | Skill runtime data zones and formats | `skill_data_standards.md` |
 | Local skills and skill indexes | `skill_anthropic_standards.md` (01.03); `index_nav_standards.md` (06.02) |
 | Custom OpenCode tool vs skill; plugin V2, schema, output, permissions | `opencode_tool_standards.md` |

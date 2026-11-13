@@ -303,13 +303,15 @@ Direct internet publication without a proxy (`"0.0.0.0:<host_port>:<container_po
 - Host service ports - open individually, one rule per service
 - Add a comment with the service name to every rule
 - If a service uses several ports, describe each port with a separate commented rule
-- Do not create `ufw` rules for published Docker ports: the daemon inserts its own iptables chains before ufw chains, so the rules have no effect (02.06). Access is determined by the port binding to the host interface
+- Do not create `ufw` rules for published Docker ports: the daemon inserts its own iptables chains before ufw chains, so the INPUT rules have no effect (02.06). Port access is governed in the `DOCKER-USER` chain, the only chain Docker preserves
+- When at least one port is published on a routable interface, the `DOCKER-USER` chain is managed through `/etc/ufw/after.rules` in a marker-managed block (`# --- cfg-ufw: docker-user ---` ... end): the chain declaration `:DOCKER-USER - [0:0]`, a RETURN for `ESTABLISHED,RELATED`, one RETURN per known local subnet, a final DROP. The managed block sits inside the existing `*filter` table before its COMMIT - a second `*filter` section in the same restore file flushes the table ufw just built. The block is rewritten idempotently, content outside the markers is untouched
+- Apply of the block is one batched root program per run (05.04): timestamped backup of `after.rules`, install, `ufw reload` with backup restore on failure, then `iptables -S DOCKER-USER` as the objective check. A host without published ports carries no managed block
 
 ### 03.02. Setup order
 
 *Mandatory.*
 
-The firewall is configured at the base stage (SSH) and for host services. When adding a Docker service, no ufw rules are created - port publication and binding follow 02.06.
+The firewall is configured at the base stage (SSH) and for host services. When adding a Docker service, no ufw INPUT rules are created - port publication and binding follow 02.06, and the `DOCKER-USER` managed block (03.01) is applied or extended in the same pass when new published ports appear.
 
 ---
 
