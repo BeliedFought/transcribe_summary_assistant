@@ -1,4 +1,4 @@
-# Anthropic Agent Skills Standards. Version 5.2.0
+# Anthropic Agent Skills Standards. Version 5.2.1
 
 This document is the single skill canon for the package. It defines the Anthropic Agent Skills format: a skill directory with a mandatory `SKILL.md`, YAML frontmatter, progressive disclosure, nested files, and scripts. It also defines the four-type taxonomy, the closed ten-category dictionary, naming, distribution, and verification. It supplements `doc/standards/project_standards.md` and applies on top of it.
 
@@ -368,6 +368,7 @@ This rule is stricter than the Anthropic canon (the specification allows inline 
 
 - Executability: execute permission, shebang, dependencies described in the body or a resource.
 - Safety: arguments through parameters, no side effects beyond the task, destructive actions only behind an explicit flag.
+- Secrets: a skill that needs a credential follows `project_standards.md` (05.01) - it ships no value and no copy of one, keeps it in the machine-local store, provides `secret --set` / `--status` / `--clear` for that store, and prints the provisioning command for the user instead of accepting the value as an argument.
 - One script - one operation; output is compact, to stdout or an artifact file.
 - Script output and text follow `cli_output_standards.md`: human status uses `report` (header, key-value block, steps `[n/m]`, `Result`, `error:` on stderr); logs and parsable streams use `plain` (`YYYY-MM-DD HH:MM:SS [marker] message`, the time inserted by the script itself, monochrome, no ANSI, no frames, no separator lines, markers `[!]` / `[i]` / `[*]`; no `src/logger.py`, no log files, no `log` folder); automation uses `--porcelain`. English is the default; Russian is allowed through the project locale or an override (04.03). Typography: no trailing period, no diaeresis letter, hyphen-minus U+002D only, no ellipsis; one line - one message (04.04.02); exit codes 0 / 1 / 2 - success / execution error / usage error (05.03).
 - Remove tool confirmations with a prefix in `allowed-tools`:

@@ -1,4 +1,4 @@
-# Code Standards. Version 5.2.0
+# Code Standards. Version 5.2.1
 
 Canonical coding requirements by language: Python, JavaScript, HTML and CSS, Shell, Windows (PowerShell and batch); data formats; shared rules (comments, TODO, line length, encoding); and linters. This document supplements `project_standards.md` and applies on top of it: project structure, configuration, output and UI, security, git, and workflow live in the core standard. For decision priority when a rule is missing or ambiguous, see `project_standards.md` (Section 07.06).
 
@@ -390,6 +390,7 @@ Rules apply to repository shell scripts, including skill scripts (`scripts/` in 
 - Do not use decorative separator lines (`# --- xxx ---`) in rc files
 - Group aliases by domain (vpn commands together, rdp together, and so on); paired commands follow one naming pattern `<domain>-on` / `<domain>-off` / `<domain>-status` (example: the `vpntg-on`, `vpntg-off`, `vpntg-status` family)
 - One alias has one owner: the skill that writes and verifies it; two skills never manage the same line; an alias owned by another skill migrates or is skipped during cleanup, never deleted
+- No secrets in rc files: a command that needs a credential reads it at runtime from the machine-local store (`project_standards.md`, 05.01) and passes it through stdin, never through argv; a command carrying a credential is written as a shell function, not as an `alias` line
 - Append new definitions to the end of their domain; keep domain order stable between runs so repeated applications are idempotent
 
 ---

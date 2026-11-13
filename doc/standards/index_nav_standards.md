@@ -1,4 +1,4 @@
-# Repository Navigation Documents: Indexes and AGENTS.md. Version 5.2.0
+# Repository Navigation Documents: Indexes and AGENTS.md. Version 5.2.1
 
 Canon for repository navigation documents: directory indexes and the agent instruction file `AGENTS.md`. Purpose - fast and accurate AI agent routing: in one pass over an index the agent determines which files to open for a task and does not load whole directories. The document supplements `project_standards.md` and applies on top of it. Decision order when a rule is missing or ambiguous - `project_standards.md`, 07.06.
 

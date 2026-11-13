@@ -1,4 +1,4 @@
-# Linux Deploy Standards. Version 5.2.0
+# Linux Deploy Standards. Version 5.2.1
 
 OS overlay for Variant A of `deploy_standards.md` (shared core): installing a Python project as a system CLI tool. Apply it together with the core and `project_standards.md`. This document contains Linux specifics only; general deploy rules live in the core, and the solution runtime (Variant B, section 07) needs no overlay.
 
